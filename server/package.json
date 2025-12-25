@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:ci": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
     "dev": "nodemon index.js",
     "start": "node index.js",
     "seed": "node scripts/seedAdmin.js"

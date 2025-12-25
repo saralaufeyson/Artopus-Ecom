@@ -97,14 +97,35 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         if (!order) return res.status(404).json({ received: true });
         // Idempotency: if already succeeded, do nothing
         if (order.status === 'succeeded') return res.json({ received: true });
-        order.status = 'succeeded';
-        await order.save();
+        // Check stock availability before marking succeeded
         for (const it of order.items) {
           const p = await Product.findById(it.productId);
           if (!p) continue;
-          p.stockQuantity = Math.max(0, p.stockQuantity - it.quantity);
-          if (p.type === 'original-artwork' && p.stockQuantity === 0) p.isActive = false;
-          await p.save();
+          if (p.stockQuantity < it.quantity) {
+            order.status = 'failed';
+            await order.save();
+            return res.json({ received: true, note: 'insufficient_stock' });
+          }
+        }
+        order.status = 'succeeded';
+        await order.save();
+        // Attempt atomic decrements to avoid race conditions
+        for (const it of order.items) {
+          const updatedP = await Product.findOneAndUpdate(
+            { _id: it.productId, stockQuantity: { $gte: it.quantity } },
+            { $inc: { stockQuantity: -it.quantity } },
+            { new: true }
+          );
+          if (!updatedP) {
+            // insufficient stock during decrement - mark failed
+            order.status = 'failed';
+            await order.save();
+            return res.json({ received: true, note: 'insufficient_stock' });
+          }
+          if (updatedP.type === 'original-artwork' && updatedP.stockQuantity === 0) {
+            updatedP.isActive = false;
+            await updatedP.save();
+          }
         }
         return res.json({ received: true });
       } catch (err) {
@@ -128,16 +149,28 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         session.endSession();
         return res.json({ received: true });
       }
+      // Attempt atomic decrements within transaction to avoid races
+      for (const it of order.items) {
+        const updatedP = await Product.findOneAndUpdate(
+          { _id: it.productId, stockQuantity: { $gte: it.quantity } },
+          { $inc: { stockQuantity: -it.quantity } },
+          { session, new: true }
+        );
+        if (!updatedP) {
+          // insufficient stock during decrement - mark failed
+          order.status = 'failed';
+          await order.save({ session });
+          await session.commitTransaction();
+          session.endSession();
+          return res.json({ received: true, note: 'insufficient_stock' });
+        }
+        if (updatedP.type === 'original-artwork' && updatedP.stockQuantity === 0) {
+          updatedP.isActive = false;
+          await updatedP.save({ session });
+        }
+      }
       order.status = 'succeeded';
       await order.save({ session });
-      // Decrement inventory
-      for (const it of order.items) {
-        const p = await Product.findById(it.productId).session(session);
-        if (!p) continue;
-        p.stockQuantity = Math.max(0, p.stockQuantity - it.quantity);
-        if (p.type === 'original-artwork' && p.stockQuantity === 0) p.isActive = false;
-        await p.save({ session });
-      }
       await session.commitTransaction();
       session.endSession();
       return res.json({ received: true });

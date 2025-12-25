@@ -1,5 +1,7 @@
 # Artopus Backend (MVP)
 
+![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)
+
 Quick start:
 
 1. Copy `.env` to set your real environment values (Mongo URI, JWT secret, Stripe keys, admin creds). Edit the existing `.env` file in the `server` folder and replace placeholders with your values.
