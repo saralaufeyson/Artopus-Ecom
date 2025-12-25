@@ -95,6 +95,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       try {
         const order = await Order.findOne({ paymentIntentId: pi.id });
         if (!order) return res.status(404).json({ received: true });
+        // Idempotency: if already succeeded, do nothing
+        if (order.status === 'succeeded') return res.json({ received: true });
         order.status = 'succeeded';
         await order.save();
         for (const it of order.items) {

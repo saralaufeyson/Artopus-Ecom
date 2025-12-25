@@ -10,7 +10,7 @@ afterAll(async () => await teardownTestDB());
 
 test('Webhook idempotency: repeated events do not double-process order', async () => {
   // Set a stripe stub that returns parseable events
-  setStripeForTests({ webhooks: { constructEvent: (body) => JSON.parse(body) } });
+  setStripeForTests({ paymentIntents: { create: async () => ({ id: `pi_test_${Date.now()}`, client_secret: `cs_test` }) }, webhooks: { constructEvent: (body) => JSON.parse(body) } });
 
   const { createAdminAndGetToken } = await import('./setup.js');
   const adminToken = await createAdminAndGetToken();
