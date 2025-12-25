@@ -1,0 +1,38 @@
+name: Auto-fix ESLint
+
+on:
+  schedule:
+    - cron: '0 2 * * 1' # weekly on Mondays at 02:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install
+        run: npm ci
+
+      - name: Run ESLint --fix
+        run: npx eslint . --ext .js --fix || true
+
+      - name: Commit & create PR
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: apply ESLint fixes (auto)"
+          branch: eslint-fixes-bot
+          title: "chore: ESLint auto-fixes"
+          body: |
+            This PR applies automatic ESLint fixes using the project's configuration.
+
+          base: main

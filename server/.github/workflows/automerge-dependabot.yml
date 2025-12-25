@@ -1,0 +1,19 @@
+name: Auto-merge Dependabot
+
+on:
+  pull_request:
+    types: [labeled, opened, synchronize]
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+    steps:
+      - name: Attempt auto-merge
+        uses: pascalgn/automerge-action@v0.15.0
+        with:
+          mergeMethod: squash
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          pullRequestAuthor: dependabot[bot]
+          label: dependencies
+          requiredStatusChecks: 'ci'
