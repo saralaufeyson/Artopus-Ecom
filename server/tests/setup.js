@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import app from '../app.js';
 import request from 'supertest';
+import app from '../app.js';
 import User from '../models/User.js';
 
 let mongoServer;
@@ -24,7 +24,9 @@ export async function createAdminAndGetToken() {
   const bcrypt = await import('bcryptjs');
   const existing = await User.findOne({ email });
   if (!existing) {
-    await User.create({ name: 'Admin', email, password: await bcrypt.hash(password, 10), role: 'admin' });
+    await User.create({
+      name: 'Admin', email, password: await bcrypt.hash(password, 10), role: 'admin',
+    });
   }
   const res = await request(app).post('/api/auth/login').send({ email, password });
   return res.body.token;

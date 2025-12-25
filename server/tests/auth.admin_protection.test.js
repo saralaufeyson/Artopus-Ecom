@@ -8,12 +8,14 @@ afterAll(async () => await teardownTestDB());
 test('Non-admin cannot create products or get upload signature (403)', async () => {
   // Create normal user
   const reg = await request(app).post('/api/auth/register').send({ name: 'User', email: 'user-noadmin@test.com', password: 'password123' });
-  const token = reg.body.token;
+  const { token } = reg.body;
 
   const prodRes = await request(app)
     .post('/api/products')
     .set('Authorization', `Bearer ${token}`)
-    .send({ type: 'merchandise', title: 'X', description: 'Y', price: 1, category: 'Misc', imageUrl: 'http://example.com' });
+    .send({
+      type: 'merchandise', title: 'X', description: 'Y', price: 1, category: 'Misc', imageUrl: 'http://example.com',
+    });
   expect(prodRes.status).toBe(403);
 
   const uploadsRes = await request(app)

@@ -13,14 +13,18 @@ afterAll(async () => {
 });
 
 test('Product enforces type-specific stock (original-artwork max 1)', async () => {
-  const p = await Product.create({ type: 'original-artwork', title: 'Unique', description: 'd', price: 10, category: 'Painting', imageUrl: 'http://x.jpg', stockQuantity: 5 });
+  const p = await Product.create({
+    type: 'original-artwork', title: 'Unique', description: 'd', price: 10, category: 'Painting', imageUrl: 'http://x.jpg', stockQuantity: 5,
+  });
   expect(p.stockQuantity).toBeLessThanOrEqual(1);
 });
 
 test('Product requires imageUrl', async () => {
   let err;
   try {
-    await Product.create({ type: 'merchandise', title: 'X', description: 'Y', price: 1, category: 'Misc' });
+    await Product.create({
+      type: 'merchandise', title: 'X', description: 'Y', price: 1, category: 'Misc',
+    });
   } catch (e) { err = e; }
   expect(err).toBeDefined();
   expect(err.message).toMatch(/imageUrl/);

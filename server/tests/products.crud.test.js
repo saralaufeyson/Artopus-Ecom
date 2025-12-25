@@ -10,7 +10,9 @@ test('Admin can create, update, and deactivate a product', async () => {
   const token = await createAdminAndGetToken();
 
   // Create
-  const createRes = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send({ type: 'merchandise', title: 'CRUD Test', description: 'desc', price: 4.5, category: 'Test', stockQuantity: 10, imageUrl: 'http://x.jpg' });
+  const createRes = await request(app).post('/api/products').set('Authorization', `Bearer ${token}`).send({
+    type: 'merchandise', title: 'CRUD Test', description: 'desc', price: 4.5, category: 'Test', stockQuantity: 10, imageUrl: 'http://x.jpg',
+  });
   expect(createRes.status).toBe(201);
   const prod = createRes.body;
 
@@ -25,5 +27,5 @@ test('Admin can create, update, and deactivate a product', async () => {
 
   // Ensure inactive not returned in list
   const listRes = await request(app).get('/api/products');
-  expect(listRes.body.some(p => p._id === prod._id)).toBe(false);
+  expect(listRes.body.some((p) => p._id === prod._id)).toBe(false);
 });

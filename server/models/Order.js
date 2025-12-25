@@ -24,7 +24,7 @@ const OrderSchema = new mongoose.Schema(
     status: { type: String, enum: ['created', 'succeeded', 'failed', 'shipped', 'delivered'], default: 'created' },
     shippingAddress: { type: AddressSchema, required: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model('Order', OrderSchema);

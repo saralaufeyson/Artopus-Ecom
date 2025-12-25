@@ -1,10 +1,14 @@
 import express from 'express';
-import Product from '../models/Product.js';
-import { authMiddleware } from '../middleware/auth.js';
-import { adminMiddleware } from '../middleware/admin.js';
 import { v2 as cloudinary } from 'cloudinary';
 import CloudinaryStorage from 'multer-storage-cloudinary';
 import multer from 'multer';
+import Product from '../models/Product.js';
+import { authMiddleware } from '../middleware/auth.js';
+import { adminMiddleware } from '../middleware/admin.js';
+
+// POST /api/products (admin only) - supports multipart/form-data with `image` file field
+import { validate } from '../middleware/validate.js';
+import { productCreateSchema, productUpdateSchema } from '../validation/schemas.js';
 
 const router = express.Router();
 
@@ -45,21 +49,19 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// POST /api/products (admin only) - supports multipart/form-data with `image` file field
-import { validate } from '../middleware/validate.js';
-import { productCreateSchema, productUpdateSchema } from '../validation/schemas.js';
-
 router.post('/', authMiddleware, adminMiddleware, parser.single('image'), (req, res, next) => {
   // We need to validate multipart form: merge body and file-derived imageUrl before validating
   const mergedBody = { ...req.body };
   if (req.file && req.file.path) mergedBody.imageUrl = req.file.path;
   const { error } = productCreateSchema.validate(mergedBody, { abortEarly: false, stripUnknown: true });
-  if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map(d => d.message) });
+  if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map((d) => d.message) });
   req.body = mergedBody;
   next();
 }, async (req, res, next) => {
   try {
-    const { type, title, description, price, category, stockQuantity, imageUrl } = req.body;
+    const {
+      type, title, description, price, category, stockQuantity, imageUrl,
+    } = req.body;
     const product = await Product.create({
       type,
       title,
@@ -80,7 +82,7 @@ router.put('/:id', authMiddleware, adminMiddleware, parser.single('image'), (req
   const mergedBody = { ...req.body };
   if (req.file && req.file.path) mergedBody.imageUrl = req.file.path;
   const { error } = productUpdateSchema.validate(mergedBody, { abortEarly: false, stripUnknown: true });
-  if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map(d => d.message) });
+  if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map((d) => d.message) });
   req.body = mergedBody;
   next();
 }, async (req, res, next) => {

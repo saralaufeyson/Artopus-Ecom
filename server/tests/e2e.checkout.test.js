@@ -18,7 +18,9 @@ test('E2E: merchandise checkout reduces inventory and marks order succeeded via 
   const productRes = await request(app)
     .post('/api/products')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ type: 'merchandise', title: 'Sticker Pack', description: 'Nice stickers', price: 5.0, category: 'Sticker', stockQuantity: 5, imageUrl: 'http://example.com/image.jpg' });
+    .send({
+      type: 'merchandise', title: 'Sticker Pack', description: 'Nice stickers', price: 5.0, category: 'Sticker', stockQuantity: 5, imageUrl: 'http://example.com/image.jpg',
+    });
   expect(productRes.status).toBe(201);
   const product = productRes.body;
 
@@ -27,14 +29,19 @@ test('E2E: merchandise checkout reduces inventory and marks order succeeded via 
   const createIntentRes = await request(app)
     .post('/api/payments/create-intent')
     .set('Authorization', `Bearer ${customerToken}`)
-    .send({ items: [{ productId: product._id, quantity: 2 }], shippingAddress: { street: 'A', city: 'B', state: 'C', zip: '12345', country: 'X' } });
+    .send({
+      items: [{ productId: product._id, quantity: 2 }],
+      shippingAddress: {
+        street: 'A', city: 'B', state: 'C', zip: '12345', country: 'X',
+      },
+    });
   expect(createIntentRes.status).toBe(200);
   const { clientSecret, orderId } = createIntentRes.body;
   expect(clientSecret).toBeDefined();
   expect(orderId).toBeDefined();
 
   // Simulate Stripe webhook event for succeeded payment
-  const paymentIntentId = (await Order.findById(orderId)).paymentIntentId;
+  const { paymentIntentId } = await Order.findById(orderId);
   const event = JSON.stringify({ type: 'payment_intent.succeeded', data: { object: { id: paymentIntentId } } });
   const webhookRes = await request(app)
     .post('/api/payments/webhook')
@@ -55,7 +62,9 @@ test('E2E: original artwork sale marks as sold out and deactivates product', asy
   const productRes = await request(app)
     .post('/api/products')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ type: 'original-artwork', title: 'Unique Painting', description: 'One of a kind', price: 200.0, category: 'Painting', stockQuantity: 1, imageUrl: 'http://example.com/image2.jpg' });
+    .send({
+      type: 'original-artwork', title: 'Unique Painting', description: 'One of a kind', price: 200.0, category: 'Painting', stockQuantity: 1, imageUrl: 'http://example.com/image2.jpg',
+    });
   expect(productRes.status).toBe(201);
   const product = productRes.body;
 
@@ -63,11 +72,16 @@ test('E2E: original artwork sale marks as sold out and deactivates product', asy
   const createIntentRes = await request(app)
     .post('/api/payments/create-intent')
     .set('Authorization', `Bearer ${customerToken}`)
-    .send({ items: [{ productId: product._id, quantity: 1 }], shippingAddress: { street: 'A', city: 'B', state: 'C', zip: '12345', country: 'X' } });
+    .send({
+      items: [{ productId: product._id, quantity: 1 }],
+      shippingAddress: {
+        street: 'A', city: 'B', state: 'C', zip: '12345', country: 'X',
+      },
+    });
   expect(createIntentRes.status).toBe(200);
   const { orderId } = createIntentRes.body;
 
-  const paymentIntentId = (await Order.findById(orderId)).paymentIntentId;
+  const { paymentIntentId } = await Order.findById(orderId);
   const event = JSON.stringify({ type: 'payment_intent.succeeded', data: { object: { id: paymentIntentId } } });
   await request(app)
     .post('/api/payments/webhook')

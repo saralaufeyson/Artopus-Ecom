@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import Order from '../models/Order.js';
 import mongoosePkg from 'mongoose';
+import Order from '../models/Order.js';
 
 let mongoServer;
 beforeAll(async () => {
@@ -15,7 +15,17 @@ afterAll(async () => {
 
 test('Order requires items and shipping address', async () => {
   let err;
-  try { await Order.create({ customer: new mongoosePkg.Types.ObjectId(), items: [], totalAmount: 0, paymentIntentId: 'pi_1', shippingAddress: { street: 'A', city: 'B', state: 'C', zip: '1', country: 'X' } }); } catch (e) { err = e; }
+  try {
+    await Order.create({
+      customer: new mongoosePkg.Types.ObjectId(),
+      items: [],
+      totalAmount: 0,
+      paymentIntentId: 'pi_1',
+      shippingAddress: {
+        street: 'A', city: 'B', state: 'C', zip: '1', country: 'X',
+      },
+    });
+  } catch (e) { err = e; }
   expect(err).toBeDefined();
   expect(err.message).toMatch(/Order must have at least one item/);
 });

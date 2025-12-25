@@ -1,9 +1,14 @@
 import express from 'express';
 import Stripe from 'stripe';
+import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import { authMiddleware } from '../middleware/auth.js';
-import mongoose from 'mongoose';
+
+// POST /api/payments/create-intent
+// Body: { items: [{ productId, quantity }], shippingAddress }
+import { validate } from '../middleware/validate.js';
+import { createIntentSchema } from '../validation/schemas.js';
 
 const router = express.Router();
 let stripe = null;
@@ -29,11 +34,6 @@ export function setStripeForTests(obj) {
   stripe = obj;
 }
 
-// POST /api/payments/create-intent
-// Body: { items: [{ productId, quantity }], shippingAddress }
-import { validate } from '../middleware/validate.js';
-import { createIntentSchema } from '../validation/schemas.js';
-
 router.post('/create-intent', authMiddleware, validate(createIntentSchema), async (req, res, next) => {
   try {
     const { items, shippingAddress } = req.body;
@@ -49,7 +49,9 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
       if (p.type === 'original-artwork' && p.stockQuantity < 1) return res.status(400).json({ message: `${p.title} is sold out` });
       if (p.type === 'merchandise' && p.stockQuantity < it.quantity) return res.status(400).json({ message: `Insufficient stock for ${p.title}` });
       total += p.price * it.quantity;
-      orderItems.push({ productId: p._id, title: p.title, price: p.price, quantity: it.quantity });
+      orderItems.push({
+        productId: p._id, title: p.title, price: p.price, quantity: it.quantity,
+      });
     }
 
     // Create Stripe PaymentIntent (preview/test mode)
@@ -114,7 +116,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           const updatedP = await Product.findOneAndUpdate(
             { _id: it.productId, stockQuantity: { $gte: it.quantity } },
             { $inc: { stockQuantity: -it.quantity } },
-            { new: true }
+            { new: true },
           );
           if (!updatedP) {
             // insufficient stock during decrement - mark failed
@@ -154,7 +156,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const updatedP = await Product.findOneAndUpdate(
           { _id: it.productId, stockQuantity: { $gte: it.quantity } },
           { $inc: { stockQuantity: -it.quantity } },
-          { session, new: true }
+          { session, new: true },
         );
         if (!updatedP) {
           // insufficient stock during decrement - mark failed

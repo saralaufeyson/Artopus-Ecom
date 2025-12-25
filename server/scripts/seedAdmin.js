@@ -20,12 +20,14 @@ async function seedAdmin() {
     process.exit(0);
   }
   const hash = await bcrypt.hash(password, 10);
-  const admin = await User.create({ name: 'Admin', email, password: hash, role: 'admin' });
+  const admin = await User.create({
+    name: 'Admin', email, password: hash, role: 'admin',
+  });
   console.log('Admin created:', admin.email);
   process.exit(0);
 }
 
-seedAdmin().catch(err => {
+seedAdmin().catch((err) => {
   console.error(err);
   process.exit(1);
 });

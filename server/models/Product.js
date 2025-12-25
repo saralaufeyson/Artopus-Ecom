@@ -11,7 +11,7 @@ const ProductSchema = new mongoose.Schema(
     stockQuantity: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Ensure original artworks always have stock 1 or 0
