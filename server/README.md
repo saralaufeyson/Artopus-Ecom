@@ -2,6 +2,12 @@
 
 ![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg) ![Coverage](https://codecov.io/gh/<OWNER>/<REPO>/branch/main/graph/badge.svg)
 
+Badge setup:
+
+- Replace `<OWNER>/<REPO>` with your GitHub repository path in the badges above.
+- If your repo is private, add a `CODECOV_TOKEN` secret to the repository settings (Settings → Secrets & variables → Actions → New repository secret) so the CI step that uploads to Codecov can authenticate.
+- Codecov upload is already included in `.github/workflows/ci.yml`; once the repo has the secret, Codecov will receive coverage reports and the badge will update automatically.
+
 Quick start:
 
 1. Copy `.env` to set your real environment values (Mongo URI, JWT secret, Stripe keys, admin creds). Edit the existing `.env` file in the `server` folder and replace placeholders with your values.
