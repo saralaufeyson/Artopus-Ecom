@@ -1,75 +1,48 @@
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { CartContext } from '../contexts/CartContext';
 import './Cart.css';
 
-function Cart() {
-  const cartItems = [
-    { id: 1, title: 'Artwork Title 1', artist: 'Artist Name', price: 850, quantity: 1 },
-    { id: 2, title: 'Artwork Title 2', artist: 'Artist Name', price: 650, quantity: 1 },
-  ];
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = 50;
-  const total = subtotal + shipping;
+const Cart: React.FC = () => {
+  const { cart, removeFromCart, updateQuantity, getSubtotal } = useContext(CartContext)!;
 
   return (
-    <div className="cart-page">
-      <div className="page-container">
-        <h1 className="page-title">Shopping Cart</h1>
-
-        {cartItems.length === 0 ? (
-          <div className="empty-cart">
-            <p>Your cart is empty</p>
-            <Link to="/shop" className="continue-shopping">
-              Continue Shopping
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">Cart</h1>
+      {cart.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <>
+          <div className="space-y-4">
+            {cart.map(item => (
+              <div key={item.id} className="flex items-center justify-between border-b pb-4">
+                <img src={item.image} alt={item.title} className="w-16 h-16 object-cover" />
+                <div className="flex-1 ml-4">
+                  <h3 className="text-lg font-semibold">{item.title}</h3>
+                  <p>${item.price}</p>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max={item.type === 'original-artwork' ? 1 : undefined}
+                  value={item.quantity}
+                  onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                  className="w-16 px-2 py-1 border rounded"
+                />
+                <button onClick={() => removeFromCart(item.id)} className="ml-4 text-red-600">Remove</button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 text-right">
+            <p className="text-xl font-bold">Subtotal: ${getSubtotal().toFixed(2)}</p>
+            <Link to="/checkout" className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+              Proceed to Checkout
             </Link>
           </div>
-        ) : (
-          <div className="cart-layout">
-            <div className="cart-items">
-              {cartItems.map((item) => (
-                <div key={item.id} className="cart-item">
-                  <div className="cart-item-image">
-                    <span>Art {item.id}</span>
-                  </div>
-                  <div className="cart-item-details">
-                    <h3 className="cart-item-title">{item.title}</h3>
-                    <p className="cart-item-artist">{item.artist}</p>
-                    <p className="cart-item-price">${item.price.toFixed(2)}</p>
-                  </div>
-                  <div className="cart-item-quantity">
-                    <button className="quantity-button">-</button>
-                    <span>{item.quantity}</span>
-                    <button className="quantity-button">+</button>
-                  </div>
-                  <button className="remove-button">Remove</button>
-                </div>
-              ))}
-            </div>
-
-            <div className="cart-summary">
-              <h2>Order Summary</h2>
-              <div className="summary-row">
-                <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
-              </div>
-              <div className="summary-row">
-                <span>Shipping</span>
-                <span>${shipping.toFixed(2)}</span>
-              </div>
-              <div className="summary-divider"></div>
-              <div className="summary-row summary-total">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
-              </div>
-              <Link to="/checkout" className="checkout-button">
-                Proceed to Checkout
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
-}
+};
 
 export default Cart;

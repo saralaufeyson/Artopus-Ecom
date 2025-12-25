@@ -1,6 +1,50 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import ProductCard from '../components/ProductCard';
 import './Shop.css';
 
-function Shop() {
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  type: string;
+  category: string;
+}
+
+const Shop: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await axios.get('/api/products');
+        setProducts(res.data);
+        setFilteredProducts(res.data);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    let filtered = products.filter(product =>
+      product.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    if (typeFilter) {
+      filtered = filtered.filter(product => product.type === typeFilter);
+    }
+    if (categoryFilter) {
+      filtered = filtered.filter(product => product.category === categoryFilter);
+    }
+    setFilteredProducts(filtered);
+  }, [searchTerm, typeFilter, categoryFilter, products]);
+
   return (
     <div className="shop-page">
       <div className="page-container">
