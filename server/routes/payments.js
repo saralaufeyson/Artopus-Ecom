@@ -8,6 +8,26 @@ import mongoose from 'mongoose';
 const router = express.Router();
 let stripe = null;
 if (process.env.STRIPE_SECRET_KEY) stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// In test environment use a lightweight stub to avoid calling external Stripe API
+if (process.env.NODE_ENV === 'test') {
+  let _piCounter = 0;
+  stripe = {
+    paymentIntents: {
+      create: async () => {
+        _piCounter += 1;
+        return { id: `pi_test_${_piCounter}_${Date.now()}`, client_secret: `cs_test_${_piCounter}` };
+      },
+    },
+    webhooks: {
+      constructEvent: (body) => JSON.parse(body),
+    },
+  };
+}
+
+// Helper - allow tests to set a custom stripe object for signature/idempotency testing
+export function setStripeForTests(obj) {
+  stripe = obj;
+}
 
 // POST /api/payments/create-intent
 // Body: { items: [{ productId, quantity }], shippingAddress }
@@ -70,6 +90,27 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object;
     // Find order by paymentIntentId
+    if (process.env.NODE_ENV === 'test') {
+      // In tests (in-memory Mongo) transactions are not supported; run without session
+      try {
+        const order = await Order.findOne({ paymentIntentId: pi.id });
+        if (!order) return res.status(404).json({ received: true });
+        order.status = 'succeeded';
+        await order.save();
+        for (const it of order.items) {
+          const p = await Product.findById(it.productId);
+          if (!p) continue;
+          p.stockQuantity = Math.max(0, p.stockQuantity - it.quantity);
+          if (p.type === 'original-artwork' && p.stockQuantity === 0) p.isActive = false;
+          await p.save();
+        }
+        return res.json({ received: true });
+      } catch (err) {
+        console.error('Webhook processing error', err);
+        return res.status(500).json({ received: false });
+      }
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
@@ -78,6 +119,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         await session.abortTransaction();
         session.endSession();
         return res.status(404).json({ received: true });
+      }
+      // Idempotency: if already succeeded, do nothing
+      if (order.status === 'succeeded') {
+        await session.commitTransaction();
+        session.endSession();
+        return res.json({ received: true });
       }
       order.status = 'succeeded';
       await order.save({ session });

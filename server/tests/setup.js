@@ -22,7 +22,10 @@ export async function createAdminAndGetToken() {
   const email = 'admin@test.com';
   const password = 'password123';
   const bcrypt = await import('bcryptjs');
-  const admin = await User.create({ name: 'Admin', email, password: await bcrypt.hash(password, 10), role: 'admin' });
+  const existing = await User.findOne({ email });
+  if (!existing) {
+    await User.create({ name: 'Admin', email, password: await bcrypt.hash(password, 10), role: 'admin' });
+  }
   const res = await request(app).post('/api/auth/login').send({ email, password });
   return res.body.token;
 }

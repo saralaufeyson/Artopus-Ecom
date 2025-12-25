@@ -18,7 +18,7 @@ const AddressSchema = new mongoose.Schema({
 const OrderSchema = new mongoose.Schema(
   {
     customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    items: [OrderItemSchema],
+    items: { type: [OrderItemSchema], validate: [(arr) => arr && arr.length > 0, 'Order must have at least one item'] },
     totalAmount: { type: Number, required: true },
     paymentIntentId: { type: String, required: true },
     status: { type: String, enum: ['created', 'succeeded', 'failed', 'shipped', 'delivered'], default: 'created' },

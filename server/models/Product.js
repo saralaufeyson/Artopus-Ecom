@@ -15,11 +15,10 @@ const ProductSchema = new mongoose.Schema(
 );
 
 // Ensure original artworks always have stock 1 or 0
-ProductSchema.pre('save', function (next) {
+ProductSchema.pre('save', function () {
   if (this.type === 'original-artwork') {
     if (this.stockQuantity > 1) this.stockQuantity = 1;
   }
-  next();
 });
 
 export default mongoose.model('Product', ProductSchema);
