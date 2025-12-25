@@ -1,12 +1,13 @@
-import express from "express";
-import cors from "cors";
+import dotenv from 'dotenv';
+import { connectDB } from './config/db.js';
+import app from './app.js';
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+dotenv.config();
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "Backend running 🚀" });
+// Connect DB
+connectDB(process.env.MONGO_URI).catch(err => {
+  console.error('Failed to connect to DB', err);
+  process.exit(1);
 });
 
 const PORT = process.env.PORT || 5000;
