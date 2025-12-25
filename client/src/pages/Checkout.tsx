@@ -17,37 +17,39 @@ interface Shipping {
 const CheckoutForm: React.FC = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const { cart, getSubtotal } = useContext(CartContext)!;
-  const [clientSecret, setClientSecret] = useState<string>('');
+  const { cart } = useContext(CartContext)!; // Cart contains the items
   const [shipping, setShipping] = useState<Shipping>({ street: '', city: '', state: '', zip: '', country: '' });
-
-  useEffect(() => {
-    const createIntent = async () => {
-      try {
-        const res = await axios.post('/api/create-intent', { amount: getSubtotal() * 100 }); // Amount in cents
-        setClientSecret(res.data.clientSecret);
-      } catch (err) {
-        console.error('Failed to create payment intent:', err);
-      }
-    };
-    createIntent();
-  }, [getSubtotal]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!stripe || !elements) return;
 
-    const { error } = await stripe.confirmCardPayment(clientSecret, {
-      payment_method: {
-        card: elements.getElement(CardElement)!,
-        billing_details: { name: 'Customer Name' }, // Add more details
-      },
-    });
+    try {
+      // 1. Send items and shipping to get the clientSecret
+      // Correct endpoint: /api/payments/create-intent
+      const res = await axios.post('/api/payments/create-intent', { 
+        items: cart.map(item => ({ productId: item.id, quantity: item.quantity })),
+        shippingAddress: shipping 
+      });
 
-    if (error) {
-      console.error(error.message);
-    } else {
-      // Handle success, e.g., redirect or show confirmation
+      const { clientSecret } = res.data;
+
+      // 2. Confirm the payment with Stripe
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement)!,
+        },
+      });
+
+      if (error) {
+        console.error(error.message);
+      } else if (paymentIntent.status === 'succeeded') {
+        // 3. Handle success (Clear cart, redirect to success page)
+        alert("Payment Successful!");
+        window.location.href = "/"; 
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
     }
   };
 
@@ -62,7 +64,7 @@ const CheckoutForm: React.FC = () => {
       <h2 className="text-2xl font-bold mb-4">Payment</h2>
       <CardElement className="p-2 border rounded mb-4" />
       <button type="submit" disabled={!stripe} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-        Pay ${getSubtotal().toFixed(2)}
+        Pay ${cart.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2)}
       </button>
     </form>
   );

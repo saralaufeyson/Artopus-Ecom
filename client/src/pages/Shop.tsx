@@ -19,6 +19,7 @@ const Shop: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
+  // Fetch real data from your backend
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -32,6 +33,7 @@ const Shop: React.FC = () => {
     fetchProducts();
   }, []);
 
+  // Handle live filtering logic
   useEffect(() => {
     let filtered = products.filter(product =>
       product.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -49,44 +51,48 @@ const Shop: React.FC = () => {
     <div className="shop-page">
       <div className="page-container">
         <div className="page-header">
-          <h1 className="page-title">Shop Artworks</h1>
-          <p className="page-description">Browse our entire collection</p>
+          <h1 className="page-title text-3xl font-bold mb-2">Shop Artworks</h1>
+          <p className="page-description text-gray-600">Browse our entire collection</p>
+          <input 
+            type="text" 
+            placeholder="Search artworks..." 
+            className="mt-4 p-2 border rounded w-full max-w-md"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
-        <div className="shop-content">
-          <aside className="filters-sidebar">
-            <h3>Filters</h3>
-            <div className="filter-group">
-              <h4>Category</h4>
-              <label><input type="checkbox" /> Paintings</label>
-              <label><input type="checkbox" /> Photography</label>
-              <label><input type="checkbox" /> Digital Art</label>
-              <label><input type="checkbox" /> Sculpture</label>
+        <div className="shop-content flex mt-8">
+          <aside className="filters-sidebar w-1/4 pr-4">
+            <h3 className="font-bold mb-4">Filters</h3>
+            <div className="filter-group mb-6">
+              <h4 className="font-semibold mb-2">Type</h4>
+              <select 
+                className="w-full p-2 border rounded"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="original-artwork">Original Artwork</option>
+                <option value="merchandise">Merchandise</option>
+              </select>
             </div>
-            <div className="filter-group">
-              <h4>Price Range</h4>
-              <label><input type="checkbox" /> Under $500</label>
-              <label><input type="checkbox" /> $500 - $1000</label>
-              <label><input type="checkbox" /> $1000 - $2000</label>
-              <label><input type="checkbox" /> Over $2000</label>
-            </div>
+            {/* You can add Category filters here similarly */}
           </aside>
 
-          <div className="products-section">
-            <div className="products-grid">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-                <div key={item} className="product-card">
-                  <div className="product-image-placeholder">
-                    <span>Art {item}</span>
-                  </div>
-                  <div className="product-info">
-                    <h3 className="product-title">Artwork Title {item}</h3>
-                    <p className="product-artist">Artist Name</p>
-                    <p className="product-price">${(item * 350).toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="products-section w-3/4">
+            {filteredProducts.length > 0 ? (
+              <div className="products-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  // Using the ProductCard component enables navigation and Add to Cart
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10 text-gray-500">
+                No products found matching your criteria.
+              </div>
+            )}
           </div>
         </div>
       </div>
