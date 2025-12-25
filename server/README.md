@@ -1,12 +1,19 @@
 # Artopus Backend (MVP)
 
-![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg) ![Coverage](https://codecov.io/gh/<OWNER>/<REPO>/branch/main/graph/badge.svg)
 
 Quick start:
 
 1. Copy `.env` to set your real environment values (Mongo URI, JWT secret, Stripe keys, admin creds). Edit the existing `.env` file in the `server` folder and replace placeholders with your values.
 2. npm install (in `server` folder).
 3. npm run dev
+
+Development & Quality
+
+- Run the test suite: `npm test`
+- Run linting: `npm run lint` (requires `npm ci` to install dev deps)
+- Pre-commit hooks are enabled with Husky and lint-staged; run `npm run prepare` after `npm install` to enable them.
+- CI runs on push/PR and includes lint, audit, tests, and coverage upload. Add `CODECOV_TOKEN` secret to enable Codecov uploads.
 
 Notes about MongoDB:
 - If you want to use MongoDB Atlas (mongodb+srv), create a new database (or database user) in Atlas and replace `MONGO_URI` in `.env`.

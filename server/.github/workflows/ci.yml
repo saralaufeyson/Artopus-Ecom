@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [18.x, 20.x]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +32,12 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate || true
+
+      - name: Lint
+        run: npm run lint
+
       - name: Run tests (CI)
         run: npm run test:ci
         env:
@@ -43,3 +49,10 @@ jobs:
         with:
           name: coverage-report
           path: coverage
+
+      - name: Upload to Codecov
+        if: ${{ secrets.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/**/lcov.info
+          fail_ci_if_error: true
