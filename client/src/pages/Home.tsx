@@ -1,7 +1,44 @@
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import './Home.css';
+import axios from 'axios';
+import ProductCard from '../components/ProductCard'; // Import your existing card component
+import '../styles.css'; // Changed to centralized CSS
+
+interface Product {
+  id: string;
+  _id?: string; // Standard MongoDB ID
+  title: string;
+  price: number;
+  image: string;
+  type: string;
+  imageUrl?: string; // Matches your backend model field name
+}
 
 function Home() {
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        // Fetch products from your database
+        const res = await axios.get('/api/products');
+        
+        // Transform the data to ensure 'id' and 'image' match the component's expectations
+        const formattedProducts = res.data.map((p: any) => ({
+          ...p,
+          id: p._id || p.id,
+          image: p.imageUrl || p.image
+        }));
+
+        // Limit to the first 4 products for the "Featured" section
+        setFeaturedProducts(formattedProducts.slice(0, 4));
+      } catch (err) {
+        console.error('Failed to fetch featured products:', err);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
   return (
     <div className="home-page">
       <section className="hero">
@@ -19,20 +56,17 @@ function Home() {
       <section className="featured-section">
         <div className="section-container">
           <h2 className="section-title">Featured Artworks</h2>
-          <div className="artwork-grid">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="artwork-card">
-                <div className="artwork-image-placeholder">
-                  <span>Artwork {item}</span>
-                </div>
-                <div className="artwork-info">
-                  <h3 className="artwork-title">Art Title {item}</h3>
-                  <p className="artwork-artist">Artist Name</p>
-                  <p className="artwork-price">${(item * 250).toFixed(2)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {featuredProducts.length > 0 ? (
+            <div className="artwork-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-gray-500">
+              Loading featured artworks...
+            </div>
+          )}
         </div>
       </section>
     </div>
