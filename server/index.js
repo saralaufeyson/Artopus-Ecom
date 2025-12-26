@@ -1,30 +1,34 @@
-import dotenv from 'dotenv';
-import { connectDB } from './config/db.js';
-import app from './app.js';
-import { validateEnv } from './config/validateEnv.js';
+import dotenv from "dotenv";
+import app from "./app.js";
+import { connectDB } from "./config/db.js";
+import { validateEnv } from "./config/validateEnv.js";
+import logger from "./utils/logger.js";
 
 dotenv.config();
 
-// Ensure required env vars
+/**
+ * Validate environment variables
+ */
 try {
   validateEnv();
 } catch (err) {
-  // use logger to report missing env
-  // require lazily to avoid circular import during tests
-  const logger = (await import('./utils/logger.js')).default;
   logger.error(err.message);
   process.exit(1);
 }
 
-// Connect DB
-connectDB(process.env.MONGO_URI).catch(err => {
-  const logger = (await import('./utils/logger.js')).default;
-  logger.error('Failed to connect to DB', err);
+/**
+ * Connect to MongoDB
+ */
+connectDB(process.env.MONGO_URI).catch((err) => {
+  logger.error("Failed to connect to DB", err);
   process.exit(1);
 });
 
+/**
+ * Start server
+ */
 const PORT = process.env.PORT || 5000;
-const logger = (await import('./utils/logger.js')).default;
+
 app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+  logger.info(`🚀 Server running on port ${PORT}`);
 });
