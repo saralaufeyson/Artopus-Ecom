@@ -1,0 +1,249 @@
+/* CSS Variables for Artopus Theme Colors */
+:root {
+  /* Primary Gradient Colors */
+  --pink-primary: #ec4899;        /* pink-500 */
+  --purple-primary: #a855f7;      /* purple-500 */
+  --blue-primary: #3b82f6;        /* blue-500 */
+  
+  /* Lighter Gradient Variants (for dark mode) */
+  --pink-light: #f9a8d4;          /* pink-400 */
+  --purple-light: #c084fc;        /* purple-400 */
+  --blue-light: #60a5fa;          /* blue-400 */
+  
+  /* Darker Gradient Variants */
+  --pink-dark: #db2777;           /* pink-600 */
+  --purple-dark: #9333ea;         /* purple-600 */
+  --blue-dark: #2563eb;           /* blue-600 */
+  
+  /* Background Colors - Light Mode */
+  --bg-pink-light: #fce7f3;       /* pink-100 */
+  --bg-purple-light: #f3e8ff;     /* purple-100 */
+  --bg-blue-light: #dbeafe;       /* blue-100 */
+  --bg-pink-lighter: #fef1f7;     /* pink-50 */
+  --bg-purple-lighter: #faf5ff;   /* purple-50 */
+  --bg-blue-lighter: #eff6ff;     /* blue-50 */
+  
+  /* Background Colors - Dark Mode */
+  --bg-pink-dark: #831843;        /* pink-900 */
+  --bg-purple-dark: #581c87;      /* purple-900 */
+  --bg-blue-dark: #1e3a8a;        /* blue-900 */
+  --bg-gray-darkest: #030712;     /* gray-950 */
+  --bg-purple-darkest: #3b0764;   /* purple-950 */
+  --bg-gray-darker: #111827;      /* gray-900 */
+  --bg-gray-dark: #1f2937;        /* gray-800 */
+  
+  /* Text Colors - Light Mode */
+  --text-primary: #1f2937;        /* gray-800 */
+  --text-secondary: #4b5563;      /* gray-600 */
+  --text-tertiary: #6b7280;       /* gray-500 */
+  --text-light: #9ca3af;          /* gray-400 */
+  
+  /* Text Colors - Dark Mode */
+  --text-dark-primary: #f3f4f6;   /* gray-100 */
+  --text-dark-secondary: #d1d5db; /* gray-300 */
+  --text-dark-tertiary: #9ca3af;  /* gray-400 */
+  --text-dark-light: #6b7280;     /* gray-500 */
+  
+  /* Border Colors - Light Mode */
+  --border-pink: #fbcfe8;         /* pink-200 */
+  --border-purple: #e9d5ff;       /* purple-200 */
+  --border-blue: #bfdbfe;         /* blue-200 */
+  --border-white: rgba(255, 255, 255, 0.5);
+  
+  /* Border Colors - Dark Mode */
+  --border-pink-dark: #9f1239;    /* pink-800 */
+  --border-purple-dark: #6b21a8;  /* purple-800 */
+  --border-blue-dark: #1e40af;    /* blue-800 */
+  --border-gray-dark: #374151;    /* gray-700 */
+  --border-gray-darker: #1f2937;  /* gray-800 */
+  
+  /* Accent Colors */
+  --purple-accent: #c084fc;       /* purple-400 - for light mode hovers */
+  --purple-accent-light: #d8b4fe; /* purple-300 - for dark mode text */
+  --purple-accent-dark: #7e22ce;  /* purple-700 - for dark mode borders */
+  
+  /* Info/Toast Colors - Light Mode */
+  --info-bg-light: #eff6ff;       /* blue-50 */
+  --info-border-light: #bfdbfe;   /* blue-200 */
+  --info-text-light: #1e40af;     /* blue-800 */
+  --info-icon-bg-light: #dbeafe;  /* blue-100 */
+  
+  /* Info/Toast Colors - Dark Mode */
+  --info-bg-dark: #172554;        /* blue-950 */
+  --info-border-dark: #1e40af;    /* blue-800 */
+  --info-text-dark: #bfdbfe;      /* blue-200 */
+  --info-icon-bg-dark: #1e3a8a;   /* blue-900 */
+  
+  /* Utility Colors */
+  --white: #ffffff;
+  --white-translucent-80: rgba(255, 255, 255, 0.8);
+  --white-translucent-60: rgba(255, 255, 255, 0.6);
+  --white-translucent-50: rgba(255, 255, 255, 0.5);
+  
+  /* Yellow for Theme Toggle (Dark Mode Sun Icon) */
+  --yellow-accent: #fbbf24;       /* yellow-400 */
+}
+
+/* Dark Mode Class */
+.dark {
+  --text-primary: var(--text-dark-primary);
+  --text-secondary: var(--text-dark-secondary);
+  --text-tertiary: var(--text-dark-tertiary);
+}
+
+/* Gradient Utilities */
+.gradient-primary {
+  background: linear-gradient(to right, var(--pink-primary), var(--purple-primary), var(--blue-primary));
+}
+
+.gradient-primary-light {
+  background: linear-gradient(to right, var(--pink-light), var(--purple-light), var(--blue-light));
+}
+
+.gradient-primary-dark {
+  background: linear-gradient(to right, var(--pink-dark), var(--purple-dark), var(--blue-dark));
+}
+
+.gradient-text {
+  background: linear-gradient(to right, var(--pink-primary), var(--purple-primary), var(--blue-primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-light {
+  background: linear-gradient(to right, var(--pink-light), var(--purple-light), var(--blue-light));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Background Gradients */
+.bg-gradient-light {
+  background: linear-gradient(to bottom right, var(--bg-pink-lighter), var(--bg-purple-lighter), var(--bg-blue-lighter));
+}
+
+.bg-gradient-dark {
+  background: linear-gradient(to bottom right, var(--bg-gray-darkest), var(--bg-purple-darkest), var(--bg-gray-darker));
+}
+
+/* Global Styles */
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--bg-pink-lighter); /* Updated to use new light bg */
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+}
+
+/* Home Page Styles */
+.home-page {
+  /* ...existing styles from Home.css... */
+}
+
+.hero {
+  background: var(--bg-gradient-light); /* Updated to use gradient */
+  padding: 50px 0;
+  text-align: center;
+}
+
+.hero-content {
+  /* Add any specific content styles if needed */
+}
+
+.hero-title {
+  color: var(--text-primary);
+  font-size: 2.5rem;
+}
+
+.hero-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
+.hero-button {
+  background: var(--gradient-primary); /* Updated to use gradient */
+  color: var(--white);
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+.featured-section {
+  padding: 50px 0;
+}
+
+.section-container {
+  /* Add container styles if needed */
+}
+
+.section-title {
+  color: var(--text-primary);
+  font-size: 2rem;
+  text-align: center;
+}
+
+.artwork-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 50px 0;
+}
+
+.loading-text {
+  color: var(--text-tertiary);
+}
+
+/* ProductCard Styles (move from ProductCard.css if exists) */
+.product-card {
+  border: 1px solid var(--border-pink); /* Updated to use new border */
+  padding: 20px;
+  background-color: var(--white);
+}
+
+.product-card img {
+  width: 100%;
+  height: auto;
+}
+
+.product-card h3 {
+  color: var(--text-primary);
+}
+
+.product-card p {
+  color: var(--text-secondary);
+}
+
+/* Shop Page Styles (placeholder - apply similar theme classes) */
+.shop-page {
+  background-color: var(--bg-pink-lighter);
+}
+
+.shop-title {
+  color: var(--text-primary);
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+/* Product Detail Page Styles (placeholder) */
+.product-detail-page {
+  background-color: var(--bg-purple-lighter);
+}
+
+.product-detail-title {
+  color: var(--text-primary);
+}
+
+.product-detail-description {
+  color: var(--text-secondary);
+}
+
+/* Add more consolidated styles for other components/pages here as you move them */
