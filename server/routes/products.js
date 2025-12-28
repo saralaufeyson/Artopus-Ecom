@@ -5,18 +5,39 @@ import { adminMiddleware } from '../middleware/admin.js';
 import { v2 as cloudinary } from 'cloudinary';
 import CloudinaryStorage from 'multer-storage-cloudinary';
 import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { productCreateSchema, productUpdateSchema } from '../validation/schemas.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
-// Configure Cloudinary storage for multer
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'artopus',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 1600, crop: 'limit' }],
-  },
-});
+// Configure storage - use Cloudinary if configured, otherwise local disk
+let storage;
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  storage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+      folder: 'artopus',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1600, crop: 'limit' }],
+    },
+  });
+} else {
+  // Fallback to local disk storage for development
+  storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, path.join(__dirname, '../uploads'));
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  });
+}
+
 const parser = multer({ storage });
 
 // GET /api/products?type=&category=
@@ -45,17 +66,35 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// POST /api/products (admin only) - supports multipart/form-data with `image` file field
-import { validate } from '../middleware/validate.js';
-import { productCreateSchema, productUpdateSchema } from '../validation/schemas.js';
-
-router.post('/', authMiddleware, adminMiddleware, parser.single('image'), (req, res, next) => {
-  // We need to validate multipart form: merge body and file-derived imageUrl before validating
-  const mergedBody = { ...req.body };
-  if (req.file && req.file.path) mergedBody.imageUrl = req.file.path;
-  const { error } = productCreateSchema.validate(mergedBody, { abortEarly: false, stripUnknown: true });
+// POST /api/products (admin only) - supports multipart/form-data with `image` file field OR imageUrl in body
+router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
+  // Check if this is a multipart request (file upload) or JSON request (URL)
+  if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+    // Handle file upload
+    parser.single('image')(req, res, (err) => {
+      if (err) return next(err);
+      // Merge body and file-derived imageUrl
+      const mergedBody = { ...req.body };
+      if (req.file) {
+        if (req.file.path.startsWith('http')) {
+          // Cloudinary URL
+          mergedBody.imageUrl = req.file.path;
+        } else {
+          // Local file path - convert to URL path
+          mergedBody.imageUrl = `/uploads/${path.basename(req.file.path)}`;
+        }
+      }
+      req.body = mergedBody;
+      next();
+    });
+  } else {
+    // Handle JSON request with imageUrl
+    next();
+  }
+}, (req, res, next) => {
+  // Validate the merged body (whether from file upload or direct JSON)
+  const { error } = productCreateSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map(d => d.message) });
-  req.body = mergedBody;
   next();
 }, async (req, res, next) => {
   try {
