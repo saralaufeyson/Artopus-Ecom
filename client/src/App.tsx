@@ -3,7 +3,6 @@ import { AuthProvider } from './contexts/AuthContext.tsx';
 import { CartProvider } from './contexts/CartContext.tsx';
 import MainLayout from './components/MainLayout';
 import Home from './pages/Home';
-import ProductCard from './components/ProductCard.tsx';
 import Shop from './pages/Shop.tsx';
 import ProductDetails from './pages/ProductDetails.tsx';
 import Cart from './pages/Cart.tsx';

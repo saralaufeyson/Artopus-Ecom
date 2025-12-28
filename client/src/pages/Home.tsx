@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard'; // Import your existing card component
@@ -63,8 +63,8 @@ function Home() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-10 text-gray-500">
-              Loading featured artworks...
+            <div className="loading-container">
+              <p className="loading-text">Loading featured artworks...</p>
             </div>
           )}
         </div>

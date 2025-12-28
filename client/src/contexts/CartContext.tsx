@@ -6,7 +6,7 @@ interface Product {
   price: number;
   image: string;
   type: string;
-  stockQuantity: number;
+  stockQuantity?: number;
 }
 
 interface CartItem extends Product {
@@ -19,6 +19,7 @@ interface CartContextType {
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   getSubtotal: () => number;
+  getTotalItems: () => number;
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -63,8 +64,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
+  const getTotalItems = (): number => {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  };
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, getSubtotal }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, getSubtotal, getTotalItems }}>
       {children}
     </CartContext.Provider>
   );

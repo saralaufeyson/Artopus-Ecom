@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios from 'axios';
 import { CartContext } from '../contexts/CartContext';
+import '../styles.css';
 
 const stripePromise = loadStripe('your-stripe-publishable-key'); // Replace with your key
 

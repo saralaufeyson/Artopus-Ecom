@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { CartContext } from '../contexts/CartContext';
 import { toast } from 'react-toastify';
+import '../styles.css';
 
 interface Product {
   id: string;
@@ -24,22 +25,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+    <div className="product-card">
       <Link to={`/product/${product.id}`}>
-        <img src={product.image} alt={product.title} className="w-full h-48 object-cover cursor-pointer" />
+        <img src={product.image} alt={product.title} />
       </Link>
-      <div className="p-4">
-        <h3 className="text-lg font-semibold">{product.title}</h3>
-        <p className="text-gray-600">${product.price}</p>
+      <div className="product-info">
+        <h3 className="product-title">{product.title}</h3>
+        <p className="product-price">${product.price}</p>
         {product.type === 'original-artwork' && (
-          <span className="inline-block bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full text-xs font-semibold mt-2">
-            Unique
-          </span>
+          <span className="product-badge">Unique</span>
         )}
         <div className="mt-4">
           <button
             onClick={handleAddToCart}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+            className="add-to-cart-button"
           >
             Add to Cart
           </button>

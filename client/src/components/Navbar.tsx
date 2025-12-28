@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
-import './Navbar.css';
+import { useContext } from 'react';
+import { CartContext } from '../contexts/CartContext';
+import '../styles.css';
 
 function Navbar() {
+  const { getTotalItems } = useContext(CartContext)!;
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -22,7 +26,7 @@ function Navbar() {
               <circle cx="9" cy="19" r="2"/>
               <circle cx="17" cy="19" r="2"/>
             </svg>
-            <span className="cart-badge">0</span>
+            <span className="cart-badge">{getTotalItems()}</span>
           </Link>
         </div>
       </div>

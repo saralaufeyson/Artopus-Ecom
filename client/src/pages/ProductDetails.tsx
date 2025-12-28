@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { CartContext } from '../contexts/CartContext';
 import { toast } from 'react-toastify';
+import '../styles.css';
 
 interface Product {
   id: string;
@@ -46,7 +47,7 @@ const ProductDetails: React.FC = () => {
         <div className="product-layout">
           <div className="product-image-section">
             <div className="product-main-image">
-              <img src={product.image} alt={product.title} className="w-full h-full object-cover rounded-lg" />
+              <img src={product.image} alt={product.title} />
             </div>
           </div>
 
