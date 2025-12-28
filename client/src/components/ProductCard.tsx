@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { CartContext } from '../contexts/CartContext';
 import { toast } from 'react-toastify';
-import '../styles.css';
+import '../global.css';
 
 interface Product {
   id: string;
@@ -19,26 +19,42 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useContext(CartContext)!;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
     addToCart(product);
     toast.success('Added to cart!');
   };
 
   return (
     <div className="product-card">
-      <Link to={`/product/${product.id}`}>
-        <img src={product.image} alt={product.title} />
-      </Link>
-      <div className="product-info">
-        <h3 className="product-title">{product.title}</h3>
-        <p className="product-price">${product.price}</p>
+      <Link to={`/product/${product.id}`} className="product-image-link">
+        <img
+          src={product.image}
+          alt={product.title}
+          className="product-image"
+          loading="lazy"
+        />
         {product.type === 'original-artwork' && (
-          <span className="product-badge">Unique</span>
+          <div className="product-badge">Original</div>
         )}
-        <div className="mt-4">
+      </Link>
+
+      <div className="product-info">
+        <div className="product-header">
+          <h3 className="product-title">{product.title}</h3>
+          <p className="product-price">${product.price}</p>
+        </div>
+
+        <div className="product-actions">
+          <Link
+            to={`/product/${product.id}`}
+            className="product-link"
+          >
+            View Details
+          </Link>
           <button
             onClick={handleAddToCart}
-            className="add-to-cart-button"
+            className="button-primary product-cart-btn"
           >
             Add to Cart
           </button>

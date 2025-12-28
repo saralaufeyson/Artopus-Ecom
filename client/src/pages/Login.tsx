@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
-import '../styles.css';
+import '../global.css';
 
 function Login() {
   const [email, setEmail] = useState('');

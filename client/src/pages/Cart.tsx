@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { CartContext } from '../contexts/CartContext';
-import '../styles.css';
+import '../global.css';
 
 const Cart: React.FC = () => {
   const { cart, removeFromCart, updateQuantity, getSubtotal } = useContext(CartContext)!;

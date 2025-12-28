@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard'; // Import your existing card component
-import '../styles.css'; // Changed to centralized CSS
+import '../global.css'; // Centralized global styles
 
 interface Product {
   id: string;
@@ -31,7 +31,7 @@ function Home() {
         }));
 
         // Limit to the first 4 products for the "Featured" section
-        setFeaturedProducts(formattedProducts.slice(0, 4));
+        setFeaturedProducts(formattedProducts.slice(-4));
       } catch (err) {
         console.error('Failed to fetch featured products:', err);
       }
@@ -41,32 +41,90 @@ function Home() {
 
   return (
     <div className="home-page">
-      <section className="hero">
-        <div className="hero-content">
-          <h1 className="hero-title">Discover Exceptional Art</h1>
-          <p className="hero-subtitle">
-            Explore curated collections from talented artists worldwide
+      <section className="hero-section">
+        <div className="container">
+          <h1>Discover Exceptional Indian Art</h1>
+          <p>
+            Explore our curated collection of contemporary and traditional artworks from talented Indian artists.
+            Each piece tells a unique story of culture, creativity, and craftsmanship.
           </p>
-          <Link to="/shop" className="hero-button">
-            Browse Collection
+          <Link to="/shop" className="button-primary">
+            Explore Collection
           </Link>
         </div>
       </section>
 
       <section className="featured-section">
-        <div className="section-container">
-          <h2 className="section-title">Featured Artworks</h2>
+        <div className="container">
+          <div className="text-center mb-4">
+            <h2>Featured Artworks</h2>
+            <p className="text-lg text-secondary max-w-2xl mx-auto">
+              Discover our handpicked selection of exceptional pieces from emerging and established artists
+            </p>
+          </div>
+
           {featuredProducts.length > 0 ? (
-            <div className="artwork-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="artwork-grid">
               {featuredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
           ) : (
-            <div className="loading-container">
-              <p className="loading-text">Loading featured artworks...</p>
+            <div className="text-center py-12">
+              <div className="animate-pulse">
+                <div className="bg-gray-300 h-64 rounded-lg mb-4"></div>
+                <div className="bg-gray-300 h-4 rounded w-3/4 mx-auto mb-2"></div>
+                <div className="bg-gray-300 h-4 rounded w-1/2 mx-auto"></div>
+              </div>
+              <p className="mt-4 text-secondary">Loading featured artworks...</p>
             </div>
           )}
+
+          <div className="text-center mt-4">
+            <Link to="/shop" className="button-primary">
+              View All Artworks
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Categories Section */}
+      <section className="categories-section">
+        <div className="container">
+          <div className="text-center mb-4">
+            <h2>Art Categories</h2>
+            <p className="text-lg text-secondary">Explore different styles and mediums</p>
+          </div>
+
+          <div className="categories-grid">
+            <div className="category-card">
+              <div className="category-icon">🎨</div>
+              <h3>Paintings</h3>
+              <p>Oil, acrylic, and watercolor masterpieces</p>
+              <Link to="/shop?category=painting" className="category-link">Explore Paintings</Link>
+            </div>
+
+            <div className="category-card">
+              <div className="category-icon">🖼️</div>
+              <h3>Prints</h3>
+              <p>Limited edition prints and reproductions</p>
+              <Link to="/shop?category=print" className="category-link">Explore Prints</Link>
+            </div>
+
+            <div className="category-card">
+              <div className="category-icon">🏺</div>
+              <h3>Sculptures</h3>
+              <p>Contemporary and traditional sculptures</p>
+              <Link to="/shop?category=sculpture" className="category-link">Explore Sculptures</Link>
+            </div>
+
+            <div className="category-card">
+              <div className="category-icon">🖍️</div>
+              <h3>Drawings</h3>
+              <p>Charcoal, pencil, and mixed media drawings</p>
+              <Link to="/shop?category=drawing" className="category-link">Explore Drawings</Link>
+            </div>
+          </div>
         </div>
       </section>
     </div>

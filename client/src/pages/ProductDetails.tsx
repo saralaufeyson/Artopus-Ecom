@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { CartContext } from '../contexts/CartContext';
 import { toast } from 'react-toastify';
-import '../styles.css';
+import '../global.css';
 
 interface Product {
   id: string;
