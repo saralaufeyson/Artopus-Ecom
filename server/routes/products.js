@@ -138,24 +138,6 @@ router.put('/:id', authMiddleware, adminMiddleware, parser.single('image'), (req
   }
 });
 
-// PUT /api/products/:id (admin only) - supports multipart/form-data with `image` file field
-router.put('/:id', authMiddleware, adminMiddleware, parser.single('image'), async (req, res, next) => {
-  try {
-    const updates = { ...req.body };
-    if (req.file && req.file.path) updates.imageUrl = req.file.path;
-    if (updates.price) updates.price = Number(updates.price);
-    if (updates.stockQuantity !== undefined) updates.stockQuantity = Number(updates.stockQuantity);
-    // Keep original-artwork stock at most 1
-    if (updates.type === 'original-artwork' && updates.stockQuantity > 1) updates.stockQuantity = 1;
-
-    const p = await Product.findByIdAndUpdate(req.params.id, updates, { new: true });
-    if (!p) return res.status(404).json({ message: 'Product not found' });
-    res.json(p);
-  } catch (err) {
-    next(err);
-  }
-});
-
 // DELETE /api/products/:id (admin only) - soft delete
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res, next) => {
   try {

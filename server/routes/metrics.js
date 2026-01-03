@@ -15,7 +15,7 @@ router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
     const users = await User.countDocuments();
     res.json({ products, orders, users });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch metrics' });
+    next(err);
   }
 });
 

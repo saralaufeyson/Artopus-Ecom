@@ -53,6 +53,9 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
     }
 
     // Create Stripe PaymentIntent (preview/test mode)
+    if (!stripe) {
+      return res.status(500).json({ message: 'Stripe is not configured on this server.' });
+    }
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(total * 100),
       currency: 'usd',
