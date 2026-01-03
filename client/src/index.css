@@ -1,64 +1,520 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  line-height: 1.6;
-  font-weight: 400;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@theme {
+  /* --- Brand Colors --- */
+  --color-pink-primary: #ec4899;
+  --color-pink-light: #f9a8d4;
+  --color-pink-dark: #db2777;
+
+  --color-purple-primary: #a855f7;
+  --color-purple-light: #c084fc;
+  --color-purple-dark: #9333ea;
+
+  --color-blue-primary: #3b82f6;
+  --color-blue-light: #60a5fa;
+  --color-blue-dark: #2563eb;
+
+  --color-indigo-primary: #4f46e5;
+
+  /* --- Background Colors --- */
+  --color-background-light: #FFFFFF;
+  --color-background-dark: #1A1A1A;
+  --color-background-card-light: #FFFFFF;
+  --color-background-card-dark: #2A2A2A;
+
+  /* --- Tint Backgrounds --- */
+  --color-tint-pink-light: #fce7f3;
+  --color-tint-pink-lighter: #fef1f7;
+  --color-tint-pink-dark: #831843;
+
+  --color-tint-purple-light: #f3e8ff;
+  --color-tint-purple-lighter: #faf5ff;
+  --color-tint-purple-dark: #581c87;
+  --color-tint-purple-darkest: #3b0764;
+
+  --color-tint-blue-light: #dbeafe;
+  --color-tint-blue-lighter: #eff6ff;
+  --color-tint-blue-dark: #1e3a8a;
+
+  --color-tint-gray-dark: #1f2937;
+  --color-tint-gray-darker: #111827;
+  --color-tint-gray-darkest: #030712;
+
+  /* --- Text Colors --- */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary: #6b7280;
+  --color-text-light: #9ca3af;
+  
+  /* Dark Mode Text */
+  --color-text-dark-primary: #f3f4f6;
+  --color-text-dark-secondary: #d1d5db;
+  --color-text-dark-tertiary: #9ca3af;
+
+  /* --- UI Borders & Accents --- */
+  --color-border-light: #E5E5E5;
+  --color-border-dark: #404040;
+  
+  /* FIX: Removed -DEFAULT suffix so 'text-accent' works */
+  --color-accent: #4f46e5; 
+  --color-accent-dark: #6366f1;
+  --color-accent-yellow: #fbbf24;
+  --color-logo-purple: #8b5cf6; /* Added logo-purple */
+
+  /* --- Gradients --- */
+  --background-image-surface-gradient-light: linear-gradient(135deg, #fdf2f8 0%, #f5f3ff 50%, #eff6ff 100%);
+  --background-image-surface-gradient-dark: linear-gradient(135deg, #030712 0%, #2e1065 50%, #111827 100%);
+  --background-image-brand-gradient: linear-gradient(to right, #ec4899, #a855f7, #3b82f6);
+
+  /* --- Fonts --- */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  /* --- Animations --- */
+  --animate-pulse-slow: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fadeIn 0.6s ease-out;
+  --animate-fade-in-up: fadeInUp 0.8s ease-out;
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply bg-surface-gradient-light text-text-primary antialiased min-h-screen min-w-[320px];
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Dark Mode Overrides */
+  .dark body {
+    @apply bg-surface-gradient-dark text-text-dark-primary;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold leading-tight text-text-primary dark:text-text-dark-primary mb-2;
+  }
+
+  h1 { @apply text-4xl md:text-5xl; }
+  h2 { @apply text-3xl md:text-4xl; }
+  h3 { @apply text-2xl md:text-3xl; }
+  h4 { @apply text-xl md:text-2xl; }
+  
+  p {
+    @apply leading-relaxed text-text-secondary dark:text-text-dark-secondary mb-4;
+  }
+
+  a {
+    @apply text-accent dark:text-accent-dark transition-colors duration-200 hover:text-text-primary dark:hover:text-text-dark-primary;
+  }
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background: #ffffff;
-  color: #1a1a1a;
-  min-width: 320px;
-  min-height: 100vh;
+@utility nav-link {
+  @apply text-text-secondary dark:text-text-dark-secondary font-medium hover:text-logo-purple dark:hover:text-logo-purple transition-colors py-2;
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
+@utility btn-primary {
+  @apply inline-block px-6 py-3 bg-logo-purple text-white rounded-xl font-bold transition-all hover:opacity-90 active:scale-95 shadow-lg shadow-logo-purple/20;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  line-height: 1.2;
-  font-weight: 700;
+@utility container-custom {
+  @apply max-w-[1400px] mx-auto px-4 w-full;
 }
 
-p {
-  line-height: 1.6;
+@utility hero-section {
+  @apply bg-surface-gradient-light dark:bg-surface-gradient-dark py-16 text-center min-h-[60vh] flex items-center justify-center;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+@utility hero-title {
+  @apply text-5xl md:text-6xl font-bold mb-4 bg-brand-gradient bg-clip-text text-transparent;
 }
 
-button {
-  font-family: inherit;
-  cursor: pointer;
+@utility button-primary {
+  @apply inline-block px-6 py-3 bg-accent dark:bg-accent-dark text-white rounded-md font-medium 
+         shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0;
 }
 
-input, textarea, select {
-  font-family: inherit;
+@utility button-secondary {
+  @apply inline-block px-6 py-3 bg-transparent border border-accent dark:border-accent-dark text-accent 
+         dark:text-accent-dark rounded-md font-medium transition-all hover:bg-accent hover:text-white;
 }
 
-img {
-  max-width: 100%;
-  height: auto;
-  display: block;
+@utility card-shadow {
+  @apply bg-background-card-light dark:bg-background-card-dark rounded-lg border border-border-light 
+         dark:border-border-dark overflow-hidden transition-all duration-300 shadow-sm
+         hover:-translate-y-1 hover:shadow-lg;
+}
+
+@utility product-card {
+  @apply card-shadow h-full flex flex-col;
+}
+
+@utility product-image {
+  @apply w-full h-64 object-cover transition-transform duration-300;
+}
+
+.product-card:hover .product-image {
+  @apply scale-105;
+}
+
+@utility navbar {
+  @apply bg-background-card-light/95 dark:bg-background-card-dark/95 backdrop-blur-sm 
+         border-b border-border-light dark:border-border-dark sticky top-0 z-50 py-4;
+}
+
+@utility navbar-link {
+  @apply text-text-primary dark:text-text-dark-primary font-medium hover:text-accent dark:hover:text-accent-dark transition-colors;
+}
+
+@utility card {
+  @apply bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 overflow-hidden transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1;
+}
+
+@utility admin-dashboard {
+  @apply flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-950 pt-20;
+}
+
+@utility admin-sidebar {
+  @apply w-full md:w-[280px] bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 p-6 flex flex-col gap-8;
+}
+
+@utility admin-main {
+  @apply flex-1 p-8 overflow-y-auto;
+}
+
+@utility admin-sidebar-title {
+  @apply text-2xl font-bold text-gray-900 dark:text-white tracking-tight;
+}
+
+@utility admin-nav {
+  @apply flex flex-col gap-2;
+}
+
+@utility admin-nav-button {
+  @apply w-full text-left px-4 py-3 rounded-xl font-bold text-gray-500 dark:text-gray-400 
+         hover:bg-logo-purple/5 hover:text-logo-purple transition-all;
+}
+  
+.admin-nav-button.active {
+  @apply bg-logo-purple text-white shadow-lg shadow-logo-purple/20;
+}
+
+@utility admin-section {
+  @apply bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-sm mb-8;
+}
+
+@utility admin-section-title {
+  @apply text-2xl font-bold mb-8 text-gray-900 dark:text-white;
+}
+
+@utility metrics-grid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 mb-8;
+}
+
+@utility metric-card {
+  @apply p-6 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700;
+}
+
+@utility metric-label {
+  @apply text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium;
+}
+
+@utility metric-value {
+  @apply text-3xl font-bold text-gray-900 dark:text-white;
+}
+
+@utility inventory-table-container {
+  @apply overflow-x-auto border border-gray-100 dark:border-gray-800 rounded-2xl;
+}
+
+@utility inventory-table {
+  @apply w-full text-left border-collapse;
+}
+
+@utility product-form {
+  @apply flex flex-col gap-6 max-w-2xl bg-gray-50 dark:bg-gray-800/50 p-8 rounded-3xl border border-gray-100 dark:border-gray-700;
+}
+
+@utility form-row {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+@utility admin-button {
+  @apply px-6 py-3 bg-logo-purple text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-logo-purple/20;
+}
+
+@utility shop-page {
+  @apply pt-24 min-h-screen bg-white dark:bg-gray-950;
+}
+
+@utility page-header {
+  @apply mb-12 text-center max-w-4xl mx-auto;
+}
+
+@utility search-input {
+  @apply w-full max-w-xl mx-auto block px-6 py-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-logo-purple outline-none transition-all;
+}
+
+@utility shop-content {
+  @apply flex flex-col lg:flex-row gap-12 mt-12;
+}
+
+@utility filters-sidebar {
+  @apply w-full lg:w-64 flex flex-col gap-8;
+}
+
+@utility filter-group {
+  @apply flex flex-col gap-4;
+}
+
+@utility filter-select {
+  @apply w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-logo-purple outline-none;
+}
+
+@utility products-section {
+  @apply flex-1;
+}
+
+@utility products-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8;
+}
+
+@utility no-products {
+  @apply text-center py-20 text-gray-500 dark:text-gray-400 font-medium;
+}
+
+@utility product-details-page {
+  @apply pt-32 pb-20 min-h-screen bg-white dark:bg-gray-950;
+}
+
+@utility product-layout {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-16 items-start;
+}
+
+@utility product-image-section {
+  @apply rounded-3xl overflow-hidden bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800;
+}
+
+@utility product-main-image {
+  @apply aspect-[4/5] w-full h-full object-cover;
+}
+
+@utility product-details-section {
+  @apply flex flex-col;
+}
+
+@utility product-name {
+  @apply text-4xl font-bold text-gray-900 dark:text-white mb-2;
+}
+
+@utility product-artist-name {
+  @apply text-lg text-logo-purple font-semibold mb-6;
+}
+
+@utility product-price-large {
+  @apply text-3xl font-black text-gray-900 dark:text-white mb-8;
+}
+
+@utility product-description {
+  @apply max-w-none mb-8 text-gray-600 dark:text-gray-400 leading-relaxed;
+}
+
+@utility product-details-list {
+  @apply border-y border-gray-100 dark:border-gray-800 py-6 mb-8 flex flex-col gap-4;
+}
+
+@utility detail-item {
+  @apply flex justify-between items-center;
+}
+
+@utility detail-label {
+  @apply font-bold text-gray-900 dark:text-white;
+}
+
+@utility detail-value {
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+@utility add-to-cart-button {
+  @apply w-full lg:w-auto px-12 py-4 bg-logo-purple text-white rounded-2xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-logo-purple/30 text-center;
+}
+
+@utility auth-page {
+  @apply min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 pt-20 px-4;
+}
+
+@utility auth-container {
+  @apply w-full max-w-md;
+}
+
+@utility auth-card {
+  @apply bg-white dark:bg-gray-900 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-800;
+}
+
+@utility auth-title {
+  @apply text-3xl font-bold text-center text-gray-900 dark:text-white mb-2;
+}
+
+@utility auth-subtitle {
+  @apply text-center text-gray-500 dark:text-gray-400 mb-8;
+}
+
+@utility auth-form {
+  @apply flex flex-col gap-6;
+}
+
+@utility form-group {
+  @apply flex flex-col gap-2;
+}
+
+@utility auth-input {
+  @apply w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-logo-purple outline-none transition-all;
+}
+
+@utility auth-button {
+  @apply w-full py-4 bg-logo-purple text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-logo-purple/20;
+}
+
+@utility auth-footer {
+  @apply text-center mt-6 text-gray-600 dark:text-gray-400;
+}
+
+@utility auth-link {
+  @apply text-logo-purple font-bold hover:underline;
+}
+
+@utility artwork-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8;
+}
+
+@utility profile-page {
+  @apply pt-24 min-h-screen bg-gray-50 dark:bg-gray-950;
+}
+
+@utility profile-content {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-8 mt-12;
+}
+
+@utility profile-section {
+  @apply bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-sm h-full;
+}
+
+@utility user-details {
+  @apply flex flex-col gap-4 text-gray-600 dark:text-gray-400;
+}
+
+@utility cart-summary {
+  @apply flex flex-col gap-6;
+}
+
+@utility cart-item {
+  @apply flex items-center gap-4 py-4 border-b border-gray-100 dark:border-gray-800 last:border-0;
+}
+
+@utility cart-item-image {
+  @apply w-16 h-16 rounded-xl object-cover;
+}
+
+@utility cart-item-details {
+  @apply flex-1;
+}
+
+@utility cart-item-title {
+  @apply font-bold text-gray-900 dark:text-white;
+}
+
+@utility cart-item-price {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+@utility cart-total {
+  @apply pt-4 text-right text-xl font-bold text-gray-900 dark:text-white;
+}
+
+@utility order-item {
+  @apply bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 mb-4;
+}
+
+@utility order-header {
+  @apply flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-4 pb-4 border-b border-gray-100 dark:border-gray-700;
+}
+
+@utility order-item-detail {
+  @apply py-2 text-gray-600 dark:text-gray-400;
+}
+
+@utility order-total {
+  @apply mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 text-right;
+}
+
+@utility cart-page {
+  @apply pt-32 pb-20 min-h-screen bg-gray-50 dark:bg-gray-950 px-4;
+}
+
+@utility empty-cart {
+  @apply text-center py-20 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm;
+}
+
+@utility cart-layout {
+  @apply flex flex-col lg:flex-row gap-8 items-start;
+}
+
+@utility cart-items-list {
+  @apply flex-1 flex flex-col gap-4 w-full;
+}
+
+@utility cart-item-card {
+  @apply bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 shadow-sm;
+}
+
+@utility cart-item-image-wrapper {
+  @apply w-32 h-32 rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-800 flex-shrink-0;
+}
+
+@utility cart-item-img {
+  @apply w-full h-full object-cover;
+}
+
+@utility quantity-controls {
+  @apply flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-1 border border-gray-100 dark:border-gray-700;
+}
+
+@utility quantity-btn {
+  @apply p-2 rounded-lg hover:bg-white dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 disabled:opacity-30 disabled:hover:bg-transparent transition-all;
+}
+
+@utility quantity-value {
+  @apply w-10 text-center font-bold text-gray-900 dark:text-white;
+}
+
+@utility cart-summary-card {
+  @apply w-full lg:w-[400px] bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-xl sticky top-32;
+}
+
+@utility checkout-btn-large {
+  @apply w-full py-4 bg-logo-purple text-white rounded-2xl font-bold text-lg hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-logo-purple/30 text-center block;
+}
+
+@utility text-gradient {
+  @apply bg-brand-gradient bg-clip-text text-transparent;
+}
+
+@layer utilities {
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
 }

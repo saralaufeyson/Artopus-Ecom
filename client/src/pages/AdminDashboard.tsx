@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import '../global.css';
+ 
 
 interface Metrics {
   products: number;

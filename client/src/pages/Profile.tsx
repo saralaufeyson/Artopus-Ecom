@@ -3,7 +3,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { CartContext } from '../contexts/CartContext';
 
 import axios from 'axios';
-import '../global.css';
+ 
 
 interface Order {
   _id: string;
