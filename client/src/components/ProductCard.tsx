@@ -38,8 +38,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <div className="card h-full flex flex-col group transition-all duration-300 hover:shadow-2xl">
-      <Link to={`/product/${product._id}`} className="relative block overflow-hidden">
+    <div className="card h-full flex flex-col group transition-all duration-300 hover:shadow-2xl border-2 border-gray-100 dark:border-gray-800 rounded-[2.5rem] overflow-hidden bg-white dark:bg-gray-900">
+      <Link to={`/product/${product._id}`} className="relative block overflow-hidden m-4 rounded-[2rem]">
         <img
           src={product.imageUrl}
           alt={product.title}
@@ -54,34 +54,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         )}
       </Link>
 
-      <div className="p-6 flex-1 flex flex-col">
-        <div className="mb-4">
+      <div className="p-8 flex-1 flex flex-col">
+        <div className="mb-6">
           <Link to={`/product/${product._id}`}>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 line-clamp-1 group-hover:text-logo-purple transition-colors">
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2 line-clamp-1 group-hover:text-logo-purple transition-colors">
               {product.title}
             </h3>
           </Link>
           {product.artistName && (
             <Link 
               to={`/artist/${product.artistId}`}
-              className="text-sm text-gray-500 hover:text-logo-purple transition-colors mb-2 block"
+              className="text-base text-gray-500 hover:text-logo-purple transition-colors mb-3 block font-medium"
             >
               by {product.artistName}
             </Link>
           )}
-          <p className="text-2xl font-black text-logo-purple">${product.price}</p>
+          <p className="text-3xl font-black text-logo-purple">${product.price}</p>
         </div>
 
-        <div className="mt-auto flex gap-3 items-center">
+        <div className="mt-auto flex gap-4 items-center">
           <Link
             to={`/product/${product._id}`}
-            className="flex-1 text-center py-3 rounded-xl border-2 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+            className="flex-1 text-center py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white font-black text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
           >
             Details
           </Link>
           <button
             onClick={handleAddToCart}
-            className="flex-[1.5] bg-logo-purple text-white py-3 rounded-xl font-bold text-sm hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-logo-purple/20"
+            className="flex-[1.5] bg-logo-purple text-white py-4 rounded-2xl font-black text-sm hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-logo-purple/30"
           >
             Add to Cart
           </button>

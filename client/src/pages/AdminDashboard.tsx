@@ -318,8 +318,7 @@ const AdminDashboard = () => {
                       <td>
                         <button 
                           onClick={() => setEditingProduct(p)} 
-                          className="action-btn edit-btn"
-                          style={{ marginRight: '0.5rem' }}
+                          className="action-btn edit-btn mr-2"
                         >
                           Edit
                         </button>
@@ -342,6 +341,7 @@ const AdminDashboard = () => {
                 <form onSubmit={handleEditProduct} className="product-form">
                   <div className="form-row">
                     <select 
+                      className="form-select"
                       value={editingProduct.artistId || ''} 
                       onChange={(e) => {
                         const selected = artists.find(a => a._id === e.target.value);
@@ -361,6 +361,7 @@ const AdminDashboard = () => {
                     </select>
                     <input 
                       type="text" 
+                      className="admin-input"
                       placeholder="Title" 
                       value={editingProduct.title} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })} 
@@ -368,14 +369,17 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <textarea 
+                    className="admin-input"
                     placeholder="Description" 
                     value={editingProduct.description} 
                     onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })} 
                     required 
+                    rows={4}
                   />
                   <div className="form-row">
                     <input 
                       type="number" 
+                      className="admin-input"
                       placeholder="Price" 
                       value={editingProduct.price} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })} 
@@ -383,6 +387,7 @@ const AdminDashboard = () => {
                     />
                     <input 
                       type="text" 
+                      className="admin-input"
                       placeholder="Category (e.g., Sticker, Painting)" 
                       value={editingProduct.category} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })} 
@@ -391,6 +396,7 @@ const AdminDashboard = () => {
                   </div>
                   <div className="form-row">
                     <select 
+                      className="form-select"
                       value={editingProduct.type} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, type: e.target.value })} 
                       required
@@ -401,6 +407,7 @@ const AdminDashboard = () => {
                     </select>
                     <input 
                       type="number" 
+                      className="admin-input"
                       placeholder="Stock Quantity" 
                       value={editingProduct.stockQuantity || 0} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, stockQuantity: parseInt(e.target.value) || 0 })} 
@@ -408,6 +415,7 @@ const AdminDashboard = () => {
                   </div>
                   <input 
                     type="url" 
+                    className="admin-input"
                     placeholder="Image URL" 
                     value={editingProduct.imageUrl || ''} 
                     onChange={(e) => setEditingProduct({ ...editingProduct, imageUrl: e.target.value })} 
@@ -415,18 +423,21 @@ const AdminDashboard = () => {
                   <div className="form-row">
                     <input 
                       type="text" 
+                      className="admin-input"
                       placeholder="Medium (e.g. Oil on Canvas)" 
                       value={editingProduct.medium || ''} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, medium: e.target.value })} 
                     />
                     <input 
                       type="text" 
+                      className="admin-input"
                       placeholder='Dimensions (e.g. 24" x 36")' 
                       value={editingProduct.dimensions || ''} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, dimensions: e.target.value })} 
                     />
                     <input 
                       type="text" 
+                      className="admin-input"
                       placeholder="Year" 
                       value={editingProduct.year || ''} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, year: e.target.value })} 
@@ -455,6 +466,7 @@ const AdminDashboard = () => {
             <form onSubmit={handleAddProduct} className="product-form">
               <div className="form-row">
                 <select 
+                  className="form-select"
                   value={newProduct.artistId} 
                   onChange={(e) => {
                     const selected = artists.find(a => a._id === e.target.value);
@@ -472,14 +484,14 @@ const AdminDashboard = () => {
                     <option key={a._id} value={a._id}>{a.artistName}</option>
                   ))}
                 </select>
-                <input type="text" placeholder="Title" value={newProduct.title} onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })} required />
+                <input type="text" className="admin-input" placeholder="Title" value={newProduct.title} onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })} required />
               </div>
               <div className="form-row">
-                <input type="number" placeholder="Price" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} required />
-                <input type="text" placeholder="Category (e.g., Sticker, Painting)" value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })} required />
+                <input type="number" className="admin-input" placeholder="Price" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} required />
+                <input type="text" className="admin-input" placeholder="Category (e.g., Sticker, Painting)" value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })} required />
               </div>
-              <textarea placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} required />
-              <select value={newProduct.type} onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value })} required>
+              <textarea className="admin-input" placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} required rows={4} />
+              <select className="form-select" value={newProduct.type} onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value })} required>
                 <option value="">Select Type</option>
                 <option value="original-artwork">Original Artwork</option>
                 <option value="merchandise">Merchandise</option>
@@ -487,6 +499,7 @@ const AdminDashboard = () => {
               
               <input 
                 type="url" 
+                className="admin-input"
                 placeholder="Image URL (e.g., https://example.com/image.jpg)" 
                 value={newProduct.imageUrl} 
                 onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })} 
@@ -495,18 +508,21 @@ const AdminDashboard = () => {
               <div className="form-row">
                 <input 
                   type="text" 
+                  className="admin-input"
                   placeholder="Medium (e.g. Oil on Canvas)" 
                   value={newProduct.medium} 
                   onChange={(e) => setNewProduct({ ...newProduct, medium: e.target.value })} 
                 />
                 <input 
                   type="text" 
+                  className="admin-input"
                   placeholder='Dimensions (e.g. 24" x 36")' 
                   value={newProduct.dimensions} 
                   onChange={(e) => setNewProduct({ ...newProduct, dimensions: e.target.value })} 
                 />
                 <input 
                   type="text" 
+                  className="admin-input"
                   placeholder="Year" 
                   value={newProduct.year} 
                   onChange={(e) => setNewProduct({ ...newProduct, year: e.target.value })} 
@@ -541,7 +557,7 @@ const AdminDashboard = () => {
                         {a.isActive ? (
                           <button onClick={() => handleDeleteArtist(a._id)} className="action-btn delete-btn">Deactivate</button>
                         ) : (
-                          <span className="text-gray-400">Inactive</span>
+                          <span className="text-gray-400 font-bold">Inactive</span>
                         )}
                       </td>
                     </tr>
@@ -557,14 +573,14 @@ const AdminDashboard = () => {
             <h3 className="admin-section-title">Create New Artist Profile</h3>
             <form onSubmit={handleAddArtist} className="product-form">
               <div className="form-row">
-                <input type="text" placeholder="Artist Real Name" value={newArtist.artistName} onChange={(e) => setNewArtist({ ...newArtist, artistName: e.target.value })} required />
-                <input type="email" placeholder="Artist Email" value={newArtist.email} onChange={(e) => setNewArtist({ ...newArtist, email: e.target.value })} required />
+                <input type="text" className="admin-input" placeholder="Artist Real Name" value={newArtist.artistName} onChange={(e) => setNewArtist({ ...newArtist, artistName: e.target.value })} required />
+                <input type="email" className="admin-input" placeholder="Artist Email" value={newArtist.email} onChange={(e) => setNewArtist({ ...newArtist, email: e.target.value })} required />
               </div>
               <div className="form-row">
-                <input type="text" placeholder="Pen Name / Brand Name" value={newArtist.penName} onChange={(e) => setNewArtist({ ...newArtist, penName: e.target.value })} />
-                <input type="url" placeholder="Profile Image URL" value={newArtist.profileImage} onChange={(e) => setNewArtist({ ...newArtist, profileImage: e.target.value })} />
+                <input type="text" className="admin-input" placeholder="Pen Name / Brand Name" value={newArtist.penName} onChange={(e) => setNewArtist({ ...newArtist, penName: e.target.value })} />
+                <input type="url" className="admin-input" placeholder="Profile Image URL" value={newArtist.profileImage} onChange={(e) => setNewArtist({ ...newArtist, profileImage: e.target.value })} />
               </div>
-              <textarea placeholder="Artist Bio" value={newArtist.bio} onChange={(e) => setNewArtist({ ...newArtist, bio: e.target.value })} />
+              <textarea className="admin-input" placeholder="Artist Bio" value={newArtist.bio} onChange={(e) => setNewArtist({ ...newArtist, bio: e.target.value })} rows={4} />
               <button type="submit" className="admin-button">Create Artist Profile</button>
             </form>
           </div>
@@ -575,19 +591,19 @@ const AdminDashboard = () => {
             <h3 className="admin-section-title">Fulfillment Queue</h3>
             <div className="orders-list">
               {orders.map(order => (
-                <div key={order._id} className="order-card">
+                <div key={order._id} className="order-card p-8 bg-gray-50 dark:bg-gray-800/50 rounded-[2rem] border-2 border-gray-100 dark:border-gray-700 mb-6">
                   <div className="order-info">
-                    <p className="order-id">Order #{order._id.slice(-6).toUpperCase()}</p>
-                    <p className="order-customer">Customer: {order.customer?.name} ({order.customer?.email})</p>
-                    <p className="order-items">Items: {order.items.map((it: any) => `${it.quantity}x ${it.title}`).join(', ')}</p>
-                    <p className="order-address">Address: {Object.values(order.shippingAddress).join(', ')}</p>
+                    <p className="order-id text-xl font-black text-logo-purple mb-2">Order #{order._id.slice(-6).toUpperCase()}</p>
+                    <p className="order-customer font-bold text-gray-900 dark:text-white">Customer: {order.customer?.name} ({order.customer?.email})</p>
+                    <p className="order-items text-gray-600 dark:text-gray-400 mt-2">Items: {order.items.map((it: any) => `${it.quantity}x ${it.title}`).join(', ')}</p>
+                    <p className="order-address text-gray-600 dark:text-gray-400">Address: {Object.values(order.shippingAddress).join(', ')}</p>
                   </div>
-                  <div className="order-actions">
-                    <p className="order-total">${order.totalAmount.toFixed(2)}</p>
+                  <div className="order-actions mt-6 flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-gray-100 dark:border-gray-700">
+                    <p className="order-total text-2xl font-black text-gray-900 dark:text-white">${order.totalAmount.toFixed(2)}</p>
                     <select 
                       value={order.status} 
                       onChange={(e) => updateOrderStatus(order._id, e.target.value)} 
-                      className="status-select"
+                      className="form-select max-w-[200px]"
                     >
                       <option value="succeeded">Paid (Processing)</option>
                       <option value="shipped">Shipped</option>
@@ -604,7 +620,7 @@ const AdminDashboard = () => {
           <div className="admin-section">
             <h3 className="admin-section-title">Admin Management</h3>
             
-            <div className="users-table-container">
+            <div className="users-table-container mb-12">
               <table className="inventory-table">
                 <thead>
                   <tr>
@@ -624,7 +640,7 @@ const AdminDashboard = () => {
                         <select 
                           value={user.role} 
                           onChange={(e) => handleUpdateUserRole(user._id, e.target.value)}
-                          className="role-select"
+                          className="form-select py-2 px-4"
                         >
                           <option value="customer">Customer</option>
                           <option value="admin">Admin</option>
@@ -646,11 +662,12 @@ const AdminDashboard = () => {
               </table>
             </div>
 
-            <h4 className="admin-sub-title">Add New Admin</h4>
+            <h4 className="admin-sub-title text-xl font-bold mb-6">Add New Admin</h4>
             <form onSubmit={handleAddAdmin} className="product-form">
               <div className="form-row">
                 <input 
                   type="text" 
+                  className="admin-input"
                   placeholder="Full Name" 
                   value={newAdmin.name} 
                   onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })} 
@@ -658,6 +675,7 @@ const AdminDashboard = () => {
                 />
                 <input 
                   type="email" 
+                  className="admin-input"
                   placeholder="Email Address" 
                   value={newAdmin.email} 
                   onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })} 
@@ -666,6 +684,7 @@ const AdminDashboard = () => {
               </div>
               <input 
                 type="password" 
+                className="admin-input"
                 placeholder="Password" 
                 value={newAdmin.password} 
                 onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })} 
