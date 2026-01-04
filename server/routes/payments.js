@@ -4,6 +4,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import { authMiddleware } from '../middleware/auth.js';
 import mongoose from 'mongoose';
+import { sendArtistOrderNotification } from '../utils/email.js';
 
 const router = express.Router();
 let stripe = null;
@@ -49,7 +50,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
       if (p.type === 'original-artwork' && p.stockQuantity < 1) return res.status(400).json({ message: `${p.title} is sold out` });
       if (p.type === 'merchandise' && p.stockQuantity < it.quantity) return res.status(400).json({ message: `Insufficient stock for ${p.title}` });
       total += p.price * it.quantity;
-      orderItems.push({ productId: p._id, title: p.title, price: p.price, quantity: it.quantity });
+      orderItems.push({ productId: p._id, title: p.title, price: p.price, quantity: it.quantity, artistEmail: p.artistEmail });
     }
 
     // Create Stripe PaymentIntent (preview/test mode)
@@ -112,6 +113,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         }
         order.status = 'succeeded';
         await order.save();
+
+        // Send notifications to artists
+        for (const it of order.items) {
+          if (it.artistEmail) {
+            sendArtistOrderNotification(it.artistEmail, {
+              orderId: order._id,
+              itemTitle: it.title,
+              quantity: it.quantity,
+              price: it.price
+            }).catch(e => console.error('Silent fail on artist email:', e));
+          }
+        }
+
         // Attempt atomic decrements to avoid race conditions
         for (const it of order.items) {
           const updatedP = await Product.findOneAndUpdate(
@@ -176,6 +190,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       await order.save({ session });
       await session.commitTransaction();
       session.endSession();
+
+      // Send notifications to artists after commit
+      for (const it of order.items) {
+        if (it.artistEmail) {
+          sendArtistOrderNotification(it.artistEmail, {
+            orderId: order._id,
+            itemTitle: it.title,
+            quantity: it.quantity,
+            price: it.price
+          }).catch(e => console.error('Silent fail on artist email:', e));
+        }
+      }
+
       return res.json({ received: true });
     } catch (err) {
       console.error('Webhook processing error', err);

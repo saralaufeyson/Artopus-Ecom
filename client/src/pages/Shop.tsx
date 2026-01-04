@@ -5,12 +5,14 @@ import ProductCard from '../components/ProductCard';
  
 
 interface Product {
-  id: string;
+  _id: string;
   title: string;
   price: number;
-  image: string;
+  imageUrl: string;
   type: string;
   category: string;
+  artistId: string;
+  artistName: string;
 }
 
 const Shop: React.FC = () => {
@@ -82,7 +84,7 @@ const Shop: React.FC = () => {
               <div className="products-grid">
                 {filteredProducts.map((product) => (
                   // Using the ProductCard component enables navigation and Add to Cart
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product._id} product={product} />
                 ))}
               </div>
             ) : (

@@ -12,6 +12,7 @@ import ordersRoutes from './routes/orders.js';
 import uploadsRoutes from './routes/uploads.js';
 import metricsRoutes from './routes/metrics.js';
 import adminRoutes from './routes/admin.js';
+import artistsRoutes from './routes/artists.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -38,6 +39,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/artists', artistsRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'Backend running 🚀' }));
 

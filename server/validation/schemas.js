@@ -19,6 +19,12 @@ export const productCreateSchema = Joi.object({
   category: Joi.string().required(),
   stockQuantity: Joi.number().integer().min(0).optional(),
   imageUrl: Joi.string().uri().optional(),
+  artistId: Joi.string().optional(),
+  artistName: Joi.string().optional(),
+  artistEmail: Joi.string().email().optional(),
+  medium: Joi.string().allow('', null).optional(),
+  dimensions: Joi.string().allow('', null).optional(),
+  year: Joi.string().allow('', null).optional(),
 });
 
 export const productUpdateSchema = Joi.object({
@@ -29,6 +35,26 @@ export const productUpdateSchema = Joi.object({
   category: Joi.string().optional(),
   stockQuantity: Joi.number().integer().min(0).optional(),
   imageUrl: Joi.string().uri().optional(),
+  artistId: Joi.string().optional(),
+  artistName: Joi.string().optional(),
+  artistEmail: Joi.string().email().optional(),
+  medium: Joi.string().allow('', null).optional(),
+  dimensions: Joi.string().allow('', null).optional(),
+  year: Joi.string().allow('', null).optional(),
+});
+
+export const artistSchema = Joi.object({
+  artistName: Joi.string().required(),
+  penName: Joi.string().allow('', null).optional(),
+  email: Joi.string().email().required(),
+  bio: Joi.string().allow('', null).optional(),
+  profileImage: Joi.string().uri().allow('', null).optional(),
+  socialLinks: Joi.object({
+    website: Joi.string().uri().allow('', null).optional(),
+    instagram: Joi.string().uri().allow('', null).optional(),
+    twitter: Joi.string().uri().allow('', null).optional(),
+    facebook: Joi.string().uri().allow('', null).optional(),
+  }).optional(),
 });
 
 export const createIntentSchema = Joi.object({

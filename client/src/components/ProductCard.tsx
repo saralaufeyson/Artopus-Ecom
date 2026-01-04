@@ -1,14 +1,17 @@
 import React, { useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CartContext } from '../contexts/CartContext';
+import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
 
 interface Product {
-  id: string;
+  _id: string;
   title: string;
   price: number;
-  image: string;
+  imageUrl: string;
   type: string;
+  artistId?: string;
+  artistName?: string;
 }
 
 interface ProductCardProps {
@@ -17,18 +20,28 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useContext(CartContext)!;
+  const auth = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    addToCart(product);
+    if (!auth?.user) {
+      // Store current location for redirect after login
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      toast.info('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+    // Convert _id to id if CartContext expects id
+    addToCart({ ...product, id: product._id, image: product.imageUrl });
     toast.success('Added to cart!');
   };
 
   return (
-    <div className="card h-full flex flex-col group">
-      <Link to={`/product/${product.id}`} className="relative block overflow-hidden">
+    <div className="card h-full flex flex-col group transition-all duration-300 hover:shadow-2xl">
+      <Link to={`/product/${product._id}`} className="relative block overflow-hidden">
         <img
-          src={product.image}
+          src={product.imageUrl}
           alt={product.title}
           className="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"
@@ -43,15 +56,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
       <div className="p-6 flex-1 flex flex-col">
         <div className="mb-4">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 group-hover:text-logo-purple transition-colors">
-            {product.title}
-          </h3>
+          <Link to={`/product/${product._id}`}>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 line-clamp-1 group-hover:text-logo-purple transition-colors">
+              {product.title}
+            </h3>
+          </Link>
+          {product.artistName && (
+            <Link 
+              to={`/artist/${product.artistId}`}
+              className="text-sm text-gray-500 hover:text-logo-purple transition-colors mb-2 block"
+            >
+              by {product.artistName}
+            </Link>
+          )}
           <p className="text-2xl font-black text-logo-purple">${product.price}</p>
         </div>
 
         <div className="mt-auto flex gap-3 items-center">
           <Link
-            to={`/product/${product.id}`}
+            to={`/product/${product._id}`}
             className="flex-1 text-center py-3 rounded-xl border-2 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
           >
             Details

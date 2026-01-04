@@ -41,7 +41,7 @@ function Footer() {
         </div>
 
         <div className="border-t border-gray-800 pt-8 text-center">
-          <p className="text-gray-500 text-sm">&copy; 2024 Artopus. All rights reserved.</p>
+          <p className="text-gray-500 text-sm">&copy; 2025 Artopus India. All rights reserved.</p>
         </div>
       </div>
     </footer>

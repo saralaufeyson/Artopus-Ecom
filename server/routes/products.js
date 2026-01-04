@@ -55,6 +55,16 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// GET /api/products/admin (admin only) - Get all products including inactive ones
+router.get('/admin', authMiddleware, adminMiddleware, async (req, res, next) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 });
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/products/:id
 router.get('/:id', async (req, res, next) => {
   try {
@@ -98,7 +108,7 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
   next();
 }, async (req, res, next) => {
   try {
-    const { type, title, description, price, category, stockQuantity, imageUrl } = req.body;
+    const { type, title, description, price, category, stockQuantity, imageUrl, artistId, artistName, artistEmail, medium, dimensions, year } = req.body;
     const product = await Product.create({
       type,
       title,
@@ -107,6 +117,12 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
       category,
       imageUrl,
       stockQuantity: type === 'original-artwork' ? 1 : Number(stockQuantity || 0),
+      artistId,
+      artistName,
+      artistEmail,
+      medium,
+      dimensions,
+      year
     });
     res.status(201).json(product);
   } catch (err) {
@@ -138,12 +154,12 @@ router.put('/:id', authMiddleware, adminMiddleware, parser.single('image'), (req
   }
 });
 
-// DELETE /api/products/:id (admin only) - soft delete
+// DELETE /api/products/:id (admin only) - hard delete
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res, next) => {
   try {
-    const p = await Product.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+    const p = await Product.findByIdAndDelete(req.params.id);
     if (!p) return res.status(404).json({ message: 'Product not found' });
-    res.json({ message: 'Product deactivated' });
+    res.json({ message: 'Product deleted permanently' });
   } catch (err) {
     next(err);
   }

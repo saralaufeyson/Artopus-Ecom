@@ -17,7 +17,9 @@ function Login() {
     const result = await auth.login({ email, password });
     if (result.success) {
       toast.success('Login successful!');
-      navigate('/'); // Redirect to home
+      const redirectPath = localStorage.getItem('redirectAfterLogin') || '/';
+      localStorage.removeItem('redirectAfterLogin');
+      navigate(redirectPath);
     } else {
       toast.error(result.error || 'Login failed');
     }

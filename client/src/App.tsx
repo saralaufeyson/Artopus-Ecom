@@ -12,6 +12,7 @@ import Checkout from './pages/Checkout.tsx';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import ArtistProfile from './pages/ArtistProfile.tsx';
 import AdminDashboard from './pages/AdminDashboard.tsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -31,6 +32,21 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
+// Auth Required Route Guard Component
+const AuthRequiredRoute = ({ children }: { children: JSX.Element }) => {
+  const auth = useContext(AuthContext);
+  
+  // Wait if authentication is still loading (token exists but user doesn't yet)
+  if (auth?.token && !auth.user) return <div className="p-20 text-center">Checking authorization...</div>;
+  
+  // If not logged in, redirect to login
+  if (!auth?.user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
 function App() {
   return (
     <ThemeProvider>
@@ -42,11 +58,24 @@ function App() {
                 <Route index element={<Home />} />
                 <Route path="shop" element={<Shop />} />
                 <Route path="product/:id" element={<ProductDetails />} />
-                <Route path="cart" element={<Cart />} />
-                <Route path="checkout" element={<Checkout />} />
+                <Route path="artist/:id" element={<ArtistProfile />} />
+                <Route path="cart" element={
+                  <AuthRequiredRoute>
+                    <Cart />
+                  </AuthRequiredRoute>
+                } />
+                <Route path="checkout" element={
+                  <AuthRequiredRoute>
+                    <Checkout />
+                  </AuthRequiredRoute>
+                } />
                 <Route path="login" element={<Login />} />
                 <Route path="register" element={<Register />} />
-                <Route path="profile" element={<Profile />} />
+                <Route path="profile" element={
+                  <AuthRequiredRoute>
+                    <Profile />
+                  </AuthRequiredRoute>
+                } />
                 
                 {/* Protected Admin Route */}
                 <Route 

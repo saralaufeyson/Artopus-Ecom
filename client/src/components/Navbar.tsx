@@ -31,9 +31,7 @@ function Navbar() {
     <nav className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2 group" onClick={closeMenu}>
-          <div className="w-10 h-10 bg-logo-purple rounded-lg flex items-center justify-center shadow-lg shadow-logo-purple/20 group-hover:scale-110 transition-transform duration-300">
-            <span className="text-white font-bold text-xl">A</span>
-          </div>
+            <img src="/logo.png" alt="Artopus India Logo" className="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-300" />
           <span className="text-xl font-bold tracking-tighter text-gray-900 dark:text-white group-hover:text-logo-purple transition-colors">
             ARTOPUS <span className="text-logo-purple">INDIA</span>
           </span>
@@ -81,18 +79,20 @@ function Navbar() {
             <Link to="/login" className="nav-link">Login</Link>
           )}
 
-          <Link to="/cart" className="relative group p-2 text-gray-700 dark:text-gray-300 hover:text-logo-purple transition-colors">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:scale-110 transition-transform">
-              <path d="M9 2L7 4M15 2l2 2M7 4h10l1 9H6l1-9z" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="9" cy="19" r="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="17" cy="19" r="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {cart.length > 0 && (
-              <span className="absolute top-0 right-0 bg-logo-purple text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg shadow-logo-purple/30 animate-pulse">
-                {cart.reduce((total, item) => total + item.quantity, 0)}
-              </span>
-            )}
-          </Link>
+          {user && (
+            <Link to="/cart" className="relative group p-2 text-gray-700 dark:text-gray-300 hover:text-logo-purple transition-colors">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:scale-110 transition-transform">
+                <path d="M9 2L7 4M15 2l2 2M7 4h10l1 9H6l1-9z" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="9" cy="19" r="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="17" cy="19" r="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {cart.length > 0 && (
+                <span className="absolute top-0 right-0 bg-logo-purple text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg shadow-logo-purple/30 animate-pulse">
+                  {cart.reduce((total, item) => total + item.quantity, 0)}
+                </span>
+              )}
+            </Link>
+          )}
         </div>
       </div>
 
