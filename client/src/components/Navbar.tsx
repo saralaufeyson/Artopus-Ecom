@@ -50,13 +50,18 @@ function Navbar() {
 
         {/* Desktop menu */}
         <ul className="hidden lg:flex gap-8 list-none items-center">
-          <li><Link to="/" className="nav-link">Home</Link></li>
-          <li><Link to="/shop" className="nav-link">Shop</Link></li>
+          {user?.role !== 'admin' && (
+            <>
+              <li><Link to="/" className="nav-link">Home</Link></li>
+              <li><Link to="/shop" className="nav-link">Shop</Link></li>
+            </>
+          )}
 
           {/* Admin link - only visible if logged-in user is an admin */}
           {user?.role === 'admin' && (
             <li>
-              <Link to="/admin" className="text-logo-purple font-semibold hover:text-gray-900 dark:hover:text-white transition-colors py-2">
+              <Link to="/admin" className="text-logo-purple font-semibold hover:text-gray-900 dark:hover:text-white transition-colors py-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-logo-purple animate-pulse"></span>
                 Admin Panel
               </Link>
             </li>
@@ -67,7 +72,7 @@ function Navbar() {
           <ThemeToggle />
           {user ? (
             <div className="flex items-center gap-4">
-              <Link to="/profile" className="nav-link">Profile</Link>
+              {user.role !== 'admin' && <Link to="/profile" className="nav-link">Profile</Link>}
               <button
                 onClick={handleLogout}
                 className="text-red-600 hover:text-red-700 font-medium py-2 transition-colors"
@@ -79,7 +84,7 @@ function Navbar() {
             <Link to="/login" className="nav-link">Login</Link>
           )}
 
-          {user && (
+          {user?.role !== 'admin' && (
             <Link to="/cart" className="relative group p-2 text-gray-700 dark:text-gray-300 hover:text-logo-purple transition-colors">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:scale-110 transition-transform">
                 <path d="M9 2L7 4M15 2l2 2M7 4h10l1 9H6l1-9z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -109,8 +114,12 @@ function Navbar() {
             </div>
 
             <ul className="flex-1 overflow-y-auto py-4">
-              <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
-              <li><Link to="/shop" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Shop</Link></li>
+              {user?.role !== 'admin' && (
+                <>
+                  <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
+                  <li><Link to="/shop" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Shop</Link></li>
+                </>
+              )}
 
               {user?.role === 'admin' && (
                 <li>
@@ -123,7 +132,7 @@ function Navbar() {
               <li className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 mt-4">
                 {user ? (
                   <div className="space-y-4">
-                    <Link to="/profile" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Profile</Link>
+                    {user.role !== 'admin' && <Link to="/profile" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Profile</Link>}
                     <button onClick={handleLogout} className="w-full text-left text-red-600 font-medium">Logout</button>
                   </div>
                 ) : (

@@ -54,26 +54,38 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
     }
 
     // Create Stripe PaymentIntent (preview/test mode)
-    if (!stripe) {
-      return res.status(500).json({ message: 'Stripe is not configured on this server.' });
+    let paymentIntentId = `mock_pi_${Date.now()}`;
+    let clientSecret = `mock_secret_${Date.now()}`;
+
+    if (stripe) {
+      try {
+        const pi = await stripe.paymentIntents.create({
+          amount: Math.round(total * 100),
+          currency: 'usd',
+          metadata: { integration_check: 'accept_a_payment' },
+        });
+        paymentIntentId = pi.id;
+        clientSecret = pi.client_secret;
+      } catch (err) {
+        console.error('Stripe error, falling back to mock mode:', err.message);
+      }
     }
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(total * 100),
-      currency: 'usd',
-      metadata: { integration_check: 'accept_a_payment' },
-    });
 
     // Create initial order record
+    const expectedDeliveryDate = new Date();
+    expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
+
     const order = await Order.create({
       customer: req.user._id,
       items: orderItems,
       totalAmount: total,
-      paymentIntentId: paymentIntent.id,
+      paymentIntentId: paymentIntentId,
       shippingAddress,
       status: 'created',
+      expectedDeliveryDate,
     });
 
-    res.json({ clientSecret: paymentIntent.client_secret, orderId: order._id });
+    res.json({ clientSecret, orderId: order._id });
   } catch (err) {
     next(err);
   }

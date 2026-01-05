@@ -7,6 +7,18 @@ const router = express.Router();
 
 import { validate } from '../middleware/validate.js';
 import { registerSchema, loginSchema } from '../validation/schemas.js';
+import { authMiddleware } from '../middleware/auth.js';
+
+// GET /api/auth/me
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // POST /api/auth/register
 router.post('/register', validate(registerSchema), async (req, res, next) => {

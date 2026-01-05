@@ -20,16 +20,25 @@ const Shop: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch real data from your backend
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setLoading(true);
+        console.log('Fetching products from /api/products...');
         const res = await axios.get('/api/products');
+        console.log('Fetched products:', res.data);
         setProducts(res.data);
         setFilteredProducts(res.data);
+        setError(null);
       } catch (err) {
         console.error('Failed to fetch products:', err);
+        setError('Failed to load products. Please try again later.');
+      } finally {
+        setLoading(false);
       }
     };
     fetchProducts();
@@ -80,7 +89,22 @@ const Shop: React.FC = () => {
           </aside>
 
           <div className="products-section">
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-12 h-12 border-4 border-logo-purple/30 border-t-logo-purple rounded-full animate-spin"></div>
+                <p className="mt-4 text-gray-500 font-medium tracking-tight">Discovering masterpieces...</p>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 p-8 rounded-3xl text-center">
+                <p className="text-red-600 dark:text-red-400 font-bold mb-2">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="text-sm font-bold text-red-600 hover:underline"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className="products-grid">
                 {filteredProducts.map((product) => (
                   // Using the ProductCard component enables navigation and Add to Cart

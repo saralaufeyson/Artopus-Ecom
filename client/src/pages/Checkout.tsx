@@ -1,4 +1,5 @@
 import React, { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios from 'axios';
@@ -6,7 +7,7 @@ import { CartContext } from '../contexts/CartContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { MapPin, CreditCard, Smartphone, CheckCircle2, ShieldCheck, ChevronRight } from 'lucide-react';
 
-const stripePromise = loadStripe('your-stripe-publishable-key'); // Replace with your key
+const stripePromise = loadStripe('pk_test_placeholder_key_until_you_provide_one'); 
 
 interface Shipping {
   street: string;
@@ -19,7 +20,8 @@ interface Shipping {
 const CheckoutForm: React.FC = () => {
   const stripe = useStripe();
   const elements = useElements();
-  const { cart, getSubtotal } = useContext(CartContext)!;
+  const navigate = useNavigate();
+  const { cart, getSubtotal, clearCart } = useContext(CartContext)!;
   const { theme } = useTheme();
   const [shipping, setShipping] = useState<Shipping>({ street: '', city: '', state: '', zip: '', country: '' });
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi'>('card');
@@ -43,7 +45,15 @@ const CheckoutForm: React.FC = () => {
           shippingAddress: shipping 
         });
 
-        const { clientSecret } = res.data;
+        const { clientSecret, orderId } = res.data;
+
+        if (clientSecret.startsWith('mock_')) {
+          // Skip Stripe confirmation in mock mode
+          console.log('Using mock payment mode');
+          clearCart();
+          navigate(`/order-success/${orderId}`);
+          return;
+        }
 
         const { error, paymentIntent } = await stripe!.confirmCardPayment(clientSecret, {
           payment_method: {
@@ -54,14 +64,22 @@ const CheckoutForm: React.FC = () => {
         if (error) {
           alert(error.message);
         } else if (paymentIntent.status === 'succeeded') {
-          alert("Payment Successful!");
-          window.location.href = "/"; 
+          clearCart();
+          navigate(`/order-success/${orderId}`);
         }
       } else {
-        // Mock UPI Payment Logic
+        // Mock UPI Payment Logic - Still need an orderId for redirect if we were to support it
+        // For now, UPI is mock, but let's make it more realistic by creating an intent
+        const res = await axios.post('/api/payments/create-intent', { 
+          items: cart.map(item => ({ productId: item.id, quantity: item.quantity })),
+          shippingAddress: shipping 
+        });
+        const { orderId } = res.data;
+        
         console.log('Processing UPI Payment for:', upiId);
-        alert("UPI Request Sent! (Mock)");
-        window.location.href = "/";
+        alert("UPI Request Sent! (Mock Success)");
+        clearCart();
+        navigate(`/order-success/${orderId}`);
       }
     } catch (err) {
       console.error('Checkout error:', err);
@@ -271,10 +289,12 @@ const CheckoutForm: React.FC = () => {
   );
 };
 
-const Checkout: React.FC = () => (
-  <Elements stripe={stripePromise}>
-    <CheckoutForm />
-  </Elements>
-);
+const Checkout: React.FC = () => {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutForm />
+    </Elements>
+  );
+};
 
 export default Checkout;

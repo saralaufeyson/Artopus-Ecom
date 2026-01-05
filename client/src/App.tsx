@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useContext, type JSX } from 'react';
 import { AuthProvider, AuthContext } from './contexts/AuthContext.tsx';
 import { CartProvider } from './contexts/CartContext.tsx';
@@ -9,20 +9,29 @@ import Shop from './pages/Shop.tsx';
 import ProductDetails from './pages/ProductDetails.tsx';
 import Cart from './pages/Cart.tsx';
 import Checkout from './pages/Checkout.tsx';
+import Success from './pages/Success.tsx';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import ArtistProfile from './pages/ArtistProfile.tsx';
 import AdminDashboard from './pages/AdminDashboard.tsx';
+import NotFound from './pages/NotFound.tsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+// Loading Spinner Component
+const LoadingScreen = () => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+    <div className="w-12 h-12 border-4 border-logo-purple/30 border-t-logo-purple rounded-full animate-spin"></div>
+    <p className="text-gray-500 dark:text-gray-400 font-medium">Authenticating...</p>
+  </div>
+);
 
 // Admin Route Guard Component
 const AdminRoute = ({ children }: { children: JSX.Element }) => {
   const auth = useContext(AuthContext);
   
-  // Wait if authentication is still loading (token exists but user doesn't yet)
-  if (auth?.token && !auth.user) return <div className="p-20 text-center">Checking authorization...</div>;
+  if (auth?.loading) return <LoadingScreen />;
   
   // If not admin, redirect to home page
   if (auth?.user?.role !== 'admin') {
@@ -35,13 +44,28 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
 // Auth Required Route Guard Component
 const AuthRequiredRoute = ({ children }: { children: JSX.Element }) => {
   const auth = useContext(AuthContext);
+  const location = useLocation();
   
-  // Wait if authentication is still loading (token exists but user doesn't yet)
-  if (auth?.token && !auth.user) return <div className="p-20 text-center">Checking authorization...</div>;
+  if (auth?.loading) return <LoadingScreen />;
   
   // If not logged in, redirect to login
   if (!auth?.user) {
+    localStorage.setItem('redirectAfterLogin', location.pathname);
     return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
+
+// Guard to prevent admins from accessing shop/home etc
+const PublicRouteGuard = ({ children }: { children: JSX.Element }) => {
+  const auth = useContext(AuthContext);
+  
+  if (auth?.loading) return <LoadingScreen />;
+  
+  // If admin, redirect to admin panel
+  if (auth?.user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
   }
   
   return children;
@@ -55,18 +79,41 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<MainLayout />}>
-                <Route index element={<Home />} />
-                <Route path="shop" element={<Shop />} />
-                <Route path="product/:id" element={<ProductDetails />} />
-                <Route path="artist/:id" element={<ArtistProfile />} />
+                <Route index element={
+                  <PublicRouteGuard>
+                    <Home />
+                  </PublicRouteGuard>
+                } />
+                <Route path="shop" element={
+                  <PublicRouteGuard>
+                    <Shop />
+                  </PublicRouteGuard>
+                } />
+                <Route path="product/:id" element={
+                  <PublicRouteGuard>
+                    <ProductDetails />
+                  </PublicRouteGuard>
+                } />
+                <Route path="artist/:id" element={
+                  <PublicRouteGuard>
+                    <ArtistProfile />
+                  </PublicRouteGuard>
+                } />
                 <Route path="cart" element={
-                  <AuthRequiredRoute>
+                  <PublicRouteGuard>
                     <Cart />
-                  </AuthRequiredRoute>
+                  </PublicRouteGuard>
                 } />
                 <Route path="checkout" element={
+                  <PublicRouteGuard>
+                    <AuthRequiredRoute>
+                      <Checkout />
+                    </AuthRequiredRoute>
+                  </PublicRouteGuard>
+                } />
+                <Route path="order-success/:orderId" element={
                   <AuthRequiredRoute>
-                    <Checkout />
+                    <Success />
                   </AuthRequiredRoute>
                 } />
                 <Route path="login" element={<Login />} />
@@ -86,6 +133,9 @@ function App() {
                     </AdminRoute>
                   } 
                 />
+                
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>
           </BrowserRouter>

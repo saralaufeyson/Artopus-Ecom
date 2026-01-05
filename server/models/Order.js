@@ -24,6 +24,7 @@ const OrderSchema = new mongoose.Schema(
     paymentIntentId: { type: String, required: true },
     status: { type: String, enum: ['created', 'succeeded', 'failed', 'shipped', 'delivered'], default: 'created' },
     shippingAddress: { type: AddressSchema, required: true },
+    expectedDeliveryDate: { type: Date },
   },
   { timestamps: true }
 );

@@ -22,7 +22,15 @@ dotenv.config();
 
 const app = express();
 app.use(helmet());
-app.use(cors());
+
+const corsOptions = {
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 // Stripe webhook needs raw body on that route only
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());

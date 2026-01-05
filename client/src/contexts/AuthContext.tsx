@@ -11,6 +11,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  loading: boolean;
   login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   register: (userData: { name: string; email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -25,12 +26,27 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [loading, setLoading] = useState<boolean>(!!localStorage.getItem('token'));
 
   useEffect(() => {
-    if (token) {
-      // Optionally fetch user info from backend using token
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
+    const fetchUser = async () => {
+      if (token) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        try {
+          const res = await axios.get('/api/auth/me');
+          setUser(res.data);
+        } catch (err) {
+          console.error('Error fetching user:', err);
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+          delete axios.defaults.headers.common['Authorization'];
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchUser();
   }, [token]);
 
   const login = async (credentials: { email: string; password: string }): Promise<{ success: boolean; error?: string }> => {
@@ -41,8 +57,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(newToken);
       setUser(userData);
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.response?.data?.message || 'Login failed' };
+    } catch (err: unknown) {
+      const errorMsg = axios.isAxiosError(err) ? err.response?.data?.message : 'Login failed';
+      return { success: false, error: errorMsg || 'Login failed' };
     }
   };
 
@@ -54,8 +71,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(newToken);
       setUser(newUser);
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.response?.data?.message || 'Registration failed' };
+    } catch (err: unknown) {
+      const errorMsg = axios.isAxiosError(err) ? err.response?.data?.message : 'Registration failed';
+      return { success: false, error: errorMsg || 'Registration failed' };
     }
   };
 
@@ -67,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

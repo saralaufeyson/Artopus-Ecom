@@ -15,6 +15,17 @@ router.get('/my-orders', authMiddleware, async (req, res, next) => {
   }
 });
 
+// GET /api/orders/:id
+router.get('/:id', authMiddleware, async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, customer: req.user._id });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json(order);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/admin/orders (admin)
 router.get('/admin/orders', authMiddleware, adminMiddleware, async (req, res, next) => {
   try {

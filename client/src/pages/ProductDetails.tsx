@@ -24,17 +24,27 @@ interface Product {
 const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { addToCart } = useContext(CartContext)!;
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!id) return;
       try {
+        setLoading(true);
+        console.log(`Fetching product details for ${id}...`);
         const res = await axios.get(`/api/products/${id}`);
+        console.log('Fetched product details:', res.data);
         setProduct(res.data);
+        setError(null);
       } catch (err) {
         console.error('Failed to fetch product:', err);
+        setError('Artwork details could not be loaded.');
+      } finally {
+        setLoading(false);
       }
     };
     fetchProduct();
@@ -89,15 +99,15 @@ const ProductDetails: React.FC = () => {
             <div className="product-details-list mb-4">
               <div className="detail-item">
                 <span className="detail-label font-semibold">Medium:</span>
-                <span className="detail-value">Oil on Canvas</span>
+                <span className="detail-value">{product.medium}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label font-semibold">Dimensions:</span>
-                <span className="detail-value">24" x 36"</span>
+                <span className="detail-value">{product.dimensions}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label font-semibold">Year:</span>
-                <span className="detail-value">2024</span>
+                <span className="detail-value">{product.year}</span>
               </div>
             </div>
 
