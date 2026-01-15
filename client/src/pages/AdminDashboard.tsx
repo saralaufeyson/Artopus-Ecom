@@ -19,6 +19,23 @@ interface Artist {
   isActive: boolean;
 }
 
+interface ArtistRequest {
+  _id: string;
+  artistName: string;
+  penName?: string;
+  email: string;
+  bio: string;
+  portfolioLink?: string;
+  socialLinks?: {
+    website?: string;
+    instagram?: string;
+    twitter?: string;
+    facebook?: string;
+  };
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
 interface User {
   _id: string;
   name: string;
@@ -35,6 +52,7 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [artistRequests, setArtistRequests] = useState<ArtistRequest[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [newProduct, setNewProduct] = useState({ 
     title: '', price: '', description: '', category: '', type: '', imageUrl: '',
@@ -97,12 +115,22 @@ const AdminDashboard = () => {
         }
       };
 
+      const fetchArtistRequests = async () => {
+        try {
+          const res = await axios.get('/api/artist-requests');
+          setArtistRequests(res.data);
+        } catch (err) {
+          console.error('Failed to fetch artist requests:', err);
+        }
+      };
+
       await Promise.allSettled([
         fetchProducts(),
         fetchOrders(),
         fetchMetrics(),
         fetchUsers(),
-        fetchArtists()
+        fetchArtists(),
+        fetchArtistRequests()
       ]);
     } catch (err) {
       console.error('General error in fetchData:', err);
@@ -233,6 +261,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleApproveArtist = async (requestId: string) => {
+    try {
+      await axios.post(`/api/artist-requests/${requestId}/approve`);
+      toast.success('Artist request approved!');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to approve request');
+    }
+  };
+
+  const handleRejectArtist = async (requestId: string) => {
+    if (!window.confirm('Are you sure you want to reject this request?')) return;
+    try {
+      await axios.post(`/api/artist-requests/${requestId}/reject`);
+      toast.success('Artist request rejected');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to reject request');
+    }
+  };
+
   const handleDeleteUser = async (userId: string) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
@@ -267,6 +316,14 @@ const AdminDashboard = () => {
           <button onClick={() => setActiveTab('view-products')} className={`admin-nav-button ${activeTab === 'view-products' ? 'active' : ''}`}>Products</button>
           <button onClick={() => setActiveTab('add-product')} className={`admin-nav-button ${activeTab === 'add-product' ? 'active' : ''}`}>Add Product</button>
           <button onClick={() => setActiveTab('view-artists')} className={`admin-nav-button ${activeTab === 'view-artists' ? 'active' : ''}`}>Artists</button>
+          <button onClick={() => setActiveTab('artist-requests')} className={`admin-nav-button ${activeTab === 'artist-requests' ? 'active' : ''}`}>
+            Artist Requests
+            {artistRequests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="ml-2 bg-logo-purple text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                {artistRequests.filter(r => r.status === 'pending').length}
+              </span>
+            )}
+          </button>
           <button onClick={() => setActiveTab('add-artist')} className={`admin-nav-button ${activeTab === 'add-artist' ? 'active' : ''}`}>Add Artist</button>
           <button onClick={() => setActiveTab('orders')} className={`admin-nav-button ${activeTab === 'orders' ? 'active' : ''}`}>Customer Orders</button>
           <button onClick={() => setActiveTab('admins')} className={`admin-nav-button ${activeTab === 'admins' ? 'active' : ''}`}>Admin Management</button>
@@ -564,6 +621,74 @@ const AdminDashboard = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'artist-requests' && (
+          <div className="admin-section">
+            <h3 className="admin-section-title">Artist Application Requests</h3>
+            <div className="space-y-6">
+              {artistRequests.length === 0 ? (
+                <p className="text-gray-500 italic">No artist requests found.</p>
+              ) : (
+                artistRequests.map(req => (
+                  <div key={req._id} className={`p-6 bg-white dark:bg-gray-800 rounded-2xl border-2 ${req.status === 'pending' ? 'border-logo-purple/20' : 'border-gray-100 dark:border-gray-700 opacity-75'}`}>
+                    <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                      <div>
+                        <h4 className="text-xl font-bold text-gray-900 dark:text-white">{req.artistName} {req.penName && <span className="text-sm font-normal text-gray-500">({req.penName})</span>}</h4>
+                        <p className="text-logo-purple font-medium">{req.email}</p>
+                        <p className="text-sm text-gray-500">Applied on: {new Date(req.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                          req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                          req.status === 'approved' ? 'bg-green-100 text-green-700' : 
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Bio:</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm whitespace-pre-wrap">{req.bio}</p>
+                    </div>
+
+                    {req.portfolioLink && (
+                      <div className="mb-4">
+                        <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Portfolio:</p>
+                        <a href={req.portfolioLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm break-all">{req.portfolioLink}</a>
+                      </div>
+                    )}
+
+                    {req.socialLinks && Object.values(req.socialLinks).some(v => !!v) && (
+                      <div className="mb-6 flex flex-wrap gap-4">
+                        {req.socialLinks.instagram && <span className="text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded">IG: {req.socialLinks.instagram}</span>}
+                        {req.socialLinks.website && <a href={req.socialLinks.website} target="_blank" className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded">Website</a>}
+                      </div>
+                    )}
+
+                    {req.status === 'pending' && (
+                      <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <button 
+                          onClick={() => handleApproveArtist(req._id)}
+                          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold transition-colors"
+                        >
+                          Approve & Create Profile
+                        </button>
+                        <button 
+                          onClick={() => handleRejectArtist(req._id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2 rounded-lg font-bold transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}

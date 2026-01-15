@@ -54,6 +54,7 @@ function Navbar() {
             <>
               <li><Link to="/" className="nav-link">Home</Link></li>
               <li><Link to="/shop" className="nav-link">Shop</Link></li>
+              <li><Link to="/join-as-artist" className="nav-link">Sell Your Art</Link></li>
             </>
           )}
 
@@ -118,6 +119,7 @@ function Navbar() {
                 <>
                   <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
                   <li><Link to="/shop" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Shop</Link></li>
+                  <li><Link to="/join-as-artist" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Sell Your Art</Link></li>
                 </>
               )}
 

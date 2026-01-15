@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { ShoppingBag } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
@@ -65,7 +66,23 @@ const ProductDetails: React.FC = () => {
     }
   };
 
-  if (!product) return <div className="p-20 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-logo-purple/30 border-t-logo-purple rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-500 font-medium">Loading artwork details...</p>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="container-custom py-20 text-center">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{error || 'Artwork not found'}</h2>
+        <Link to="/shop" className="text-logo-purple font-bold hover:underline">Return to Shop</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="product-details-page">
@@ -114,8 +131,9 @@ const ProductDetails: React.FC = () => {
             {product.stockQuantity > 0 ? (
               <button
                 onClick={handleAddToCart}
-                className="add-to-cart-button bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                className="w-full md:w-auto bg-logo-purple text-white px-10 py-4 rounded-2xl font-black text-lg hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-logo-purple/30 flex items-center justify-center gap-3"
               >
+                <ShoppingBag size={24} />
                 Add to Cart
               </button>
             ) : (

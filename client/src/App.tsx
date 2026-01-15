@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import ArtistProfile from './pages/ArtistProfile.tsx';
+import JoinAsArtist from './pages/JoinAsArtist.tsx';
 import AdminDashboard from './pages/AdminDashboard.tsx';
 import NotFound from './pages/NotFound.tsx';
 import { ToastContainer } from 'react-toastify';
@@ -97,6 +98,11 @@ function App() {
                 <Route path="artist/:id" element={
                   <PublicRouteGuard>
                     <ArtistProfile />
+                  </PublicRouteGuard>
+                } />
+                <Route path="join-as-artist" element={
+                  <PublicRouteGuard>
+                    <JoinAsArtist />
                   </PublicRouteGuard>
                 } />
                 <Route path="cart" element={
