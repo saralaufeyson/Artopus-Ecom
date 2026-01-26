@@ -1,32 +1,41 @@
 @echo off
-REM --- Navigate to the server folder and install dependencies ---
-echo Installing backend dependencies...
-cd /d "%~dp0server"
-npm install
+setlocal
 
-REM --- Start the backend server in a new window ---
-echo Starting the backend server...
+echo ==========================================
+echo   Artopus Project Runner
+echo ==========================================
+
+REM ---------- BACKEND ----------
+echo.
+echo Starting backend...
+cd /d "%~dp0server" || (
+    echo ❌ Server folder not found
+    pause
+    exit /b 1
+)
+
 start "Artopus Backend" cmd /k "npm run dev"
 
-REM --- Wait for 5 seconds to give the server time to start up ---
-echo Waiting for the server to warm up...
+REM ---------- WAIT ----------
+echo Waiting for backend to start...
 timeout /t 5 /nobreak > nul
 
-REM --- Navigate to the client folder and install dependencies ---
-echo Installing frontend dependencies...
-cd /d "%~dp0client"
-npm install
+REM ---------- FRONTEND ----------
+echo.
+echo Starting frontend...
+cd /d "%~dp0client" || (
+    echo ❌ Client folder not found
+    pause
+    exit /b 1
+)
 
-REM --- Start the frontend client in a new window ---
-echo Starting the frontend client...
 start "Artopus Frontend" cmd /k "npm run dev"
 
-REM --- Wait for 5 seconds before opening the browser ---
-echo Waiting for the client to warm up...
+REM ---------- BROWSER ----------
 timeout /t 5 /nobreak > nul
-
-REM --- Open the frontend in the default browser ---
-echo Opening the frontend in your browser...
+echo Opening browser...
 start http://localhost:5173
 
-echo All done!
+echo.
+echo ✅ Backend & Frontend are running
+pause
