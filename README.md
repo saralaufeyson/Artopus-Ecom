@@ -193,6 +193,8 @@ See `.gitignore` in the root folder.
 
 **Layasree**
 Full Stack Developer | MERN | Cybersecurity Enthusiast
+**Vishwa**
+GRC Analyst
 
 ---
 
@@ -200,13 +202,3 @@ Full Stack Developer | MERN | Cybersecurity Enthusiast
 
 This project is licensed under the MIT License.
 
-```
-
-If you want, I can:
-- Make this **resume / GitHub showcase optimized**
-- Add **API docs section**
-- Add **deployment steps (Vercel + Render)**
-- Convert it to a **company-grade README**
-
-Just say the word 🚀
-```
