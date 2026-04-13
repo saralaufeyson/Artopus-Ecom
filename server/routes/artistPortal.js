@@ -6,6 +6,7 @@ import CloudinaryStorage from 'multer-storage-cloudinary';
 import Artist from '../models/Artist.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
+import Wallet from '../models/Wallet.js';
 import WalletTransaction from '../models/WalletTransaction.js';
 import cloudinary, { ensureCloudinaryConfigured, getOptimizedCloudinaryUrl } from '../utils/cloudinary.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -165,9 +166,14 @@ router.get('/wallet', authMiddleware, artistMiddleware, async (req, res, next) =
     const artist = await getArtistForUser(req.user._id);
     if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
 
-    const transactions = await WalletTransaction.find({ artist: artist._id }).sort({ createdAt: -1 }).populate('order', '_id status');
+    const [wallet, transactions] = await Promise.all([
+      Wallet.findOne({ artist: artist._id }),
+      WalletTransaction.find({ artist: artist._id }).sort({ createdAt: -1 }).populate('order', '_id status'),
+    ]);
+
     res.json({
       artist,
+      wallet,
       transactions,
     });
   } catch (err) {

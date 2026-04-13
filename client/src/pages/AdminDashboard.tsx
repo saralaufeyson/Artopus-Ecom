@@ -28,6 +28,8 @@ interface Artist {
   penName?: string;
   bio?: string;
   isActive: boolean;
+  walletBalance?: number;
+  totalWithdrawn?: number;
 }
 
 interface ArtistRequest {
@@ -78,6 +80,7 @@ const AdminDashboard = () => {
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
+  const [payoutArtistId, setPayoutArtistId] = useState<string | null>(null);
   const [orderDrafts, setOrderDrafts] = useState<Record<string, { deliveryPartner: string; trackingNumber: string; trackingUrl: string; note: string }>>({});
 
   const fetchData = async () => {
@@ -238,6 +241,27 @@ const AdminDashboard = () => {
       await fetchData();
     } catch (err) {
       toast.error('Failed to deactivate artist');
+    }
+  };
+
+  const handleArtistPayout = async (artist: Artist) => {
+    const balance = Number(artist.walletBalance || 0);
+    if (balance <= 0) {
+      toast.error('This artist has no wallet balance to pay out');
+      return;
+    }
+
+    if (!window.confirm(`Pay out $${balance.toFixed(2)} to ${artist.artistName} and reset their wallet to zero?`)) return;
+
+    setPayoutArtistId(artist._id);
+    try {
+      await axios.post(`/api/admin/artists/${artist._id}/payout`);
+      toast.success(`Payment Success logged for ${artist.artistName}`);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to process artist payout');
+    } finally {
+      setPayoutArtistId(null);
     }
   };
 
@@ -826,15 +850,30 @@ const AdminDashboard = () => {
                     <th>Artist Name</th>
                     <th>Email</th>
                     <th>Pen Name</th>
+                    <th>Wallet Balance</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {artists.map(a => (
                     <tr key={a._id} style={{ opacity: a.isActive ? 1 : 0.5 }}>
-                      <td>{a.artistName}</td>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <span>{a.artistName}</span>
+                          {a.isActive && (
+                            <button
+                              onClick={() => handleArtistPayout(a)}
+                              className="action-btn edit-btn"
+                              disabled={payoutArtistId === a._id || Number(a.walletBalance || 0) <= 0}
+                            >
+                              {payoutArtistId === a._id ? 'Paying...' : 'Payout'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
                       <td>{a.email}</td>
                       <td>{a.penName || '-'}</td>
+                      <td>${Number(a.walletBalance || 0).toFixed(2)}</td>
                       <td>
                         {a.isActive ? (
                           <button onClick={() => handleDeleteArtist(a._id)} className="action-btn delete-btn">Deactivate</button>

@@ -2,10 +2,36 @@ import express from 'express';
 import Order from '../models/Order.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
+import Artist from '../models/Artist.js';
 import User from '../models/User.js';
 import { buildTrackingWhatsAppMessage, sendWhatsAppMessage } from '../utils/whatsapp.js';
 
 const router = express.Router();
+
+// GET /api/orders?artistId=
+router.get('/', authMiddleware, async (req, res, next) => {
+  try {
+    const { artistId } = req.query;
+
+    if (artistId) {
+      if (req.user.role !== 'admin') {
+        const artist = await Artist.findOne({ _id: artistId, userId: req.user._id, isActive: true });
+        if (!artist) return res.status(403).json({ message: 'Not allowed to view these orders' });
+      }
+
+      const orders = await Order.find({ 'items.artistId': artistId })
+        .populate('customer', 'name email')
+        .sort({ createdAt: -1 });
+
+      return res.json(orders);
+    }
+
+    const orders = await Order.find({ customer: req.user._id }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/orders/my-orders
 router.get('/my-orders', authMiddleware, async (req, res, next) => {
@@ -22,6 +48,39 @@ router.get('/:id', authMiddleware, async (req, res, next) => {
   try {
     const order = await Order.findOne({ _id: req.params.id, customer: req.user._id });
     if (!order) return res.status(404).json({ message: 'Order not found' });
+    res.json(order);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/orders/:id/status
+router.patch('/:id/status', authMiddleware, async (req, res, next) => {
+  try {
+    const { status, note, artistId } = req.body;
+    const allowed = ['shipped', 'delivered'];
+    if (!allowed.includes(status)) return res.status(400).json({ message: 'Invalid status' });
+
+    if (!artistId) return res.status(400).json({ message: 'artistId is required' });
+
+    if (req.user.role !== 'admin') {
+      const artist = await Artist.findOne({ _id: artistId, userId: req.user._id, isActive: true });
+      if (!artist) return res.status(403).json({ message: 'Artist access required' });
+    }
+
+    const order = await Order.findOne({ _id: req.params.id, 'items.artistId': artistId });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    order.status = status;
+    order.statusHistory.push({ status, note: note || `Updated by artist ${artistId}` });
+    await order.save();
+
+    const customer = await User.findById(order.customer).select('whatsappNumber');
+    if (customer?.whatsappNumber) {
+      sendWhatsAppMessage(customer.whatsappNumber, buildTrackingWhatsAppMessage(order, status))
+        .catch((error) => console.error('Silent fail on WhatsApp notification:', error.message));
+    }
+
     res.json(order);
   } catch (err) {
     next(err);

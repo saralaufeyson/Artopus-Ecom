@@ -111,6 +111,50 @@ router.get('/withdrawals', authMiddleware, adminMiddleware, async (req, res, nex
   }
 });
 
+// POST /api/admin/artists/:id/payout
+router.post('/artists/:id/payout', authMiddleware, adminMiddleware, async (req, res, next) => {
+  try {
+    const artist = await Artist.findById(req.params.id);
+    if (!artist || !artist.isActive) {
+      return res.status(404).json({ message: 'Artist not found' });
+    }
+
+    const payoutAmount = Number(artist.walletBalance || 0);
+    if (payoutAmount <= 0) {
+      return res.status(400).json({ message: 'Artist wallet balance is already zero' });
+    }
+
+    artist.walletBalance = 0;
+    artist.totalWithdrawn = Number((artist.totalWithdrawn + payoutAmount).toFixed(2));
+    await artist.save();
+
+    const transaction = await WalletTransaction.create({
+      artist: artist._id,
+      amount: payoutAmount,
+      type: 'withdrawal_paid',
+      status: 'completed',
+      note: 'Payment Success',
+      metadata: {
+        paymentStatus: 'Payment Success',
+        processedBy: req.user._id,
+        processedAt: new Date(),
+        source: 'admin_artist_payout',
+      },
+    });
+
+    const populated = await WalletTransaction.findById(transaction._id)
+      .populate('artist', 'artistName walletBalance totalWithdrawn');
+
+    res.status(201).json({
+      message: 'Artist payout completed successfully',
+      transaction: populated,
+      artist,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/admin/withdrawals/:id/approve
 router.post('/withdrawals/:id/approve', authMiddleware, adminMiddleware, validate(payoutDecisionSchema), async (req, res, next) => {
   try {

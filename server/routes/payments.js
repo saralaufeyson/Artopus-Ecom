@@ -5,6 +5,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import Artist from '../models/Artist.js';
 import WalletTransaction from '../models/WalletTransaction.js';
+import Wallet from '../models/Wallet.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createIntentSchema } from '../validation/schemas.js';
@@ -83,6 +84,22 @@ async function sendArtistNotifications(order) {
   }
 }
 
+async function addFundsToArtistWallet(artistUserId, totalPrice, session = null) {
+  const platformFee = 0.18;
+  const netAmount = Number((totalPrice * (1 - platformFee)).toFixed(2));
+
+  let wallet = await Wallet.findOne({ userId: artistUserId }).session(session);
+
+  if (!wallet) {
+    [wallet] = await Wallet.create([{ userId: artistUserId, balance: 0 }], { session });
+  }
+
+  wallet.balance = Number((wallet.balance + netAmount).toFixed(2));
+  await wallet.save({ session });
+
+  return wallet;
+}
+
 async function creditArtistWallets(order, session = null) {
   for (const item of order.items) {
     if (!item.artistId) continue;
@@ -107,6 +124,10 @@ async function creditArtistWallets(order, session = null) {
     artist.walletBalance = Number((artist.walletBalance + netAmount).toFixed(2));
     artist.lifetimeEarnings = Number((artist.lifetimeEarnings + netAmount).toFixed(2));
     await artist.save({ session });
+
+    if (artist.userId) {
+      await addFundsToArtistWallet(artist.userId, grossAmount, session);
+    }
 
     await WalletTransaction.create([{
       artist: artist._id,
@@ -425,7 +446,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       }
 
       const updatedOrder = await fulfillOrder(order);
-      if (updatedOrder?.status === 'failed') {
+      if (updatedOrder && updatedOrder.status === 'failed') {
         return res.json({ received: true, note: 'insufficient_stock' });
       }
 
