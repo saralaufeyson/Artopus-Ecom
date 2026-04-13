@@ -1,0 +1,21 @@
+{
+  "name": "artopus-ecom",
+  "version": "1.0.0",
+  "description": "This is a full-stack MERN application using **Vite + React** for the frontend and **Node.js + Express** for the backend.  \r The project follows a clean client–server separation and is fully compatible with **Windows**.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2"
+  }
+}
