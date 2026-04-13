@@ -1,13 +1,9 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import axios from 'axios';
 import { CartContext } from '../contexts/CartContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { MapPin, CreditCard, Smartphone, CheckCircle2, ShieldCheck, ChevronRight } from 'lucide-react';
-
-const stripePromise = loadStripe('pk_test_placeholder_key_until_you_provide_one'); 
+import { MapPin, Smartphone, ShieldCheck, ChevronRight } from 'lucide-react';
+import { getOptimizedImageUrl } from '../utils/image';
 
 interface Shipping {
   street: string;
@@ -17,101 +13,57 @@ interface Shipping {
   country: string;
 }
 
-const CheckoutForm: React.FC = () => {
-  const stripe = useStripe();
-  const elements = useElements();
+const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { cart, getSubtotal, clearCart } = useContext(CartContext)!;
-  const { theme } = useTheme();
   const [shipping, setShipping] = useState<Shipping>({ street: '', city: '', state: '', zip: '', country: '' });
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi'>('card');
   const [loading, setLoading] = useState(false);
-  const [upiId, setUpiId] = useState('');
 
   const subtotal = getSubtotal();
-  const shippingCost = 15; // Flat rate for example
+  const shippingCost = 15;
   const total = subtotal + shippingCost;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (paymentMethod === 'card' && (!stripe || !elements)) return;
-
     setLoading(true);
 
     try {
-      if (paymentMethod === 'card') {
-        const res = await axios.post('/api/payments/create-intent', { 
-          items: cart.map(item => ({ productId: item.id, quantity: item.quantity })),
-          shippingAddress: shipping 
-        });
+      const res = await axios.post('/api/payments/create-intent', {
+        items: cart.map((item) => ({
+          productId: item.productId || item.id,
+          quantity: item.quantity,
+          buyerOption: item.buyerOption || 'painting',
+        })),
+        shippingAddress: shipping,
+      });
 
-        const { clientSecret, orderId } = res.data;
+      const { redirectUrl, orderId, clientSecret } = res.data;
 
-        if (clientSecret.startsWith('mock_')) {
-          // Skip Stripe confirmation in mock mode
-          console.log('Using mock payment mode');
-          clearCart();
-          navigate(`/order-success/${orderId}`);
-          return;
-        }
-
-        const { error, paymentIntent } = await stripe!.confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: elements!.getElement(CardElement)!,
-          },
-        });
-
-        if (error) {
-          alert(error.message);
-        } else if (paymentIntent.status === 'succeeded') {
-          clearCart();
-          navigate(`/order-success/${orderId}`);
-        }
-      } else {
-        // Mock UPI Payment Logic - Still need an orderId for redirect if we were to support it
-        // For now, UPI is mock, but let's make it more realistic by creating an intent
-        const res = await axios.post('/api/payments/create-intent', { 
-          items: cart.map(item => ({ productId: item.id, quantity: item.quantity })),
-          shippingAddress: shipping 
-        });
-        const { orderId } = res.data;
-        
-        console.log('Processing UPI Payment for:', upiId);
-        alert("UPI Request Sent! (Mock Success)");
+      // Keep the existing mock/Stripe fallback behavior for local or test-like environments.
+      if (clientSecret?.startsWith('mock_')) {
         clearCart();
         navigate(`/order-success/${orderId}`);
+        return;
       }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      alert('Something went wrong. Please try again.');
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      alert('Payment gateway is not configured correctly. Please try again.');
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Something went wrong while starting the payment. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const cardElementOptions = {
-    style: {
-      base: {
-        fontSize: '16px',
-        color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
-        '::placeholder': {
-          color: theme === 'dark' ? '#9ca3af' : '#6b7280',
-        },
-        iconColor: theme === 'dark' ? '#a855f7' : '#8b5cf6',
-      },
-      invalid: {
-        color: '#ef4444',
-        iconColor: '#ef4444',
-      },
-    },
-  };
-
   return (
     <div className="container-custom checkout-page">
       <div className="checkout-layout">
-        {/* Main Section */}
         <form onSubmit={handleSubmit} className="checkout-main">
-          {/* Shipping Address */}
           <section className="checkout-card">
             <h2 className="checkout-section-title">
               <MapPin className="text-logo-purple" size={24} />
@@ -163,97 +115,60 @@ const CheckoutForm: React.FC = () => {
             </div>
           </section>
 
-          {/* Payment Method */}
           <section className="checkout-card">
             <h2 className="checkout-section-title">
-              <CreditCard className="text-logo-purple" size={24} />
-              Payment Method
+              <Smartphone className="text-logo-purple" size={24} />
+              Payment Gateway
             </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <div 
-                onClick={() => setPaymentMethod('card')}
-                className={`payment-method-card ${paymentMethod === 'card' ? 'payment-method-card-active' : 'payment-method-card-inactive'}`}
-              >
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'card' ? 'border-logo-purple bg-logo-purple' : 'border-gray-300'}`}>
-                  {paymentMethod === 'card' && <CheckCircle2 size={14} className="text-white" />}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-gray-900 dark:text-white">Credit / Debit Card</span>
-                  <span className="text-xs text-gray-500">Secure payment via Stripe</span>
-                </div>
-                <CreditCard className="ml-auto text-gray-400" size={20} />
-              </div>
 
-              <div 
-                onClick={() => setPaymentMethod('upi')}
-                className={`payment-method-card ${paymentMethod === 'upi' ? 'payment-method-card-active' : 'payment-method-card-inactive'}`}
-              >
-                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'upi' ? 'border-logo-purple bg-logo-purple' : 'border-gray-300'}`}>
-                  {paymentMethod === 'upi' && <CheckCircle2 size={14} className="text-white" />}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-bold text-gray-900 dark:text-white">UPI Payment</span>
-                  <span className="text-xs text-gray-500">Instant transfer via UPI app</span>
-                </div>
-                <Smartphone className="ml-auto text-gray-400" size={20} />
+            <div className="payment-method-card payment-method-card-active">
+              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center border-logo-purple bg-logo-purple">
+                <ShieldCheck size={14} className="text-white" />
               </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-gray-900 dark:text-white">PhonePe Checkout</span>
+                <span className="text-xs text-gray-500">UPI, cards, and other supported PhonePe methods</span>
+              </div>
+              <Smartphone className="ml-auto text-gray-400" size={20} />
             </div>
 
-            {paymentMethod === 'card' ? (
-              <div className="p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
-                <CardElement options={cardElementOptions} />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Enter UPI ID (e.g., username@bank)"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  className="checkout-input"
-                  required={paymentMethod === 'upi'}
-                />
-                <div className="flex items-center gap-2 px-2">
-                  <ShieldCheck size={14} className="text-logo-purple" />
-                  <p className="text-xs text-gray-500 italic">
-                    A payment request will be sent to your UPI app.
-                  </p>
-                </div>
-              </div>
-            )}
+            <div className="mt-6 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                You’ll be redirected to PhonePe to complete the payment securely. We only clear the cart after the payment is confirmed.
+              </p>
+            </div>
           </section>
 
           <button
             type="submit"
-            disabled={loading || (paymentMethod === 'card' && !stripe)}
+            disabled={loading}
             className="auth-button flex items-center justify-center gap-2 group"
           >
             {loading ? (
               <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                Confirm and Pay ${total.toFixed(2)}
+                Continue to PhonePe
                 <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </>
             )}
           </button>
         </form>
 
-        {/* Sidebar / Order Summary */}
         <aside className="checkout-sidebar">
           <div className="checkout-card sticky top-32">
             <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">Order Summary</h2>
-            
+
             <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {cart.map((item) => (
                 <div key={item.id} className="flex gap-4">
                   <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 dark:border-gray-800">
-                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                    <img src={getOptimizedImageUrl(item.image)} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{item.title}</h3>
                     <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                    {item.buyerOptionLabel && <p className="text-xs text-gray-500">{item.buyerOptionLabel}</p>}
                     <p className="text-sm font-bold text-logo-purple">${(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
@@ -278,22 +193,14 @@ const CheckoutForm: React.FC = () => {
             <div className="mt-8 p-4 bg-green-50 dark:bg-green-900/10 rounded-2xl border border-green-100 dark:border-green-900/20 flex items-start gap-3">
               <ShieldCheck className="text-green-600 dark:text-green-400 mt-0.5" size={20} />
               <div>
-                <p className="text-sm font-bold text-green-800 dark:text-green-300">Secure Checkout</p>
-                <p className="text-xs text-green-700 dark:text-green-400/80">Your data is encrypted and protected by industry standards.</p>
+                <p className="text-sm font-bold text-green-800 dark:text-green-300">Secure Redirect</p>
+                <p className="text-xs text-green-700 dark:text-green-400/80">PhonePe handles the payment step on its secure checkout.</p>
               </div>
             </div>
           </div>
         </aside>
       </div>
     </div>
-  );
-};
-
-const Checkout: React.FC = () => {
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm />
-    </Elements>
   );
 };
 

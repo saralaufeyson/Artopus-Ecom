@@ -9,6 +9,8 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ function Register() {
       return toast.error('Passwords do not match');
     }
 
-    const result = await auth.register({ name, email, password });
+    const result = await auth.register({ name, email, password, phone, whatsappNumber });
     if (result.success) {
       toast.success('Registration successful!');
       navigate('/');
@@ -65,6 +67,30 @@ function Register() {
             </div>
 
             <div className="form-group">
+              <label htmlFor="phone">Phone</label>
+              <input
+                type="text"
+                id="phone"
+                placeholder="+91 9876543210"
+                className="auth-input"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="whatsapp">WhatsApp Number</label>
+              <input
+                type="text"
+                id="whatsapp"
+                placeholder="+91 9876543210"
+                className="auth-input"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
               <label htmlFor="password">Password</label>
               <input
                 type="password"
@@ -95,6 +121,9 @@ function Register() {
 
           <p className="auth-footer">
             Already have an account? <Link to="/login" className="auth-link">Login here</Link>
+          </p>
+          <p className="auth-footer">
+            Approved artist already? <Link to="/artist-activate" className="auth-link">Activate artist login</Link>
           </p>
         </div>
       </div>

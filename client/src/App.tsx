@@ -3,6 +3,7 @@ import { useContext, type JSX } from 'react';
 import { AuthProvider, AuthContext } from './contexts/AuthContext.tsx';
 import { CartProvider } from './contexts/CartContext.tsx';
 import { ThemeProvider } from './contexts/ThemeContext.tsx';
+import { CollectionsProvider } from './contexts/CollectionsContext.tsx';
 import MainLayout from './components/MainLayout';
 import Home from './pages/Home';
 import Shop from './pages/Shop.tsx';
@@ -16,6 +17,8 @@ import Profile from './pages/Profile';
 import ArtistProfile from './pages/ArtistProfile.tsx';
 import JoinAsArtist from './pages/JoinAsArtist.tsx';
 import AdminDashboard from './pages/AdminDashboard.tsx';
+import ArtistDashboard from './pages/ArtistDashboard.tsx';
+import ArtistActivate from './pages/ArtistActivate.tsx';
 import NotFound from './pages/NotFound.tsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -39,6 +42,15 @@ const AdminRoute = ({ children }: { children: JSX.Element }) => {
     return <Navigate to="/" replace />;
   }
   
+  return children;
+};
+
+const ArtistRoute = ({ children }: { children: JSX.Element }) => {
+  const auth = useContext(AuthContext);
+
+  if (auth?.loading) return <LoadingScreen />;
+  if (auth?.user?.role !== 'artist') return <Navigate to="/" replace />;
+
   return children;
 };
 
@@ -76,10 +88,11 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CartProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<MainLayout />}>
+        <CollectionsProvider>
+          <CartProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<MainLayout />}>
                 <Route index element={
                   <PublicRouteGuard>
                     <Home />
@@ -105,6 +118,7 @@ function App() {
                     <JoinAsArtist />
                   </PublicRouteGuard>
                 } />
+                <Route path="artist-activate" element={<ArtistActivate />} />
                 <Route path="cart" element={
                   <PublicRouteGuard>
                     <Cart />
@@ -129,6 +143,11 @@ function App() {
                     <Profile />
                   </AuthRequiredRoute>
                 } />
+                <Route path="artist-dashboard" element={
+                  <ArtistRoute>
+                    <ArtistDashboard />
+                  </ArtistRoute>
+                } />
                 
                 {/* Protected Admin Route */}
                 <Route 
@@ -142,11 +161,12 @@ function App() {
                 
                 {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </BrowserRouter>
-          <ToastContainer position="bottom-right" />
-        </CartProvider>
+                </Route>
+              </Routes>
+            </BrowserRouter>
+            <ToastContainer position="bottom-right" />
+          </CartProvider>
+        </CollectionsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

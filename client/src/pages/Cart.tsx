@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { CartContext } from '../contexts/CartContext';
- 
+import { getOptimizedImageUrl } from '../utils/image';
 
 const Cart: React.FC = () => {
   const { cart, removeFromCart, updateQuantity, getSubtotal } = useContext(CartContext)!;
@@ -38,7 +38,7 @@ const Cart: React.FC = () => {
                 <div key={item.id} className="cart-item-card">
                   <div className="flex gap-6 items-center">
                     <div className="cart-item-image-wrapper">
-                      <img src={item.image} alt={item.title} className="cart-item-img" />
+                      <img src={getOptimizedImageUrl(item.image)} alt={item.title} className="cart-item-img" />
                     </div>
                     
                     <div className="flex-1">
@@ -46,6 +46,9 @@ const Cart: React.FC = () => {
                         <div>
                           <h3 className="text-xl font-bold text-gray-900 dark:text-white">{item.title}</h3>
                           <p className="text-logo-purple font-medium capitalize">{item.type.replace('-', ' ')}</p>
+                          {item.buyerOptionLabel && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{item.buyerOptionLabel}</p>
+                          )}
                         </div>
                         <button 
                           className="p-2 text-gray-400 hover:text-red-500 transition-colors"

@@ -14,6 +14,10 @@ import metricsRoutes from './routes/metrics.js';
 import adminRoutes from './routes/admin.js';
 import artistsRoutes from './routes/artists.js';
 import artistRequestsRoutes from './routes/artistRequests.js';
+import artistPortalRoutes from './routes/artistPortal.js';
+import reviewRoutes from './routes/reviews.js';
+import pageViewsRoutes from './routes/pageViews.js';
+import collectionsRoutes from './routes/collections.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -50,6 +54,10 @@ app.use('/api/metrics', metricsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/artists', artistsRoutes);
 app.use('/api/artist-requests', artistRequestsRoutes);
+app.use('/api/artist-portal', artistPortalRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/page-views', pageViewsRoutes);
+app.use('/api/collections', collectionsRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'Backend running 🚀' }));
 

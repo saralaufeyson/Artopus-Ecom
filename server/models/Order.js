@@ -6,6 +6,9 @@ const OrderItemSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   quantity: { type: Number, required: true, min: 1 },
   artistEmail: { type: String },
+  artistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Artist' },
+  buyerOption: { type: String, enum: ['painting', 'outline-sketch', 'colored-version'], default: 'painting' },
+  buyerOptionLabel: { type: String },
 });
 
 const AddressSchema = new mongoose.Schema({
@@ -22,9 +25,21 @@ const OrderSchema = new mongoose.Schema(
     items: { type: [OrderItemSchema], validate: [(arr) => arr && arr.length > 0, 'Order must have at least one item'] },
     totalAmount: { type: Number, required: true },
     paymentIntentId: { type: String, required: true },
+    paymentProvider: { type: String, enum: ['stripe', 'phonepe', 'mock'], default: 'mock' },
     status: { type: String, enum: ['created', 'succeeded', 'failed', 'shipped', 'delivered'], default: 'created' },
     shippingAddress: { type: AddressSchema, required: true },
     expectedDeliveryDate: { type: Date },
+    deliveryPartner: { type: String },
+    trackingNumber: { type: String },
+    trackingUrl: { type: String },
+    statusHistory: {
+      type: [{
+        status: { type: String, required: true },
+        note: { type: String },
+        updatedAt: { type: Date, default: Date.now },
+      }],
+      default: [],
+    },
   },
   { timestamps: true }
 );

@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, Package, Truck, ArrowRight, ShoppingBag } from 'lucide-react';
+import { CartContext } from '../contexts/CartContext';
 
 interface OrderItem {
   productId: string;
   title: string;
   price: number;
   quantity: number;
+  buyerOptionLabel?: string;
 }
 
 interface Order {
@@ -17,18 +19,38 @@ interface Order {
   status: string;
   expectedDeliveryDate: string;
   createdAt: string;
+  deliveryPartner?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
 }
 
 const Success: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
+  const location = useLocation();
+  const { clearCart } = useContext(CartContext)!;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
+        const params = new URLSearchParams(location.search);
+        const gateway = params.get('gateway');
+
+        if (gateway === 'phonepe') {
+          const syncRes = await axios.get(`/api/payments/phonepe/status/${orderId}`);
+          setOrder(syncRes.data.order);
+          if (syncRes.data.order?.status === 'succeeded') {
+            clearCart();
+          }
+          return;
+        }
+
         const res = await axios.get(`/api/orders/${orderId}`);
         setOrder(res.data);
+        if (res.data?.status === 'succeeded') {
+          clearCart();
+        }
       } catch (err) {
         console.error('Error fetching order:', err);
       } finally {
@@ -37,7 +59,7 @@ const Success: React.FC = () => {
     };
 
     if (orderId) fetchOrder();
-  }, [orderId]);
+  }, [clearCart, location.search, orderId]);
 
   if (loading) {
     return (
@@ -64,8 +86,16 @@ const Success: React.FC = () => {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full mb-6 text-green-600 dark:text-green-400">
             <CheckCircle size={40} />
           </div>
-          <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Payment Successful!</h1>
-          <p className="text-gray-500 dark:text-gray-400">Thank you for your purchase. Your order has been placed successfully.</p>
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">
+            {order.status === 'succeeded' ? 'Payment Successful!' : order.status === 'failed' ? 'Payment Failed' : 'Payment Status Updated'}
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400">
+            {order.status === 'succeeded'
+              ? 'Thank you for your purchase. Your order has been placed successfully.'
+              : order.status === 'failed'
+                ? 'This payment did not complete successfully. You can try checkout again from your cart.'
+                : 'We checked the latest payment status with the gateway. If it is still pending, refresh in a moment.'}
+          </p>
         </div>
 
         <div className="grid gap-8">
@@ -101,6 +131,8 @@ const Success: React.FC = () => {
                     {new Date(order.expectedDeliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
                 </p>
+                {order.deliveryPartner && <p className="text-sm text-gray-500 mt-2">Delivery partner: {order.deliveryPartner}</p>}
+                {order.trackingUrl && <a href={order.trackingUrl} target="_blank" rel="noreferrer" className="text-sm text-logo-purple font-semibold hover:underline">Track shipment</a>}
               </div>
             </div>
 
@@ -116,7 +148,10 @@ const Success: React.FC = () => {
                       <div className="w-10 h-10 rounded-lg bg-white dark:bg-gray-900 flex items-center justify-center font-bold text-xs text-logo-purple border border-gray-100 dark:border-gray-800">
                         {item.quantity}x
                       </div>
-                      <span className="font-medium text-gray-900 dark:text-white">{item.title}</span>
+                      <div>
+                        <span className="font-medium text-gray-900 dark:text-white">{item.title}</span>
+                        {item.buyerOptionLabel && <p className="text-xs text-gray-500">{item.buyerOptionLabel}</p>}
+                      </div>
                     </div>
                     <span className="font-bold text-gray-900 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
                   </div>

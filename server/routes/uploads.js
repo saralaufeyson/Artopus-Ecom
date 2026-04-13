@@ -1,7 +1,7 @@
 import express from 'express';
-import { v2 as cloudinary } from 'cloudinary';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
+import cloudinary from '../utils/cloudinary.js';
 
 const router = express.Router();
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
+import { getOptimizedImageUrl } from '../utils/image';
 
 interface Artist {
   _id: string;
@@ -24,6 +25,7 @@ interface Product {
   price: number;
   imageUrl: string;
   type: string;
+  stockQuantity?: number;
   artistId: string;
   artistName: string;
   medium?: string;
@@ -68,7 +70,7 @@ const ArtistProfile: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-2xl bg-gray-100 dark:bg-gray-700 flex-shrink-0">
               {artist.profileImage ? (
-                <img src={artist.profileImage} alt={artist.artistName} className="w-full h-full object-cover" />
+                <img src={getOptimizedImageUrl(artist.profileImage, 'f_auto,q_auto,c_fill,w_800')} alt={artist.artistName} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                   <span className="text-4xl font-bold">{artist.artistName.charAt(0)}</span>

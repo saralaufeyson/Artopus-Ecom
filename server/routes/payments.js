@@ -1,22 +1,36 @@
 import express from 'express';
 import Stripe from 'stripe';
+import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
+import Artist from '../models/Artist.js';
+import WalletTransaction from '../models/WalletTransaction.js';
 import { authMiddleware } from '../middleware/auth.js';
-import mongoose from 'mongoose';
+import { validate } from '../middleware/validate.js';
+import { createIntentSchema } from '../validation/schemas.js';
 import { sendArtistOrderNotification } from '../utils/email.js';
+import {
+  createPhonePePaymentUrl,
+  extractPhonePeRedirectUrl,
+  fetchPhonePeOrderStatus,
+  isPhonePeConfigured,
+  mapPhonePeStateToOrderStatus,
+  extractPhonePeState,
+} from '../utils/phonepe.js';
 
 const router = express.Router();
+
 let stripe = null;
 if (process.env.STRIPE_SECRET_KEY) stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-// In test environment use a lightweight stub to avoid calling external Stripe API
+
+// In test environment use a lightweight stub to avoid calling external Stripe API.
 if (process.env.NODE_ENV === 'test') {
-  let _piCounter = 0;
+  let piCounter = 0;
   stripe = {
     paymentIntents: {
       create: async () => {
-        _piCounter += 1;
-        return { id: `pi_test_${_piCounter}_${Date.now()}`, client_secret: `cs_test_${_piCounter}` };
+        piCounter += 1;
+        return { id: `pi_test_${piCounter}_${Date.now()}`, client_secret: `cs_test_${piCounter}` };
       },
     },
     webhooks: {
@@ -25,206 +39,404 @@ if (process.env.NODE_ENV === 'test') {
   };
 }
 
-// Helper - allow tests to set a custom stripe object for signature/idempotency testing
 export function setStripeForTests(obj) {
   stripe = obj;
 }
 
-// POST /api/payments/create-intent
-// Body: { items: [{ productId, quantity }], shippingAddress }
-import { validate } from '../middleware/validate.js';
-import { createIntentSchema } from '../validation/schemas.js';
+function buildExpectedDeliveryDate() {
+  const expectedDeliveryDate = new Date();
+  expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
+  return expectedDeliveryDate;
+}
+
+function resolveBuyerOption(product, buyerOption = 'painting') {
+  if (buyerOption === 'outline-sketch') {
+    return {
+      label: 'Outline Sketch',
+      unitPrice: Number(product.outlineSketchPrice || product.price),
+    };
+  }
+
+  if (buyerOption === 'colored-version') {
+    return {
+      label: 'Colored Version',
+      unitPrice: Number(product.coloringPrice || product.price),
+    };
+  }
+
+  return {
+    label: 'Original Painting',
+    unitPrice: Number(product.price),
+  };
+}
+
+async function sendArtistNotifications(order) {
+  for (const item of order.items) {
+    if (item.artistEmail) {
+      sendArtistOrderNotification(item.artistEmail, {
+        orderId: order._id,
+        itemTitle: item.title,
+        quantity: item.quantity,
+        price: item.price,
+      }).catch((error) => console.error('Silent fail on artist email:', error));
+    }
+  }
+}
+
+async function creditArtistWallets(order, session = null) {
+  for (const item of order.items) {
+    if (!item.artistId) continue;
+
+    const artist = await Artist.findById(item.artistId).session(session);
+    if (!artist) continue;
+
+    const grossAmount = item.price * item.quantity;
+    const commissionAmount = Number(((grossAmount * artist.commissionRate) / 100).toFixed(2));
+    const netAmount = Number((grossAmount - commissionAmount).toFixed(2));
+
+    const existingCredit = await WalletTransaction.findOne({
+      artist: artist._id,
+      order: order._id,
+      type: 'sale_credit',
+      'metadata.productId': item.productId.toString(),
+      'metadata.buyerOption': item.buyerOption,
+    }).session(session);
+
+    if (existingCredit) continue;
+
+    artist.walletBalance = Number((artist.walletBalance + netAmount).toFixed(2));
+    artist.lifetimeEarnings = Number((artist.lifetimeEarnings + netAmount).toFixed(2));
+    await artist.save({ session });
+
+    await WalletTransaction.create([{
+      artist: artist._id,
+      order: order._id,
+      amount: netAmount,
+      commissionAmount,
+      type: 'sale_credit',
+      status: 'completed',
+      note: `Sale credit for ${item.title}`,
+      metadata: {
+        productId: item.productId,
+        buyerOption: item.buyerOption,
+        grossAmount,
+      },
+    }], session ? { session } : undefined);
+  }
+}
+
+async function fulfillOrderWithoutTransaction(order) {
+  if (!order || order.status === 'succeeded') return order;
+
+  for (const item of order.items) {
+    const product = await Product.findById(item.productId);
+    if (!product || product.stockQuantity < item.quantity) {
+      order.status = 'failed';
+      await order.save();
+      return order;
+    }
+  }
+
+  order.status = 'succeeded';
+  order.statusHistory.push({ status: 'succeeded', note: 'Payment confirmed' });
+  await order.save();
+
+  for (const item of order.items) {
+    const updatedProduct = await Product.findOneAndUpdate(
+      { _id: item.productId, stockQuantity: { $gte: item.quantity } },
+      { $inc: { stockQuantity: -item.quantity } },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      order.status = 'failed';
+      await order.save();
+      return order;
+    }
+
+    if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
+      updatedProduct.isActive = false;
+      await updatedProduct.save();
+    }
+  }
+
+  await sendArtistNotifications(order);
+  await creditArtistWallets(order);
+  return order;
+}
+
+async function fulfillOrderWithTransaction(order) {
+  if (!order || order.status === 'succeeded') return order;
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const orderInSession = await Order.findById(order._id).session(session);
+    if (!orderInSession) {
+      await session.abortTransaction();
+      session.endSession();
+      return null;
+    }
+
+    if (orderInSession.status === 'succeeded') {
+      await session.commitTransaction();
+      session.endSession();
+      return orderInSession;
+    }
+
+    for (const item of orderInSession.items) {
+      const updatedProduct = await Product.findOneAndUpdate(
+        { _id: item.productId, stockQuantity: { $gte: item.quantity } },
+        { $inc: { stockQuantity: -item.quantity } },
+        { session, new: true }
+      );
+
+      if (!updatedProduct) {
+        orderInSession.status = 'failed';
+        await orderInSession.save({ session });
+        await session.commitTransaction();
+        session.endSession();
+        return orderInSession;
+      }
+
+      if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
+        updatedProduct.isActive = false;
+        await updatedProduct.save({ session });
+      }
+    }
+
+    orderInSession.status = 'succeeded';
+    orderInSession.statusHistory.push({ status: 'succeeded', note: 'Payment confirmed' });
+    await orderInSession.save({ session });
+    await creditArtistWallets(orderInSession, session);
+    await session.commitTransaction();
+    session.endSession();
+
+    await sendArtistNotifications(orderInSession);
+    return orderInSession;
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+}
+
+async function fulfillOrder(order) {
+  if (process.env.NODE_ENV === 'test') {
+    return fulfillOrderWithoutTransaction(order);
+  }
+
+  return fulfillOrderWithTransaction(order);
+}
+
+async function buildCheckoutContext(items) {
+  const ids = items.map((item) => item.productId);
+  const products = await Product.find({ _id: { $in: ids }, isActive: true });
+  const productMap = new Map(products.map((product) => [product._id.toString(), product]));
+  let total = 0;
+  const orderItems = [];
+
+  for (const item of items) {
+    const product = productMap.get(item.productId);
+    if (!product) {
+      return { error: `Product ${item.productId} not available` };
+    }
+
+    if (product.type === 'original-artwork' && product.stockQuantity < 1) {
+      return { error: `${product.title} is sold out` };
+    }
+
+    if (product.type === 'merchandise' && product.stockQuantity < item.quantity) {
+      return { error: `Insufficient stock for ${product.title}` };
+    }
+
+    const buyerOption = resolveBuyerOption(product, item.buyerOption);
+    total += buyerOption.unitPrice * item.quantity;
+    orderItems.push({
+      productId: product._id,
+      title: product.title,
+      price: buyerOption.unitPrice,
+      quantity: item.quantity,
+      artistEmail: product.artistEmail,
+      artistId: product.artistId,
+      buyerOption: item.buyerOption || 'painting',
+      buyerOptionLabel: buyerOption.label,
+    });
+  }
+
+  return { total, orderItems };
+}
 
 router.post('/create-intent', authMiddleware, validate(createIntentSchema), async (req, res, next) => {
   try {
     const { items, shippingAddress } = req.body;
-    // Fetch products and compute total server-side
-    const ids = items.map((i) => i.productId);
-    const products = await Product.find({ _id: { $in: ids }, isActive: true });
-    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
-    let total = 0;
-    const orderItems = [];
-    for (const it of items) {
-      const p = productMap.get(it.productId);
-      if (!p) return res.status(400).json({ message: `Product ${it.productId} not available` });
-      if (p.type === 'original-artwork' && p.stockQuantity < 1) return res.status(400).json({ message: `${p.title} is sold out` });
-      if (p.type === 'merchandise' && p.stockQuantity < it.quantity) return res.status(400).json({ message: `Insufficient stock for ${p.title}` });
-      total += p.price * it.quantity;
-      orderItems.push({ productId: p._id, title: p.title, price: p.price, quantity: it.quantity, artistEmail: p.artistEmail });
+    const checkoutContext = await buildCheckoutContext(items);
+    if (checkoutContext.error) {
+      return res.status(400).json({ message: checkoutContext.error });
     }
 
-    // Create Stripe PaymentIntent (preview/test mode)
+    const { total, orderItems } = checkoutContext;
+    const expectedDeliveryDate = buildExpectedDeliveryDate();
+
+    if (isPhonePeConfigured() && process.env.NODE_ENV !== 'test') {
+      const merchantOrderId = `phonepe_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const order = await Order.create({
+        customer: req.user._id,
+        items: orderItems,
+        totalAmount: total,
+        paymentIntentId: merchantOrderId,
+        paymentProvider: 'phonepe',
+        shippingAddress,
+        status: 'created',
+        expectedDeliveryDate,
+      });
+
+      try {
+        const redirectBase = process.env.PHONEPE_REDIRECT_BASE_URL || process.env.CLIENT_URL || 'http://localhost:5173';
+        const redirectUrl = `${redirectBase}/order-success/${order._id}?gateway=phonepe`;
+        const phonePePayload = {
+          merchantOrderId,
+          amount: Math.round(total * 100),
+          expireAfter: 1200,
+          metaInfo: {
+            udf1: req.user._id.toString(),
+            udf2: order._id.toString(),
+          },
+          paymentFlow: {
+            type: 'PG_CHECKOUT',
+            message: `Artopus order ${order._id}`,
+            merchantUrls: {
+              redirectUrl,
+            },
+          },
+        };
+
+        const providerResponse = await createPhonePePaymentUrl(phonePePayload);
+        const paymentUrl = extractPhonePeRedirectUrl(providerResponse);
+
+        if (!paymentUrl) {
+          await Order.findByIdAndDelete(order._id);
+          return res.status(502).json({ message: 'PhonePe did not return a checkout URL' });
+        }
+
+        return res.json({
+          provider: 'phonepe',
+          redirectUrl: paymentUrl,
+          orderId: order._id,
+        });
+      } catch (error) {
+        await Order.findByIdAndDelete(order._id);
+        throw error;
+      }
+    }
+
     let paymentIntentId = `mock_pi_${Date.now()}`;
     let clientSecret = `mock_secret_${Date.now()}`;
+    let paymentProvider = 'mock';
 
     if (stripe) {
       try {
-        const pi = await stripe.paymentIntents.create({
+        const paymentIntent = await stripe.paymentIntents.create({
           amount: Math.round(total * 100),
           currency: 'usd',
           metadata: { integration_check: 'accept_a_payment' },
         });
-        paymentIntentId = pi.id;
-        clientSecret = pi.client_secret;
-      } catch (err) {
-        console.error('Stripe error, falling back to mock mode:', err.message);
+        paymentIntentId = paymentIntent.id;
+        clientSecret = paymentIntent.client_secret;
+        paymentProvider = 'stripe';
+      } catch (error) {
+        console.error('Stripe error, falling back to mock mode:', error.message);
       }
     }
-
-    // Create initial order record
-    const expectedDeliveryDate = new Date();
-    expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
 
     const order = await Order.create({
       customer: req.user._id,
       items: orderItems,
       totalAmount: total,
-      paymentIntentId: paymentIntentId,
+      paymentIntentId,
+      paymentProvider,
       shippingAddress,
       status: 'created',
       expectedDeliveryDate,
     });
 
-    res.json({ clientSecret, orderId: order._id });
-  } catch (err) {
-    next(err);
+    return res.json({ clientSecret, orderId: order._id, provider: paymentProvider });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get('/phonepe/status/:orderId', authMiddleware, async (req, res, next) => {
+  try {
+    const query = req.user.role === 'admin'
+      ? { _id: req.params.orderId }
+      : { _id: req.params.orderId, customer: req.user._id };
+
+    const order = await Order.findOne(query);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.paymentProvider !== 'phonepe') {
+      return res.json({ order, providerState: order.status });
+    }
+
+    const providerPayload = await fetchPhonePeOrderStatus(order.paymentIntentId);
+    const providerState = extractPhonePeState(providerPayload);
+    const mappedStatus = mapPhonePeStateToOrderStatus(providerPayload);
+
+    let updatedOrder = order;
+    if (mappedStatus === 'succeeded') {
+      updatedOrder = await fulfillOrder(order);
+    } else if (mappedStatus === 'failed' && order.status === 'created') {
+      order.status = 'failed';
+      updatedOrder = await order.save();
+    }
+
+    return res.json({
+      order: updatedOrder,
+      providerState,
+      providerStatus: mappedStatus,
+    });
+  } catch (error) {
+    return next(error);
   }
 });
 
 // Stripe webhook endpoint
-// NOTE: you must configure the raw body parsing on this route in index.js
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+  const signature = req.headers['stripe-signature'];
   let event;
+
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error('Webhook signature error', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    event = stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (error) {
+    console.error('Webhook signature error', error.message);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
   }
 
   if (event.type === 'payment_intent.succeeded') {
-    const pi = event.data.object;
-    // Find order by paymentIntentId
-    if (process.env.NODE_ENV === 'test') {
-      // In tests (in-memory Mongo) transactions are not supported; run without session
-      try {
-        const order = await Order.findOne({ paymentIntentId: pi.id });
-        if (!order) return res.status(404).json({ received: true });
-        // Idempotency: if already succeeded, do nothing
-        if (order.status === 'succeeded') return res.json({ received: true });
-        // Check stock availability before marking succeeded
-        for (const it of order.items) {
-          const p = await Product.findById(it.productId);
-          if (!p) continue;
-          if (p.stockQuantity < it.quantity) {
-            order.status = 'failed';
-            await order.save();
-            return res.json({ received: true, note: 'insufficient_stock' });
-          }
-        }
-        order.status = 'succeeded';
-        await order.save();
-
-        // Send notifications to artists
-        for (const it of order.items) {
-          if (it.artistEmail) {
-            sendArtistOrderNotification(it.artistEmail, {
-              orderId: order._id,
-              itemTitle: it.title,
-              quantity: it.quantity,
-              price: it.price
-            }).catch(e => console.error('Silent fail on artist email:', e));
-          }
-        }
-
-        // Attempt atomic decrements to avoid race conditions
-        for (const it of order.items) {
-          const updatedP = await Product.findOneAndUpdate(
-            { _id: it.productId, stockQuantity: { $gte: it.quantity } },
-            { $inc: { stockQuantity: -it.quantity } },
-            { new: true }
-          );
-          if (!updatedP) {
-            // insufficient stock during decrement - mark failed
-            order.status = 'failed';
-            await order.save();
-            return res.json({ received: true, note: 'insufficient_stock' });
-          }
-          if (updatedP.type === 'original-artwork' && updatedP.stockQuantity === 0) {
-            updatedP.isActive = false;
-            await updatedP.save();
-          }
-        }
-        return res.json({ received: true });
-      } catch (err) {
-        console.error('Webhook processing error', err);
-        return res.status(500).json({ received: false });
-      }
-    }
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
     try {
-      const order = await Order.findOne({ paymentIntentId: pi.id }).session(session);
+      const paymentIntent = event.data.object;
+      const order = await Order.findOne({ paymentIntentId: paymentIntent.id });
       if (!order) {
-        await session.abortTransaction();
-        session.endSession();
         return res.status(404).json({ received: true });
       }
-      // Idempotency: if already succeeded, do nothing
-      if (order.status === 'succeeded') {
-        await session.commitTransaction();
-        session.endSession();
-        return res.json({ received: true });
-      }
-      // Attempt atomic decrements within transaction to avoid races
-      for (const it of order.items) {
-        const updatedP = await Product.findOneAndUpdate(
-          { _id: it.productId, stockQuantity: { $gte: it.quantity } },
-          { $inc: { stockQuantity: -it.quantity } },
-          { session, new: true }
-        );
-        if (!updatedP) {
-          // insufficient stock during decrement - mark failed
-          order.status = 'failed';
-          await order.save({ session });
-          await session.commitTransaction();
-          session.endSession();
-          return res.json({ received: true, note: 'insufficient_stock' });
-        }
-        if (updatedP.type === 'original-artwork' && updatedP.stockQuantity === 0) {
-          updatedP.isActive = false;
-          await updatedP.save({ session });
-        }
-      }
-      order.status = 'succeeded';
-      await order.save({ session });
-      await session.commitTransaction();
-      session.endSession();
 
-      // Send notifications to artists after commit
-      for (const it of order.items) {
-        if (it.artistEmail) {
-          sendArtistOrderNotification(it.artistEmail, {
-            orderId: order._id,
-            itemTitle: it.title,
-            quantity: it.quantity,
-            price: it.price
-          }).catch(e => console.error('Silent fail on artist email:', e));
-        }
+      const updatedOrder = await fulfillOrder(order);
+      if (updatedOrder?.status === 'failed') {
+        return res.json({ received: true, note: 'insufficient_stock' });
       }
 
       return res.json({ received: true });
-    } catch (err) {
-      console.error('Webhook processing error', err);
-      await session.abortTransaction();
-      session.endSession();
+    } catch (error) {
+      console.error('Webhook processing error', error);
       return res.status(500).json({ received: false });
     }
   }
 
-  res.json({ received: true });
+  return res.json({ received: true });
 });
 
 export default router;

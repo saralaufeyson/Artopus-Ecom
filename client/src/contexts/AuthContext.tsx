@@ -6,6 +6,8 @@ interface User {
   name: string;
   email: string;
   role: string;
+  phone?: string;
+  whatsappNumber?: string;
 }
 
 interface AuthContextType {
@@ -13,7 +15,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
-  register: (userData: { name: string; email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: { name: string; email: string; password: string; phone?: string; whatsappNumber?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -63,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: { name: string; email: string; password: string }): Promise<{ success: boolean; error?: string }> => {
+  const register = async (userData: { name: string; email: string; password: string; phone?: string; whatsappNumber?: string }): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await axios.post('/api/auth/register', userData);
       const { token: newToken, user: newUser } = res.data;

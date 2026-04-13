@@ -3,8 +3,21 @@ import Artist from '../models/Artist.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
 import { artistSchema } from '../validation/schemas.js';
+import { getOptimizedCloudinaryUrl, isCloudinaryConfigured, uploadAssetToCloudinary } from '../utils/cloudinary.js';
 
 const router = express.Router();
+
+async function normalizeArtistProfileImage(profileImage) {
+  if (!profileImage || !isCloudinaryConfigured()) return profileImage;
+  if (process.env.NODE_ENV === 'test') return profileImage;
+  if (profileImage.includes('res.cloudinary.com')) return getOptimizedCloudinaryUrl(profileImage, { width: 800 });
+
+  const uploadResult = await uploadAssetToCloudinary(profileImage, {
+    folder: 'artopus/artists',
+  });
+
+  return uploadResult ? getOptimizedCloudinaryUrl(uploadResult.secure_url, { width: 800 }) : profileImage;
+}
 
 // GET /api/artists - List all active artists
 router.get('/', async (req, res, next) => {
@@ -43,12 +56,14 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res, next) => {
       return res.status(400).json({ message: 'Artist with this email already exists' });
     }
 
+    const normalizedProfileImage = await normalizeArtistProfileImage(profileImage);
+
     const artist = await Artist.create({
       artistName,
       penName,
       email,
       bio,
-      profileImage,
+      profileImage: normalizedProfileImage,
       socialLinks
     });
     res.status(201).json(artist);
@@ -60,7 +75,10 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res, next) => {
 // PUT /api/artists/:id (admin only)
 router.put('/:id', authMiddleware, adminMiddleware, async (req, res, next) => {
   try {
-    const updates = req.body;
+    const updates = { ...req.body };
+    if (updates.profileImage) {
+      updates.profileImage = await normalizeArtistProfileImage(updates.profileImage);
+    }
     const artist = await Artist.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!artist) return res.status(404).json({ message: 'Artist not found' });
     res.json(artist);
