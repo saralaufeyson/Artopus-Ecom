@@ -1,7 +1,9 @@
 import express from 'express';
 import Product from '../models/Product.js';
+import Artist from '../models/Artist.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
+import { artistMiddleware } from '../middleware/artist.js';
 import CloudinaryStorage from 'multer-storage-cloudinary';
 import multer from 'multer';
 import path from 'path';
@@ -16,6 +18,10 @@ import cloudinary, {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+function getArtistForUser(userId) {
+  return Artist.findOne({ userId, isActive: true });
+}
 
 const router = express.Router();
 
@@ -182,8 +188,8 @@ router.get('/:id/related', async (req, res, next) => {
   }
 });
 
-// POST /api/products (admin only) - supports multipart/form-data with `image` file field OR imageUrl in body
-router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
+// POST /api/products (artist only) - supports multipart/form-data with `image` file field OR imageUrl in body
+router.post('/', authMiddleware, artistMiddleware, (req, res, next) => {
   // Check if this is a multipart request (file upload) or JSON request (URL)
   if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
     // Handle file upload
@@ -208,6 +214,9 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
   next();
 }, async (req, res, next) => {
   try {
+    const artist = await getArtistForUser(req.user._id);
+    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+
     const normalizedImageUrl = await normalizeProductImage(req.body.imageUrl);
     const {
       type,
@@ -216,18 +225,12 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
       price,
       category,
       stockQuantity,
-      imageUrl,
-      artistId,
-      artistUserId,
-      artistName,
-      artistEmail,
       medium,
       dimensions,
       year,
       videoUrl,
       outlineSketchPrice,
       coloringPrice,
-      approvalStatus,
     } = req.body;
     const product = await Product.create({
       type,
@@ -235,19 +238,19 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
       description,
       price: Number(price),
       category,
-      imageUrl: normalizedImageUrl || imageUrl,
+      imageUrl: normalizedImageUrl || req.body.imageUrl,
       stockQuantity: type === 'original-artwork' ? 1 : Number(stockQuantity || 0),
-      artistId,
-      artistUserId,
-      artistName,
-      artistEmail,
+      artistId: artist._id,
+      artistUserId: req.user._id,
+      artistName: artist.artistName,
+      artistEmail: artist.email,
       medium,
       dimensions,
       year,
       videoUrl,
       outlineSketchPrice: Number(outlineSketchPrice || 0),
       coloringPrice: Number(coloringPrice || 0),
-      approvalStatus,
+      approvalStatus: 'pending',
     });
     res.status(201).json(product);
   } catch (err) {

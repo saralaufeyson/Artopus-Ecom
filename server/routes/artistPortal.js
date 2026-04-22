@@ -9,6 +9,7 @@ import Order from '../models/Order.js';
 import Wallet from '../models/Wallet.js';
 import WalletTransaction from '../models/WalletTransaction.js';
 import cloudinary, { ensureCloudinaryConfigured, getOptimizedCloudinaryUrl } from '../utils/cloudinary.js';
+import { sendAdminPayoutRequestNotification } from '../utils/email.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { artistMiddleware } from '../middleware/artist.js';
 import { validate } from '../middleware/validate.js';
@@ -202,6 +203,9 @@ router.post('/wallet/withdrawals', authMiddleware, artistMiddleware, validate(wa
         requestedBy: req.user._id,
       },
     });
+
+    // Send email notification to admin
+    await sendAdminPayoutRequestNotification(artist, req.body.amount, req.body.note);
 
     res.status(201).json(transaction);
   } catch (err) {
