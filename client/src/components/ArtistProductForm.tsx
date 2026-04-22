@@ -138,7 +138,7 @@ const ArtistProductForm: React.FC = () => {
         submitData.outlineSketchPrice = formData.outlineSketchPrice;
       }
 
-      await axios.post('/api/products', submitData);
+      await axios.post('/api/artist/products', submitData);
 
       toast.success('Product submitted successfully!');
       // Reset form

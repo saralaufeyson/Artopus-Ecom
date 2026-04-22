@@ -188,8 +188,8 @@ router.get('/:id/related', async (req, res, next) => {
   }
 });
 
-// POST /api/products (artist only) - supports multipart/form-data with `image` file field OR imageUrl in body
-router.post('/', authMiddleware, artistMiddleware, (req, res, next) => {
+// POST /api/products (admin only) - supports multipart/form-data with `image` file field OR imageUrl in body
+router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
   // Check if this is a multipart request (file upload) or JSON request (URL)
   if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
     // Handle file upload
@@ -214,9 +214,6 @@ router.post('/', authMiddleware, artistMiddleware, (req, res, next) => {
   next();
 }, async (req, res, next) => {
   try {
-    const artist = await getArtistForUser(req.user._id);
-    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
-
     const normalizedImageUrl = await normalizeProductImage(req.body.imageUrl);
     const {
       type,
@@ -225,6 +222,10 @@ router.post('/', authMiddleware, artistMiddleware, (req, res, next) => {
       price,
       category,
       stockQuantity,
+      artistId,
+      artistUserId,
+      artistName,
+      artistEmail,
       medium,
       dimensions,
       year,
@@ -240,17 +241,17 @@ router.post('/', authMiddleware, artistMiddleware, (req, res, next) => {
       category,
       imageUrl: normalizedImageUrl || req.body.imageUrl,
       stockQuantity: type === 'original-artwork' ? 1 : Number(stockQuantity || 0),
-      artistId: artist._id,
-      artistUserId: req.user._id,
-      artistName: artist.artistName,
-      artistEmail: artist.email,
+      artistId,
+      artistUserId,
+      artistName,
+      artistEmail,
       medium,
       dimensions,
       year,
       videoUrl,
       outlineSketchPrice: Number(outlineSketchPrice || 0),
       coloringPrice: Number(coloringPrice || 0),
-      approvalStatus: 'pending',
+      approvalStatus: 'approved',
     });
     res.status(201).json(product);
   } catch (err) {
