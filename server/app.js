@@ -21,6 +21,7 @@ import collectionsRoutes from './routes/collections.js';
 import taxRoutes from './routes/taxes.js';
 import returnsRoutes from './routes/returns.js';
 import couponRoutes from './routes/coupons.js';
+import notificationRoutes from './routes/notifications.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,6 +65,7 @@ app.use('/api/collections', collectionsRoutes);
 app.use('/api/taxes', taxRoutes);
 app.use('/api/returns', returnsRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'Backend running 🚀' }));
 

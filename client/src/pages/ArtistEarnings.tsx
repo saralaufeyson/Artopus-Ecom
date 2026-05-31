@@ -12,11 +12,6 @@ interface Artist {
   totalWithdrawn: number;
 }
 
-interface Wallet {
-  _id: string;
-  balance: number;
-}
-
 interface Transaction {
   _id: string;
   amount: number;
@@ -29,7 +24,6 @@ interface Transaction {
 const ArtistEarnings: React.FC = () => {
   const { user } = useContext(AuthContext)!;
   const [artist, setArtist] = useState<Artist | null>(null);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestingPayout, setRequestingPayout] = useState(false);
@@ -40,7 +34,6 @@ const ArtistEarnings: React.FC = () => {
         setLoading(true);
         const res = await axios.get('/api/artist-portal/wallet');
         setArtist(res.data.artist);
-        setWallet(res.data.wallet);
         setTransactions(res.data.transactions);
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Failed to load wallet data');
@@ -70,7 +63,6 @@ const ArtistEarnings: React.FC = () => {
       // Refresh data
       const res = await axios.get('/api/artist-portal/wallet');
       setArtist(res.data.artist);
-      setWallet(res.data.wallet);
       setTransactions(res.data.transactions);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to request payout');

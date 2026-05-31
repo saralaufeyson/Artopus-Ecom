@@ -3,6 +3,8 @@ import ArtistRequest from '../models/ArtistRequest.js';
 import Artist from '../models/Artist.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
+import User from '../models/User.js';
+import { notifyRole, notifyUsers } from '../utils/notifications.js';
 
 const router = express.Router();
 
@@ -30,6 +32,14 @@ router.post('/', async (req, res, next) => {
       bio,
       portfolioLink,
       socialLinks
+    });
+
+    await notifyRole('admin', {
+      type: 'artist_request_submitted',
+      title: 'New artist application',
+      message: `${artistName} submitted an artist application.`,
+      link: '/admin',
+      metadata: { artistRequestId: newRequest._id, email },
     });
 
     res.status(201).json({ message: 'Request submitted successfully!', request: newRequest });
@@ -81,6 +91,17 @@ router.post('/:id/approve', authMiddleware, adminMiddleware, async (req, res, ne
     request.processedAt = new Date();
     await request.save();
 
+    const matchingUser = await User.findOne({ email: request.email }).select('_id');
+    if (matchingUser) {
+      await notifyUsers([matchingUser._id], {
+        type: 'artist_request_approved',
+        title: 'Artist application approved',
+        message: 'Your artist application has been approved. You can now activate your artist account.',
+        link: '/artist-activate',
+        metadata: { artistRequestId: request._id, artistId: artist._id },
+      });
+    }
+
     res.json({ message: 'Artist request approved and profile created!', artist });
   } catch (err) {
     next(err);
@@ -98,6 +119,17 @@ router.post('/:id/reject', authMiddleware, adminMiddleware, async (req, res, nex
     request.processedBy = req.user._id;
     request.processedAt = new Date();
     await request.save();
+
+    const matchingUser = await User.findOne({ email: request.email }).select('_id');
+    if (matchingUser) {
+      await notifyUsers([matchingUser._id], {
+        type: 'artist_request_rejected',
+        title: 'Artist application rejected',
+        message: 'Your artist application was not approved this time.',
+        link: '/join-as-artist',
+        metadata: { artistRequestId: request._id },
+      });
+    }
 
     res.json({ message: 'Artist request rejected' });
   } catch (err) {

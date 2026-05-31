@@ -4,6 +4,7 @@ import { AuthProvider, AuthContext } from './contexts/AuthContext.tsx';
 import { CartProvider } from './contexts/CartContext.tsx';
 import { ThemeProvider } from './contexts/ThemeContext.tsx';
 import { CollectionsProvider } from './contexts/CollectionsContext.tsx';
+import { NotificationsProvider } from './contexts/NotificationsContext.tsx';
 import MainLayout from './components/MainLayout';
 import Home from './pages/Home';
 import Shop from './pages/Shop.tsx';
@@ -88,85 +89,87 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CollectionsProvider>
-          <CartProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<MainLayout />}>
-                <Route index element={
-                  <PublicRouteGuard>
-                    <Home />
-                  </PublicRouteGuard>
-                } />
-                <Route path="shop" element={
-                  <PublicRouteGuard>
-                    <Shop />
-                  </PublicRouteGuard>
-                } />
-                <Route path="product/:id" element={
-                  <PublicRouteGuard>
-                    <ProductDetails />
-                  </PublicRouteGuard>
-                } />
-                <Route path="artist/:id" element={
-                  <PublicRouteGuard>
-                    <ArtistProfile />
-                  </PublicRouteGuard>
-                } />
-                <Route path="join-as-artist" element={
-                  <PublicRouteGuard>
-                    <JoinAsArtist />
-                  </PublicRouteGuard>
-                } />
-                <Route path="artist-activate" element={<ArtistActivate />} />
-                <Route path="cart" element={
-                  <PublicRouteGuard>
-                    <Cart />
-                  </PublicRouteGuard>
-                } />
-                <Route path="checkout" element={
-                  <PublicRouteGuard>
+        <NotificationsProvider>
+          <CollectionsProvider>
+            <CartProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<MainLayout />}>
+                  <Route index element={
+                    <PublicRouteGuard>
+                      <Home />
+                    </PublicRouteGuard>
+                  } />
+                  <Route path="shop" element={
+                    <PublicRouteGuard>
+                      <Shop />
+                    </PublicRouteGuard>
+                  } />
+                  <Route path="product/:id" element={
+                    <PublicRouteGuard>
+                      <ProductDetails />
+                    </PublicRouteGuard>
+                  } />
+                  <Route path="artist/:id" element={
+                    <PublicRouteGuard>
+                      <ArtistProfile />
+                    </PublicRouteGuard>
+                  } />
+                  <Route path="join-as-artist" element={
+                    <PublicRouteGuard>
+                      <JoinAsArtist />
+                    </PublicRouteGuard>
+                  } />
+                  <Route path="artist-activate" element={<ArtistActivate />} />
+                  <Route path="cart" element={
+                    <PublicRouteGuard>
+                      <Cart />
+                    </PublicRouteGuard>
+                  } />
+                  <Route path="checkout" element={
+                    <PublicRouteGuard>
+                      <AuthRequiredRoute>
+                        <Checkout />
+                      </AuthRequiredRoute>
+                    </PublicRouteGuard>
+                  } />
+                  <Route path="order-success/:orderId" element={
                     <AuthRequiredRoute>
-                      <Checkout />
+                      <Success />
                     </AuthRequiredRoute>
-                  </PublicRouteGuard>
-                } />
-                <Route path="order-success/:orderId" element={
-                  <AuthRequiredRoute>
-                    <Success />
-                  </AuthRequiredRoute>
-                } />
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-                <Route path="profile" element={
-                  <AuthRequiredRoute>
-                    <Profile />
-                  </AuthRequiredRoute>
-                } />
-                <Route path="artist-dashboard" element={
-                  <ArtistRoute>
-                    <ArtistDashboard />
-                  </ArtistRoute>
-                } />
-                
-                {/* Protected Admin Route */}
-                <Route 
-                  path="admin" 
-                  element={
-                    <AdminRoute>
-                      <AdminDashboard />
-                    </AdminRoute>
-                  } 
-                />
-                
-                {/* 404 Route */}
-                <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
-            </BrowserRouter>
-            <ToastContainer position="bottom-right" />
-          </CartProvider>
-        </CollectionsProvider>
+                  } />
+                  <Route path="login" element={<Login />} />
+                  <Route path="register" element={<Register />} />
+                  <Route path="profile" element={
+                    <AuthRequiredRoute>
+                      <Profile />
+                    </AuthRequiredRoute>
+                  } />
+                  <Route path="artist-dashboard" element={
+                    <ArtistRoute>
+                      <ArtistDashboard />
+                    </ArtistRoute>
+                  } />
+                  
+                  {/* Protected Admin Route */}
+                  <Route 
+                    path="admin" 
+                    element={
+                      <AdminRoute>
+                        <AdminDashboard />
+                      </AdminRoute>
+                    } 
+                  />
+                  
+                  {/* 404 Route */}
+                  <Route path="*" element={<NotFound />} />
+                  </Route>
+                </Routes>
+              </BrowserRouter>
+              <ToastContainer position="bottom-right" />
+            </CartProvider>
+          </CollectionsProvider>
+        </NotificationsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

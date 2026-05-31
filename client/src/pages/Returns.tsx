@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 
@@ -20,17 +20,8 @@ interface ReturnRequest {
   createdAt: string;
 }
 
-interface Order {
-  _id: string;
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-  items: any[];
-}
-
 const Returns: React.FC = () => {
   const params = useParams();
-  const navigate = useNavigate();
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestingReturn, setRequestingReturn] = useState(false);

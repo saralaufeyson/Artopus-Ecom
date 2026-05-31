@@ -5,6 +5,7 @@ import { adminMiddleware } from '../middleware/admin.js';
 import Artist from '../models/Artist.js';
 import User from '../models/User.js';
 import { buildTrackingWhatsAppMessage, sendWhatsAppMessage } from '../utils/whatsapp.js';
+import { notifyRole, notifyUsers } from '../utils/notifications.js';
 
 const router = express.Router();
 
@@ -81,6 +82,23 @@ router.patch('/:id/status', authMiddleware, async (req, res, next) => {
         .catch((error) => console.error('Silent fail on WhatsApp notification:', error.message));
     }
 
+    await Promise.all([
+      notifyUsers([order.customer], {
+        type: `order_${status}`,
+        title: `Order ${status}`,
+        message: `Your order #${order._id.toString().slice(-6).toUpperCase()} was marked ${status}.`,
+        link: '/profile',
+        metadata: { orderId: order._id, status, artistId },
+      }),
+      notifyRole('admin', {
+        type: `order_${status}`,
+        title: `Order ${status}`,
+        message: `Artist fulfillment updated order #${order._id.toString().slice(-6).toUpperCase()} to ${status}.`,
+        link: '/admin',
+        metadata: { orderId: order._id, status, artistId },
+      }),
+    ]);
+
     res.json(order);
   } catch (err) {
     next(err);
@@ -124,6 +142,35 @@ router.patch('/admin/orders/:id/status', authMiddleware, adminMiddleware, async 
       sendWhatsAppMessage(customer.whatsappNumber, buildTrackingWhatsAppMessage(order, status))
         .catch((error) => console.error('Silent fail on WhatsApp notification:', error.message));
     }
+
+    const relatedArtists = await Artist.find({ _id: { $in: order.items.map((item) => item.artistId).filter(Boolean) } }).select('userId');
+    await Promise.all([
+      notifyUsers([order.customer], {
+        type: `order_${status}`,
+        title: `Order ${status === 'succeeded' ? 'processing' : status}`,
+        message: status === 'succeeded'
+          ? `Your order #${order._id.toString().slice(-6).toUpperCase()} is now being processed.`
+          : `Your order #${order._id.toString().slice(-6).toUpperCase()} was marked ${status}.`,
+        link: '/profile',
+        metadata: { orderId: order._id, status },
+      }),
+      notifyRole('admin', {
+        type: `order_${status}`,
+        title: `Order ${status}`,
+        message: `Order #${order._id.toString().slice(-6).toUpperCase()} was updated to ${status}.`,
+        link: '/admin',
+        metadata: { orderId: order._id, status },
+      }),
+      notifyUsers(relatedArtists.map((artist) => artist.userId).filter(Boolean), {
+        type: `order_${status}`,
+        title: `Order ${status}`,
+        message: status === 'succeeded'
+          ? 'An order containing your artwork is now marked paid and processing.'
+          : `An order containing your artwork was marked ${status}.`,
+        link: '/artist-dashboard',
+        metadata: { orderId: order._id, status },
+      }),
+    ]);
 
     res.json(order);
   } catch (err) {

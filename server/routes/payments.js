@@ -20,6 +20,7 @@ import {
   mapPhonePeStateToOrderStatus,
   extractPhonePeState,
 } from '../utils/phonepe.js';
+import { notifyRole, notifyUsers } from '../utils/notifications.js';
 
 const router = express.Router();
 
@@ -84,6 +85,64 @@ async function sendArtistNotifications(order) {
       }).catch((error) => console.error('Silent fail on artist email:', error));
     }
   }
+}
+
+async function sendOrderCreatedNotifications(order) {
+  const artistUserIds = await Artist.find({ _id: { $in: order.items.map((item) => item.artistId).filter(Boolean) } })
+    .select('userId');
+
+  await Promise.all([
+    notifyUsers([order.customer], {
+      type: 'order_created',
+      title: 'Order created',
+      message: `Your order #${order._id.toString().slice(-6).toUpperCase()} was created and is awaiting payment confirmation.`,
+      link: '/profile',
+      metadata: { orderId: order._id, status: order.status },
+    }),
+    notifyRole('admin', {
+      type: 'order_created',
+      title: 'New order created',
+      message: `Order #${order._id.toString().slice(-6).toUpperCase()} was created and is awaiting payment.`,
+      link: '/admin',
+      metadata: { orderId: order._id, status: order.status },
+    }),
+    notifyUsers(artistUserIds.map((artist) => artist.userId).filter(Boolean), {
+      type: 'order_created',
+      title: 'New order received',
+      message: `A new order including your artwork was created and is awaiting payment confirmation.`,
+      link: '/artist-dashboard',
+      metadata: { orderId: order._id, status: order.status },
+    }),
+  ]);
+}
+
+async function sendOrderPaidNotifications(order) {
+  const artistUserIds = await Artist.find({ _id: { $in: order.items.map((item) => item.artistId).filter(Boolean) } })
+    .select('userId');
+
+  await Promise.all([
+    notifyUsers([order.customer], {
+      type: 'payment_succeeded',
+      title: 'Payment confirmed',
+      message: `Payment for order #${order._id.toString().slice(-6).toUpperCase()} was successful and processing has started.`,
+      link: '/profile',
+      metadata: { orderId: order._id, status: order.status },
+    }),
+    notifyRole('admin', {
+      type: 'payment_succeeded',
+      title: 'Order paid',
+      message: `Order #${order._id.toString().slice(-6).toUpperCase()} has been paid and is ready for processing.`,
+      link: '/admin',
+      metadata: { orderId: order._id, status: order.status },
+    }),
+    notifyUsers(artistUserIds.map((artist) => artist.userId).filter(Boolean), {
+      type: 'payment_succeeded',
+      title: 'Order ready to fulfill',
+      message: `Payment cleared for an order containing your artwork. You can start fulfillment now.`,
+      link: '/artist-dashboard',
+      metadata: { orderId: order._id, status: order.status },
+    }),
+  ]);
 }
 
 async function addFundsToArtistWallet(artistUserId, totalPrice, session = null) {
@@ -185,6 +244,7 @@ async function fulfillOrderWithoutTransaction(order) {
 
   await sendArtistNotifications(order);
   await creditArtistWallets(order);
+  await sendOrderPaidNotifications(order);
   return order;
 }
 
@@ -237,6 +297,7 @@ async function fulfillOrderWithTransaction(order) {
     session.endSession();
 
     await sendArtistNotifications(orderInSession);
+    await sendOrderPaidNotifications(orderInSession);
     return orderInSession;
   } catch (error) {
     await session.abortTransaction();
@@ -345,6 +406,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
         status: 'created',
         expectedDeliveryDate,
       });
+      await sendOrderCreatedNotifications(order);
 
       try {
         const redirectBase = process.env.PHONEPE_REDIRECT_BASE_URL || process.env.CLIENT_URL || 'http://localhost:5173';
@@ -420,6 +482,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
       status: 'created',
       expectedDeliveryDate,
     });
+    await sendOrderCreatedNotifications(order);
 
     return res.json({ clientSecret, orderId: order._id, provider: paymentProvider });
   } catch (error) {

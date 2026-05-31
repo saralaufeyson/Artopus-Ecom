@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { CartContext } from '../contexts/CartContext';
 import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
 
 function Navbar() {
   const auth = useContext(AuthContext);
@@ -72,6 +73,7 @@ function Navbar() {
 
         <div className="hidden lg:flex items-center gap-6">
           <ThemeToggle />
+          {user && <NotificationBell />}
           {user ? (
             <div className="flex items-center gap-4">
               {user.role !== 'admin' && <Link to="/profile" className="nav-link">Profile</Link>}
@@ -137,6 +139,10 @@ function Navbar() {
               <li className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 mt-4">
                 {user ? (
                   <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-900 dark:text-white font-medium">Notifications</span>
+                      <NotificationBell />
+                    </div>
                     {user.role !== 'admin' && <Link to="/profile" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Profile</Link>}
                     {user.role === 'artist' && <Link to="/artist-dashboard" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Artist Dashboard</Link>}
                     <button onClick={handleLogout} className="w-full text-left text-red-600 font-medium">Logout</button>

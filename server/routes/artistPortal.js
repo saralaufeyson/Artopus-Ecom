@@ -14,6 +14,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { artistMiddleware } from '../middleware/artist.js';
 import { validate } from '../middleware/validate.js';
 import { artistProductSchema, walletWithdrawalSchema } from '../validation/schemas.js';
+import { notifyRole, notifyUsers } from '../utils/notifications.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -156,6 +157,23 @@ router.post('/products', authMiddleware, artistMiddleware, (req, res, next) => {
       approvalStatus: 'pending',
     });
 
+    await Promise.all([
+      notifyUsers([req.user._id], {
+        type: 'product_submitted',
+        title: 'Product submitted',
+        message: `${product.title} was submitted for admin review.`,
+        link: '/artist-dashboard',
+        metadata: { productId: product._id, approvalStatus: product.approvalStatus },
+      }),
+      notifyRole('admin', {
+        type: 'product_submission_received',
+        title: 'New artist product submission',
+        message: `${artist.artistName} submitted ${product.title} for approval.`,
+        link: '/admin',
+        metadata: { productId: product._id, artistId: artist._id },
+      }),
+    ]);
+
     res.status(201).json(product);
   } catch (err) {
     next(err);
@@ -206,6 +224,22 @@ router.post('/wallet/withdrawals', authMiddleware, artistMiddleware, validate(wa
 
     // Send email notification to admin
     await sendAdminPayoutRequestNotification(artist, req.body.amount, req.body.note);
+    await Promise.all([
+      notifyUsers([req.user._id], {
+        type: 'withdrawal_requested',
+        title: 'Payout request submitted',
+        message: `Your payout request for $${Number(req.body.amount).toFixed(2)} is pending admin review.`,
+        link: '/artist-dashboard',
+        metadata: { transactionId: transaction._id, amount: req.body.amount },
+      }),
+      notifyRole('admin', {
+        type: 'withdrawal_request_received',
+        title: 'New payout request',
+        message: `${artist.artistName} requested a payout of $${Number(req.body.amount).toFixed(2)}.`,
+        link: '/admin',
+        metadata: { transactionId: transaction._id, artistId: artist._id, amount: req.body.amount },
+      }),
+    ]);
 
     res.status(201).json(transaction);
   } catch (err) {

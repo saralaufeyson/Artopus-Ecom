@@ -15,6 +15,7 @@ import cloudinary, {
   isCloudinaryConfigured,
   uploadAssetToCloudinary,
 } from '../utils/cloudinary.js';
+import { notifyRole, notifyUsers } from '../utils/notifications.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -295,6 +296,24 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
       coloringPrice: Number(coloringPrice || 0),
       approvalStatus: 'approved',
     });
+
+    await Promise.all([
+      notifyRole('admin', {
+        type: 'product_created',
+        title: 'Product created',
+        message: `${product.title} was added to the catalog.`,
+        link: '/admin',
+        metadata: { productId: product._id, approvalStatus: product.approvalStatus },
+      }),
+      product.artistUserId ? notifyUsers([product.artistUserId], {
+        type: 'product_created',
+        title: 'Product listing is live',
+        message: `${product.title} has been created and is now live in the store.`,
+        link: '/artist-dashboard',
+        metadata: { productId: product._id, approvalStatus: product.approvalStatus },
+      }) : Promise.resolve([]),
+    ]);
+
     res.status(201).json(product);
   } catch (err) {
     next(err);
@@ -343,6 +362,7 @@ router.patch('/:id/approval', authMiddleware, adminMiddleware, async (req, res, 
       return res.status(400).json({ message: 'Invalid approval status' });
     }
 
+    const previousProduct = await Product.findById(req.params.id);
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { approvalStatus },
@@ -350,6 +370,23 @@ router.patch('/:id/approval', authMiddleware, adminMiddleware, async (req, res, 
     );
 
     if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    if (previousProduct?.approvalStatus !== approvalStatus && product.artistUserId) {
+      const statusMessageMap = {
+        approved: `${product.title} was approved and is visible to shoppers.`,
+        pending: `${product.title} is back in review.`,
+        rejected: `${product.title} was rejected. Please review it and update the listing.`,
+      };
+
+      await notifyUsers([product.artistUserId], {
+        type: 'product_approval_updated',
+        title: `Product ${approvalStatus}`,
+        message: statusMessageMap[approvalStatus],
+        link: '/artist-dashboard',
+        metadata: { productId: product._id, approvalStatus },
+      });
+    }
+
     res.json(product);
   } catch (err) {
     next(err);

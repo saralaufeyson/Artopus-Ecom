@@ -110,7 +110,7 @@ const ArtistProductForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const submitData = {
+      const submitData: Record<string, string> = {
         title: formData.title,
         description: formData.description,
         category: formData.category,

@@ -7,6 +7,7 @@ import { adminMiddleware } from '../middleware/admin.js';
 import bcrypt from 'bcryptjs';
 import { payoutDecisionSchema, registerSchema } from '../validation/schemas.js';
 import { validate } from '../middleware/validate.js';
+import { notifyUsers } from '../utils/notifications.js';
 
 const router = express.Router();
 
@@ -145,6 +146,16 @@ router.post('/artists/:id/payout', authMiddleware, adminMiddleware, async (req, 
     const populated = await WalletTransaction.findById(transaction._id)
       .populate('artist', 'artistName walletBalance totalWithdrawn');
 
+    if (artist.userId) {
+      await notifyUsers([artist.userId], {
+        type: 'payout_completed',
+        title: 'Payout completed',
+        message: `A payout of $${payoutAmount.toFixed(2)} has been processed for your artist account.`,
+        link: '/artist-dashboard',
+        metadata: { transactionId: transaction._id, artistId: artist._id, amount: payoutAmount },
+      });
+    }
+
     res.status(201).json({
       message: 'Artist payout completed successfully',
       transaction: populated,
@@ -182,6 +193,16 @@ router.post('/withdrawals/:id/approve', authMiddleware, adminMiddleware, validat
     artist.totalWithdrawn = Number((artist.totalWithdrawn + transaction.amount).toFixed(2));
     await artist.save();
 
+    if (artist.userId) {
+      await notifyUsers([artist.userId], {
+        type: 'withdrawal_approved',
+        title: 'Payout request approved',
+        message: `Your payout request for $${transaction.amount.toFixed(2)} has been approved.`,
+        link: '/artist-dashboard',
+        metadata: { transactionId: transaction._id, artistId: artist._id, amount: transaction.amount },
+      });
+    }
+
     const populated = await WalletTransaction.findById(transaction._id).populate('artist', 'artistName walletBalance totalWithdrawn');
     res.json(populated);
   } catch (err) {
@@ -214,6 +235,16 @@ router.post('/withdrawals/:id/reject', authMiddleware, adminMiddleware, validate
       processedAt: new Date(),
     };
     await transaction.save();
+
+    if (artist.userId) {
+      await notifyUsers([artist.userId], {
+        type: 'withdrawal_rejected',
+        title: 'Payout request rejected',
+        message: `Your payout request for $${transaction.amount.toFixed(2)} was rejected and the amount was returned to your wallet.`,
+        link: '/artist-dashboard',
+        metadata: { transactionId: transaction._id, artistId: artist._id, amount: transaction.amount },
+      });
+    }
 
     const populated = await WalletTransaction.findById(transaction._id).populate('artist', 'artistName walletBalance totalWithdrawn');
     res.json(populated);
