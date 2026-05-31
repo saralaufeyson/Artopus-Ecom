@@ -18,6 +18,9 @@ import artistPortalRoutes from './routes/artistPortal.js';
 import reviewRoutes from './routes/reviews.js';
 import pageViewsRoutes from './routes/pageViews.js';
 import collectionsRoutes from './routes/collections.js';
+import taxRoutes from './routes/taxes.js';
+import returnsRoutes from './routes/returns.js';
+import couponRoutes from './routes/coupons.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +61,9 @@ app.use('/api/artist-portal', artistPortalRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/page-views', pageViewsRoutes);
 app.use('/api/collections', collectionsRoutes);
+app.use('/api/taxes', taxRoutes);
+app.use('/api/returns', returnsRoutes);
+app.use('/api/coupons', couponRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'Backend running 🚀' }));
 

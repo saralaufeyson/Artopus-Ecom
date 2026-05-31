@@ -100,10 +100,10 @@ async function normalizeProductImage(rawImageUrl) {
   return uploadResult ? getOptimizedCloudinaryUrl(uploadResult.secure_url) : rawImageUrl;
 }
 
-// GET /api/products?type=&category=&artistId=&q=
+// GET /api/products?type=&category=&artistId=&q=&minPrice=&maxPrice=&inStock=&page=&limit=
 router.get('/', async (req, res, next) => {
   try {
-    const { type, category, artistId, q, sort, featured } = req.query;
+    const { type, category, artistId, q, sort, featured, minPrice, maxPrice, inStock, page = 1, limit = 12 } = req.query;
     const conditions = [
       { isActive: true },
       {
@@ -118,9 +118,30 @@ router.get('/', async (req, res, next) => {
     if (type) conditions.push({ type });
     if (category) conditions.push({ category });
     if (artistId) conditions.push({ artistId });
+    
+    // Advanced price range filtering
+    if (minPrice || maxPrice) {
+      const priceCondition = {};
+      if (minPrice) priceCondition.$gte = parseFloat(minPrice);
+      if (maxPrice) priceCondition.$lte = parseFloat(maxPrice);
+      conditions.push({ price: priceCondition });
+    }
+
+    // Stock availability filtering
+    if (inStock === 'true') {
+      conditions.push({ stockQuantity: { $gt: 0 } });
+    }
+
+    // Enhanced search
     if (q) {
       conditions.push({
-        $or: [{ title: new RegExp(q, 'i') }, { description: new RegExp(q, 'i') }, { artistName: new RegExp(q, 'i') }],
+        $or: [
+          { title: new RegExp(q, 'i') }, 
+          { description: new RegExp(q, 'i') }, 
+          { artistName: new RegExp(q, 'i') },
+          { category: new RegExp(q, 'i') },
+          { medium: new RegExp(q, 'i') }
+        ],
       });
     }
 
@@ -129,14 +150,35 @@ router.get('/', async (req, res, next) => {
       price_asc: { price: 1 },
       price_desc: { price: -1 },
       title_asc: { title: 1 },
+      popularity: { createdAt: -1 },
     };
 
     const query = Product.find({ $and: conditions });
     query.sort(sortMap[sort] || { createdAt: -1 });
-    if (featured === 'true') query.limit(8);
+    
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 12));
+    const skip = (pageNum - 1) * limitNum;
+
+    if (featured === 'true') {
+      query.limit(8);
+    } else {
+      query.skip(skip).limit(limitNum);
+    }
 
     const products = await query;
-    res.json(products);
+    const total = await Product.countDocuments({ $and: conditions });
+
+    res.json({
+      data: products,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (err) {
     next(err);
   }

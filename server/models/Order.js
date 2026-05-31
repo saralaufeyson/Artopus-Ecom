@@ -23,6 +23,12 @@ const OrderSchema = new mongoose.Schema(
   {
     customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     items: { type: [OrderItemSchema], validate: [(arr) => arr && arr.length > 0, 'Order must have at least one item'] },
+    subtotal: { type: Number, required: true, default: 0 },
+    couponCode: { type: String },
+    couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' },
+    discountAmount: { type: Number, default: 0, min: 0 },
+    taxRate: { type: Number, default: 0, min: 0, max: 1 },
+    taxAmount: { type: Number, default: 0, min: 0 },
     totalAmount: { type: Number, required: true },
     paymentIntentId: { type: String, required: true },
     paymentProvider: { type: String, enum: ['stripe', 'phonepe', 'mock'], default: 'mock' },

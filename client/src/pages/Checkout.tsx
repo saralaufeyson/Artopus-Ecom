@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { CartContext } from '../contexts/CartContext';
@@ -18,10 +18,46 @@ const Checkout: React.FC = () => {
   const { cart, getSubtotal, clearCart } = useContext(CartContext)!;
   const [shipping, setShipping] = useState<Shipping>({ street: '', city: '', state: '', zip: '', country: '' });
   const [loading, setLoading] = useState(false);
+  const [taxAmount, setTaxAmount] = useState(0);
+  const [couponCode, setCouponCode] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponMessage, setCouponMessage] = useState('');
 
   const subtotal = getSubtotal();
   const shippingCost = 15;
-  const total = subtotal + shippingCost;
+  const total = subtotal + shippingCost - discountAmount;
+  const totalWithTax = total + taxAmount;
+
+  // Calculate tax when state changes
+  useEffect(() => {
+    const calculateTax = async () => {
+      if (!shipping.state) {
+        setTaxAmount(0);
+        return;
+      }
+
+      try {
+        const taxRates = await axios.get('/api/taxes/rates');
+        const rates = Array.isArray(taxRates.data) ? taxRates.data : taxRates.data.rates || [];
+
+        // Find tax rate for the state
+        let rate = rates.find((r: any) => r.state.toUpperCase() === shipping.state.toUpperCase());
+        if (!rate) {
+          rate = rates.find((r: any) => r.isDefault);
+        }
+
+        const taxRate = rate ? rate.rate / 100 : 0;
+        const calculated = Math.round(total * taxRate * 100) / 100;
+        setTaxAmount(calculated);
+      } catch (error) {
+        console.error('Error calculating tax:', error);
+        setTaxAmount(0);
+      }
+    };
+
+    calculateTax();
+  }, [shipping.state, total]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,6 +71,7 @@ const Checkout: React.FC = () => {
           buyerOption: item.buyerOption || 'painting',
         })),
         shippingAddress: shipping,
+        couponCode: couponCode || undefined,
       });
 
       const { redirectUrl, orderId, clientSecret } = res.data;
@@ -57,6 +94,39 @@ const Checkout: React.FC = () => {
       alert('Something went wrong while starting the payment. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponMessage('Please enter a coupon code');
+      return;
+    }
+
+    try {
+      setCouponLoading(true);
+      setCouponMessage('');
+      const cartTotal = subtotal + shippingCost;
+
+      const res = await axios.post('/api/coupons/validate', {
+        code: couponCode,
+        orderTotal: cartTotal,
+        items: cart,
+      });
+
+      if (res.data.valid) {
+        setDiscountAmount(res.data.discount);
+        setCouponMessage(`✓ Coupon applied! You save $${res.data.discount.toFixed(2)}`);
+      } else {
+        setCouponMessage(`✗ ${res.data.message}`);
+        setDiscountAmount(0);
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Error validating coupon';
+      setCouponMessage(`✗ ${message}`);
+      setDiscountAmount(0);
+    } finally {
+      setCouponLoading(false);
     }
   };
 
@@ -139,6 +209,38 @@ const Checkout: React.FC = () => {
             </div>
           </section>
 
+          <section className="checkout-card">
+            <h2 className="checkout-section-title">
+              Promo Code
+            </h2>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Enter coupon code"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  setCouponMessage('');
+                }}
+                className="checkout-input flex-1"
+                disabled={couponLoading}
+              />
+              <button
+                onClick={handleApplyCoupon}
+                disabled={couponLoading}
+                type="button"
+                className="px-6 py-2 bg-logo-purple text-white rounded-lg font-semibold hover:bg-logo-purple/90 disabled:opacity-50 transition-colors"
+              >
+                {couponLoading ? 'Validating...' : 'Apply'}
+              </button>
+            </div>
+            {couponMessage && (
+              <p className={`text-sm mt-2 ${couponMessage.startsWith('✓') ? 'text-green-600' : 'text-red-600'}`}>
+                {couponMessage}
+              </p>
+            )}
+          </section>
+
           <button
             type="submit"
             disabled={loading}
@@ -184,9 +286,15 @@ const Checkout: React.FC = () => {
                 <span className="text-gray-500">Shipping</span>
                 <span className="font-bold text-gray-900 dark:text-white">${shippingCost.toFixed(2)}</span>
               </div>
+              {taxAmount > 0 && (
+                <div className="order-summary-row">
+                  <span className="text-gray-500">Sales Tax</span>
+                  <span className="font-bold text-gray-900 dark:text-white">${taxAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="order-summary-total">
                 <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
-                <span className="text-2xl font-black text-logo-purple">${total.toFixed(2)}</span>
+                <span className="text-2xl font-black text-logo-purple">${totalWithTax.toFixed(2)}</span>
               </div>
             </div>
 

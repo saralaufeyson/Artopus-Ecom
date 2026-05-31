@@ -8,8 +8,10 @@ import WalletTransaction from '../models/WalletTransaction.js';
 import Wallet from '../models/Wallet.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { validateCoupon, recordCouponUsage } from '../utils/coupon.js';
 import { createIntentSchema } from '../validation/schemas.js';
 import { sendArtistOrderNotification } from '../utils/email.js';
+import { calculateTax } from '../utils/tax.js';
 import {
   createPhonePePaymentUrl,
   extractPhonePeRedirectUrl,
@@ -291,7 +293,7 @@ async function buildCheckoutContext(items) {
 
 router.post('/create-intent', authMiddleware, validate(createIntentSchema), async (req, res, next) => {
   try {
-    const { items, shippingAddress } = req.body;
+    const { items, shippingAddress, couponCode } = req.body;
     const checkoutContext = await buildCheckoutContext(items);
     if (checkoutContext.error) {
       return res.status(400).json({ message: checkoutContext.error });
@@ -300,12 +302,43 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
     const { total, orderItems } = checkoutContext;
     const expectedDeliveryDate = buildExpectedDeliveryDate();
 
+    // Apply coupon if provided
+    let discountAmount = 0;
+    let couponId = null;
+    let appliedCouponCode = null;
+
+    if (couponCode) {
+      const couponValidation = await validateCoupon(couponCode, total, req.user._id, orderItems);
+      if (couponValidation.valid) {
+        discountAmount = couponValidation.discount;
+        couponId = couponValidation.coupon.id;
+        appliedCouponCode = couponCode;
+      } else {
+        // If coupon is not valid, we should inform the user but let them continue without it
+        console.warn(`Invalid coupon ${couponCode}: ${couponValidation.message}`);
+      }
+    }
+
+    // Calculate total after discount
+    const subtotal = Math.round((total - discountAmount) * 100) / 100;
+
+    // Calculate tax based on shipping state (after discount)
+    const taxAmount = await calculateTax(subtotal, shippingAddress?.state);
+    const taxRate = taxAmount > 0 ? taxAmount / subtotal : 0;
+    const totalWithTaxAndDiscount = Math.round((subtotal + taxAmount) * 100) / 100;
+
     if (isPhonePeConfigured() && process.env.NODE_ENV !== 'test') {
       const merchantOrderId = `phonepe_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
       const order = await Order.create({
         customer: req.user._id,
         items: orderItems,
-        totalAmount: total,
+        subtotal: total,
+        couponCode: appliedCouponCode,
+        couponId,
+        discountAmount,
+        taxRate,
+        taxAmount,
+        totalAmount: totalWithTaxAndDiscount,
         paymentIntentId: merchantOrderId,
         paymentProvider: 'phonepe',
         shippingAddress,
@@ -318,7 +351,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
         const redirectUrl = `${redirectBase}/order-success/${order._id}?gateway=phonepe`;
         const phonePePayload = {
           merchantOrderId,
-          amount: Math.round(total * 100),
+          amount: Math.round(totalWithTaxAndDiscount * 100),
           expireAfter: 1200,
           metaInfo: {
             udf1: req.user._id.toString(),
@@ -359,7 +392,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
     if (stripe) {
       try {
         const paymentIntent = await stripe.paymentIntents.create({
-          amount: Math.round(total * 100),
+          amount: Math.round(totalWithTaxAndDiscount * 100),
           currency: 'usd',
           metadata: { integration_check: 'accept_a_payment' },
         });
@@ -374,7 +407,13 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
     const order = await Order.create({
       customer: req.user._id,
       items: orderItems,
-      totalAmount: total,
+      subtotal: total,
+      couponCode: appliedCouponCode,
+      couponId,
+      discountAmount,
+      taxRate,
+      taxAmount,
+      totalAmount: totalWithTaxAndDiscount,
       paymentIntentId,
       paymentProvider,
       shippingAddress,
