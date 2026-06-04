@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
@@ -71,17 +72,28 @@ app.get('/api/health', (req, res) => res.json({ status: 'Backend running 🚀' }
 
 if (process.env.NODE_ENV === 'production') {
   const clientDistPath = path.resolve(__dirname, '../client/dist');
+  const clientIndexPath = path.join(clientDistPath, 'index.html');
 
-  app.use(express.static(clientDistPath));
-  app.use((req, res, next) => {
-    if (req.method === 'GET' && !req.path.startsWith('/api/') && req.accepts('html')) {
-      res.sendFile(path.join(clientDistPath, 'index.html'));
-      return;
-    }
+  if (fs.existsSync(clientIndexPath)) {
+    app.use(express.static(clientDistPath));
+    app.use((req, res, next) => {
+      if (req.method === 'GET' && !req.path.startsWith('/api/') && req.accepts('html')) {
+        res.sendFile(clientIndexPath);
+        return;
+      }
 
-    next();
-  });
+      next();
+    });
+  }
 }
+
+app.get('/', (req, res) => {
+  res.json({
+    status: 'Artopus API running',
+    health: '/api/health',
+    frontend: process.env.CLIENT_URL || null,
+  });
+});
 
 // Error handler
 app.use(errorHandler);

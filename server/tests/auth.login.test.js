@@ -14,4 +14,8 @@ test('Register and login flow issues JWT and does not expose password', async ()
   const l = await request(app).post('/api/auth/login').send({ email: 'reguser@test.com', password: 'bigsecret' });
   expect(l.status).toBe(200);
   expect(l.body.token).toBeDefined();
+
+  const invalid = await request(app).post('/api/auth/login').send({ email: 'reguser@test.com', password: 'wrong-password' });
+  expect(invalid.status).toBe(400);
+  expect(invalid.body).toEqual({ message: 'Invalid credentials' });
 });

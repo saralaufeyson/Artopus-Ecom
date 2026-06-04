@@ -25,6 +25,29 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const isUser = (value: unknown): value is User => {
+  if (!value || typeof value !== 'object') return false;
+
+  const user = value as Record<string, unknown>;
+  return (
+    typeof user.id === 'string'
+    && typeof user.name === 'string'
+    && typeof user.email === 'string'
+    && typeof user.role === 'string'
+  );
+};
+
+const parseAuthResponse = (data: unknown): { token: string; user: User } | null => {
+  if (!data || typeof data !== 'object') return null;
+
+  const response = data as Record<string, unknown>;
+  if (typeof response.token !== 'string' || !response.token || !isUser(response.user)) {
+    return null;
+  }
+
+  return { token: response.token, user: response.user };
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -54,8 +77,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (credentials: { email: string; password: string }): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await axios.post('/api/auth/login', credentials);
-      const { token: newToken, user: userData } = res.data;
+      const authResponse = parseAuthResponse(res.data);
+      if (!authResponse) {
+        return { success: false, error: 'Invalid response from login server' };
+      }
+
+      const { token: newToken, user: userData } = authResponse;
       localStorage.setItem('token', newToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
       setToken(newToken);
       setUser(userData);
       return { success: true };
@@ -68,8 +97,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: { name: string; email: string; password: string; phone?: string; whatsappNumber?: string }): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await axios.post('/api/auth/register', userData);
-      const { token: newToken, user: newUser } = res.data;
+      const authResponse = parseAuthResponse(res.data);
+      if (!authResponse) {
+        return { success: false, error: 'Invalid response from registration server' };
+      }
+
+      const { token: newToken, user: newUser } = authResponse;
       localStorage.setItem('token', newToken);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
       setToken(newToken);
       setUser(newUser);
       return { success: true };
