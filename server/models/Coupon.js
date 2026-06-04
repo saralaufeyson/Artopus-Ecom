@@ -23,8 +23,6 @@ const CouponSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Index for faster lookups
-CouponSchema.index({ code: 1 });
 CouponSchema.index({ active: 1, validFrom: 1, validUntil: 1 });
 
 export default mongoose.model('Coupon', CouponSchema);
