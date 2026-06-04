@@ -6,7 +6,10 @@
   "directories": {
     "test": "tests"
   },
-  "scripts": {},
+  "scripts": {
+    "build": "npm ci --prefix client --include=dev && npm run build --prefix client && npm ci --prefix server --omit=dev --ignore-scripts",
+    "start": "npm start --prefix server"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

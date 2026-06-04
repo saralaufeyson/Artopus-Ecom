@@ -75,6 +75,7 @@ export const createIntentSchema = Joi.object({
     quantity: Joi.number().integer().min(1).required(),
     buyerOption: Joi.string().valid('painting', 'outline-sketch', 'colored-version').optional(),
   })).min(1).required(),
+  couponCode: Joi.string().allow('', null).optional(),
   shippingAddress: Joi.object({
     street: Joi.string().required(),
     city: Joi.string().required(),

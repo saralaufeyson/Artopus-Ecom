@@ -13,6 +13,12 @@ interface Shipping {
   country: string;
 }
 
+type TaxRate = {
+  state: string;
+  rate: number;
+  isDefault?: boolean;
+};
+
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
   const { cart, getSubtotal, clearCart } = useContext(CartContext)!;
@@ -26,8 +32,8 @@ const Checkout: React.FC = () => {
 
   const subtotal = getSubtotal();
   const shippingCost = 15;
-  const total = subtotal + shippingCost - discountAmount;
-  const totalWithTax = total + taxAmount;
+  const totalBeforeTax = subtotal + shippingCost - discountAmount;
+  const totalWithTax = totalBeforeTax + taxAmount;
 
   // Calculate tax when state changes
   useEffect(() => {
@@ -38,17 +44,20 @@ const Checkout: React.FC = () => {
       }
 
       try {
-        const taxRates = await axios.get('/api/taxes/rates');
-        const rates = Array.isArray(taxRates.data) ? taxRates.data : taxRates.data.rates || [];
+        const response = await axios.get('/api/taxes/rates');
+        const data = response.data as unknown;
+        const rates = Array.isArray(data)
+          ? data as TaxRate[]
+          : (data as { rates?: TaxRate[] }).rates || [];
 
         // Find tax rate for the state
-        let rate = rates.find((r: any) => r.state.toUpperCase() === shipping.state.toUpperCase());
+        let rate = rates.find((r) => r.state.toUpperCase() === shipping.state.toUpperCase());
         if (!rate) {
-          rate = rates.find((r: any) => r.isDefault);
+          rate = rates.find((r) => r.isDefault);
         }
 
         const taxRate = rate ? rate.rate / 100 : 0;
-        const calculated = Math.round(total * taxRate * 100) / 100;
+        const calculated = Math.round(totalBeforeTax * taxRate * 100) / 100;
         setTaxAmount(calculated);
       } catch (error) {
         console.error('Error calculating tax:', error);
@@ -57,7 +66,7 @@ const Checkout: React.FC = () => {
     };
 
     calculateTax();
-  }, [shipping.state, total]);
+  }, [shipping.state, totalBeforeTax]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -106,7 +115,7 @@ const Checkout: React.FC = () => {
     try {
       setCouponLoading(true);
       setCouponMessage('');
-      const cartTotal = subtotal + shippingCost;
+      const cartTotal = subtotal;
 
       const res = await axios.post('/api/coupons/validate', {
         code: couponCode,
@@ -121,8 +130,10 @@ const Checkout: React.FC = () => {
         setCouponMessage(`✗ ${res.data.message}`);
         setDiscountAmount(0);
       }
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Error validating coupon';
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : 'Error validating coupon';
       setCouponMessage(`✗ ${message}`);
       setDiscountAmount(0);
     } finally {
@@ -286,12 +297,22 @@ const Checkout: React.FC = () => {
                 <span className="text-gray-500">Shipping</span>
                 <span className="font-bold text-gray-900 dark:text-white">${shippingCost.toFixed(2)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="order-summary-row">
+                  <span className="text-gray-500">Discount</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">-${discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               {taxAmount > 0 && (
                 <div className="order-summary-row">
                   <span className="text-gray-500">Sales Tax</span>
                   <span className="font-bold text-gray-900 dark:text-white">${taxAmount.toFixed(2)}</span>
                 </div>
               )}
+              <div className="order-summary-row">
+                <span className="text-gray-500">Order Total</span>
+                <span className="font-bold text-gray-900 dark:text-white">${totalBeforeTax.toFixed(2)}</span>
+              </div>
               <div className="order-summary-total">
                 <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
                 <span className="text-2xl font-black text-logo-purple">${totalWithTax.toFixed(2)}</span>

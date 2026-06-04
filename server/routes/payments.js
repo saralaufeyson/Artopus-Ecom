@@ -6,6 +6,7 @@ import Product from '../models/Product.js';
 import Artist from '../models/Artist.js';
 import WalletTransaction from '../models/WalletTransaction.js';
 import Wallet from '../models/Wallet.js';
+import CouponUsage from '../models/CouponUsage.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { validateCoupon, recordCouponUsage } from '../utils/coupon.js';
@@ -207,6 +208,28 @@ async function creditArtistWallets(order, session = null) {
   }
 }
 
+async function recordCouponUsageIfNecessary(order) {
+  if (!order || !order.couponId || !order.discountAmount) {
+    return;
+  }
+
+  const existingUsage = await CouponUsage.findOne({
+    couponId: order.couponId,
+    userId: order.customer,
+    orderId: order._id,
+  });
+
+  if (existingUsage) {
+    return;
+  }
+
+  try {
+    await recordCouponUsage(order.couponId, order.customer, order.discountAmount, order._id);
+  } catch (error) {
+    console.error('Failed to record coupon usage for order', order._id, error);
+  }
+}
+
 async function fulfillOrderWithoutTransaction(order) {
   if (!order || order.status === 'succeeded') return order;
 
@@ -242,6 +265,7 @@ async function fulfillOrderWithoutTransaction(order) {
     }
   }
 
+  await recordCouponUsageIfNecessary(order);
   await sendArtistNotifications(order);
   await creditArtistWallets(order);
   await sendOrderPaidNotifications(order);
@@ -296,6 +320,7 @@ async function fulfillOrderWithTransaction(order) {
     await session.commitTransaction();
     session.endSession();
 
+    await recordCouponUsageIfNecessary(orderInSession);
     await sendArtistNotifications(orderInSession);
     await sendOrderPaidNotifications(orderInSession);
     return orderInSession;
@@ -370,22 +395,21 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
 
     if (couponCode) {
       const couponValidation = await validateCoupon(couponCode, total, req.user._id, orderItems);
-      if (couponValidation.valid) {
-        discountAmount = couponValidation.discount;
-        couponId = couponValidation.coupon.id;
-        appliedCouponCode = couponCode;
-      } else {
-        // If coupon is not valid, we should inform the user but let them continue without it
-        console.warn(`Invalid coupon ${couponCode}: ${couponValidation.message}`);
+      if (!couponValidation.valid) {
+        return res.status(400).json({ message: couponValidation.message });
       }
+
+      discountAmount = couponValidation.discount;
+      couponId = couponValidation.coupon.id;
+      appliedCouponCode = couponCode.toUpperCase().trim();
     }
 
     // Calculate total after discount
     const subtotal = Math.round((total - discountAmount) * 100) / 100;
 
     // Calculate tax based on shipping state (after discount)
-    const taxAmount = await calculateTax(subtotal, shippingAddress?.state);
-    const taxRate = taxAmount > 0 ? taxAmount / subtotal : 0;
+    const taxAmount = await calculateTax(subtotal, shippingAddress && shippingAddress.state);
+    const taxRate = subtotal > 0 ? taxAmount / subtotal : 0;
     const totalWithTaxAndDiscount = Math.round((subtotal + taxAmount) * 100) / 100;
 
     if (isPhonePeConfigured() && process.env.NODE_ENV !== 'test') {

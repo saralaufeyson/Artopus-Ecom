@@ -69,6 +69,20 @@ app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'Backend running 🚀' }));
 
+if (process.env.NODE_ENV === 'production') {
+  const clientDistPath = path.resolve(__dirname, '../client/dist');
+
+  app.use(express.static(clientDistPath));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api/') && req.accepts('html')) {
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+      return;
+    }
+
+    next();
+  });
+}
+
 // Error handler
 app.use(errorHandler);
 
