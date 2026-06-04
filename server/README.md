@@ -18,7 +18,7 @@ Development & Quality
 
 - Run the test suite: `npm test`
 - Run linting: `npm run lint` (requires `npm ci` to install dev deps)
-- Pre-commit hooks are enabled with Husky and lint-staged; run `npm run prepare` after `npm install` to enable them.
+- Pre-commit hooks are enabled with Husky and lint-staged; run `npm run prepare:hooks` after `npm install` to enable them.
 - CI runs on push/PR and includes lint, audit, tests, and coverage upload. Add `CODECOV_TOKEN` secret to enable Codecov uploads.
 
 Notes about MongoDB:
