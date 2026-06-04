@@ -1,9 +1,10 @@
 services:
   - type: web
-    name: artopus-ecom
+    name: test-backend
     runtime: node
     plan: free
-    buildCommand: npm run build
+    rootDir: server
+    buildCommand: npm ci --omit=dev --ignore-scripts
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
@@ -11,6 +12,8 @@ services:
         value: 22.14.0
       - key: NODE_ENV
         value: production
+      - key: CLIENT_URL
+        value: https://test-frontend-wzvi.onrender.com
       - key: JWT_SECRET
         generateValue: true
       - key: MONGO_URI
@@ -28,4 +31,20 @@ services:
       - key: PHONEPE_CLIENT_VERSION
         sync: false
       - key: PHONEPE_REDIRECT_BASE_URL
-        sync: false
+        value: https://test-frontend-wzvi.onrender.com
+
+  - type: web
+    name: test-frontend
+    runtime: static
+    rootDir: client
+    buildCommand: npm ci --include=dev && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: VITE_API_URL
+        value: https://test-backend-4hwo.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

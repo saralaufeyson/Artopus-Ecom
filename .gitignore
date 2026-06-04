@@ -13,6 +13,9 @@ server/node_modules/
 .env.development
 .env.production
 .env.test
+!.env.example
+!**/.env.example
+!client/.env.production
 
 # ======================
 # Build outputs
