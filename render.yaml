@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: artopus-ecom
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: PHONEPE_CLIENT_ID
+        sync: false
+      - key: PHONEPE_CLIENT_SECRET
+        sync: false
+      - key: PHONEPE_CLIENT_VERSION
+        sync: false
+      - key: PHONEPE_REDIRECT_BASE_URL
+        sync: false
