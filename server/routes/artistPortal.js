@@ -111,6 +111,57 @@ router.get('/dashboard', authMiddleware, artistMiddleware, async (req, res, next
   }
 });
 
+router.get('/profile', authMiddleware, artistMiddleware, async (req, res, next) => {
+  try {
+    const artist = await getArtistForUser(req.user._id);
+    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+    res.json(artist);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/profile', authMiddleware, artistMiddleware, async (req, res, next) => {
+  try {
+    const artist = await getArtistForUser(req.user._id);
+    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+
+    // Strictly remove protected fields to prevent tampering
+    const protectedFields = ['email', 'walletBalance', 'lifetimeEarnings', 'totalWithdrawn', 'commissionRate', 'userId', 'isActive', '_id'];
+    const updates = { ...req.body };
+    protectedFields.forEach((field) => delete updates[field]);
+
+    // Allow only specific fields to be updated
+    const allowedUpdates = ['artistName', 'penName', 'bio', 'profileImage', 'socialLinks'];
+    const filteredUpdates = {};
+    allowedUpdates.forEach((field) => {
+      if (updates[field] !== undefined) {
+        filteredUpdates[field] = updates[field];
+      }
+    });
+
+    // Handle socialLinks nested object
+    if (updates.socialLinks) {
+      filteredUpdates.socialLinks = {
+        website: updates.socialLinks.website ?? artist.socialLinks?.website,
+        instagram: updates.socialLinks.instagram ?? artist.socialLinks?.instagram,
+        twitter: updates.socialLinks.twitter ?? artist.socialLinks?.twitter,
+        facebook: updates.socialLinks.facebook ?? artist.socialLinks?.facebook,
+      };
+    }
+
+    const updatedArtist = await Artist.findByIdAndUpdate(
+      artist._id,
+      { $set: filteredUpdates },
+      { new: true, runValidators: true }
+    );
+
+    res.json(updatedArtist);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/products', authMiddleware, artistMiddleware, async (req, res, next) => {
   try {
     const artist = await getArtistForUser(req.user._id);
