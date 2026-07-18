@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { AuthContext } from './AuthContext';
 
 export interface NotificationItem {
@@ -28,6 +29,11 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const notificationsRef = useRef<NotificationItem[]>([]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
 
   const refresh = useCallback(async () => {
     if (!auth?.user) {
@@ -39,7 +45,21 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const res = await axios.get('/api/notifications');
-      setNotifications(res.data.notifications || []);
+      const newItems = res.data.notifications || [];
+
+      // Trigger a toast for each new unread notification
+      if (notificationsRef.current.length > 0) {
+        const existingIds = new Set(notificationsRef.current.map((n) => n._id));
+        newItems.forEach((item: NotificationItem) => {
+          if (!item.isRead && !existingIds.has(item._id)) {
+            toast.info(item.message, {
+              toastId: item._id, // prevent duplicate toast renders
+            });
+          }
+        });
+      }
+
+      setNotifications(newItems);
       setUnreadCount(res.data.unreadCount || 0);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);

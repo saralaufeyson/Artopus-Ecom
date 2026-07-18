@@ -25,5 +25,5 @@ test('Admin can create, update, and deactivate a product', async () => {
 
   // Ensure inactive not returned in list
   const listRes = await request(app).get('/api/products');
-  expect(listRes.body.some(p => p._id === prod._id)).toBe(false);
+  expect(listRes.body.data.some(p => p._id === prod._id)).toBe(false);
 });

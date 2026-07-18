@@ -35,18 +35,20 @@ app.use(helmet());
 
 const allowedOrigins = new Set([
   'http://localhost:5173',
+  'http://127.0.0.1:5173',
   'https://test-frontend-wzvi.onrender.com',
   ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean),
 ]);
 
 const corsOptions = {
   origin(origin, callback) {
+    // For local development the browser origin can be localhost or 127.0.0.1.
     if (!origin || allowedOrigins.has(origin)) {
       callback(null, true);
       return;
     }
 
-    callback(new Error(`Origin not allowed by CORS: ${origin}`));
+    callback(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],

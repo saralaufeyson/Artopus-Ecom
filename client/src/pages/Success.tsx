@@ -153,13 +153,13 @@ const Success: React.FC = () => {
                         {item.buyerOptionLabel && <p className="text-xs text-gray-500">{item.buyerOptionLabel}</p>}
                       </div>
                     </div>
-                    <span className="font-bold text-gray-900 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                    <span className="font-bold text-gray-900 dark:text-white">₹{(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
               <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
                 <span className="text-lg font-bold text-gray-900 dark:text-white">Total Amount</span>
-                <span className="text-2xl font-black text-logo-purple">${order.totalAmount.toFixed(2)}</span>
+                <span className="text-2xl font-black text-logo-purple">₹{order.totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </div>

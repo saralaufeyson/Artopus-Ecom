@@ -31,6 +31,9 @@ export const productCreateSchema = Joi.object({
   videoUrl: Joi.string().uri().allow('', null).optional(),
   outlineSketchPrice: Joi.number().min(0).optional(),
   coloringPrice: Joi.number().min(0).optional(),
+  printPrice: Joi.number().min(0).optional(),
+  canvasSketchPrice: Joi.number().min(0).optional(),
+  canvasSketchImageUrl: Joi.string().uri().allow('', null).optional(),
   approvalStatus: Joi.string().valid('draft', 'pending', 'approved', 'rejected').optional(),
 });
 
@@ -52,6 +55,9 @@ export const productUpdateSchema = Joi.object({
   videoUrl: Joi.string().uri().allow('', null).optional(),
   outlineSketchPrice: Joi.number().min(0).optional(),
   coloringPrice: Joi.number().min(0).optional(),
+  printPrice: Joi.number().min(0).optional(),
+  canvasSketchPrice: Joi.number().min(0).optional(),
+  canvasSketchImageUrl: Joi.string().uri().allow('', null).optional(),
   approvalStatus: Joi.string().valid('draft', 'pending', 'approved', 'rejected').optional(),
 });
 
@@ -115,6 +121,9 @@ export const artistProductSchema = Joi.object({
   videoUrl: Joi.string().uri().required(),
   outlineSketchPrice: Joi.number().min(0).optional(),
   coloringPrice: Joi.number().min(0).optional(),
+  printPrice: Joi.number().min(0).optional(),
+  canvasSketchPrice: Joi.number().min(0).optional(),
+  canvasSketchImageUrl: Joi.string().uri().allow('', null).optional(),
 });
 
 export const walletWithdrawalSchema = Joi.object({

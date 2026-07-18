@@ -4,84 +4,20 @@ import Artist from '../models/Artist.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
 import { artistMiddleware } from '../middleware/artist.js';
-import CloudinaryStorage from 'multer-storage-cloudinary';
-import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { productCreateSchema, productUpdateSchema } from '../validation/schemas.js';
-import cloudinary, {
-  ensureCloudinaryConfigured,
+import {
   getOptimizedCloudinaryUrl,
   isCloudinaryConfigured,
   uploadAssetToCloudinary,
 } from '../utils/cloudinary.js';
 import { notifyRole, notifyUsers } from '../utils/notifications.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { getUploadedImageUrl, createUploadParser } from '../utils/upload.js';
 
 function getArtistForUser(userId) {
   return Artist.findOne({ userId, isActive: true });
 }
 
 const router = express.Router();
-
-function getUploadedImageUrl(file) {
-  if (!file) return null;
-
-  const filePath = typeof file.path === 'string' ? file.path : null;
-  const secureUrl = typeof file.secure_url === 'string' ? file.secure_url : null;
-  const filename = typeof file.filename === 'string' ? file.filename : null;
-  const publicId = typeof file.public_id === 'string' ? file.public_id : null;
-
-  if (filePath?.startsWith('http')) {
-    return getOptimizedCloudinaryUrl(filename || publicId || filePath);
-  }
-
-  if (secureUrl) {
-    return getOptimizedCloudinaryUrl(secureUrl);
-  }
-
-  if (filename || publicId) {
-    return getOptimizedCloudinaryUrl(filename || publicId);
-  }
-
-  if (filePath) {
-    return `/uploads/${path.basename(filePath)}`;
-  }
-
-  return null;
-}
-
-function createUploadParser() {
-  let storage;
-
-  if (ensureCloudinaryConfigured()) {
-    storage = new CloudinaryStorage({
-      cloudinary: { v2: cloudinary },
-      params: {
-        folder: 'artopus',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-        transformation: [{ width: 1200, height: 1200, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
-      },
-    });
-  } else {
-    storage = multer.diskStorage({
-      destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../uploads'));
-      },
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
-      },
-    });
-  }
-
-  return multer({
-    storage,
-    limits: { fileSize: 2 * 1024 * 1024 },
-  });
-}
 
 async function normalizeProductImage(rawImageUrl) {
   if (!rawImageUrl) return rawImageUrl;
@@ -135,13 +71,14 @@ router.get('/', async (req, res, next) => {
 
     // Enhanced search
     if (q) {
+      const escapedQ = String(q).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
       conditions.push({
         $or: [
-          { title: new RegExp(q, 'i') }, 
-          { description: new RegExp(q, 'i') }, 
-          { artistName: new RegExp(q, 'i') },
-          { category: new RegExp(q, 'i') },
-          { medium: new RegExp(q, 'i') }
+          { title: new RegExp(escapedQ, 'i') }, 
+          { description: new RegExp(escapedQ, 'i') }, 
+          { artistName: new RegExp(escapedQ, 'i') },
+          { category: new RegExp(escapedQ, 'i') },
+          { medium: new RegExp(escapedQ, 'i') }
         ],
       });
     }
@@ -231,38 +168,49 @@ router.get('/:id/related', async (req, res, next) => {
   }
 });
 
-// POST /api/products (admin only) - supports multipart/form-data with `image` file field OR imageUrl in body
+// POST /api/products (admin only) - supports multipart/form-data with fields `image` and `canvasSketchImage` OR imageUrl/canvasSketchImageUrl in body
 router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
   // Check if this is a multipart request (file upload) or JSON request (URL)
   if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
     // Handle file upload
-    createUploadParser().single('image')(req, res, (err) => {
+    createUploadParser().fields([
+      { name: 'image', maxCount: 1 },
+      { name: 'canvasSketchImage', maxCount: 1 }
+    ])(req, res, (err) => {
       if (err) return next(err);
-      // Merge body and file-derived imageUrl
+      // Merge body and file-derived urls
       const mergedBody = { ...req.body };
-      if (req.file) {
-        mergedBody.imageUrl = getUploadedImageUrl(req.file);
+      if (req.files) {
+        if (req.files['image'] && req.files['image'][0]) {
+          mergedBody.imageUrl = getUploadedImageUrl(req.files['image'][0]);
+        }
+        if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
+          mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+        }
       }
       req.body = mergedBody;
       next();
     });
   } else {
-    // Handle JSON request with imageUrl
+    // Handle JSON request
     next();
   }
 }, (req, res, next) => {
-  // Validate the merged body (whether from file upload or direct JSON)
+  // Validate the merged body
   const { error } = productCreateSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map(d => d.message) });
   next();
 }, async (req, res, next) => {
   try {
-    const normalizedImageUrl = await normalizeProductImage(req.body.imageUrl);
+    const normalizedImageUrl = req.body.imageUrl ? await normalizeProductImage(req.body.imageUrl) : undefined;
+    const normalizedCanvasImageUrl = req.body.canvasSketchImageUrl ? await normalizeProductImage(req.body.canvasSketchImageUrl) : undefined;
     const {
       type,
       title,
       description,
       price,
+      printPrice,
+      canvasSketchPrice,
       category,
       stockQuantity,
       artistId,
@@ -281,8 +229,11 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
       title,
       description,
       price: Number(price),
+      printPrice: Number(printPrice || 0),
+      canvasSketchPrice: Number(canvasSketchPrice || 0),
       category,
       imageUrl: normalizedImageUrl || req.body.imageUrl,
+      canvasSketchImageUrl: normalizedCanvasImageUrl || req.body.canvasSketchImageUrl,
       stockQuantity: type === 'original-artwork' ? 1 : Number(stockQuantity || 0),
       artistId,
       artistUserId,
@@ -320,14 +271,22 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
   }
 });
 
-// PUT /api/products/:id (admin only) - supports multipart/form-data with `image` file field
+// PUT /api/products/:id (admin only) - supports multipart/form-data with fields `image` and `canvasSketchImage`
 router.put('/:id', authMiddleware, adminMiddleware, (req, res, next) => {
-  createUploadParser().single('image')(req, res, (err) => {
+  createUploadParser().fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'canvasSketchImage', maxCount: 1 }
+  ])(req, res, (err) => {
     if (err) return next(err);
 
     const mergedBody = { ...req.body };
-    if (req.file) {
-      mergedBody.imageUrl = getUploadedImageUrl(req.file);
+    if (req.files) {
+      if (req.files['image'] && req.files['image'][0]) {
+        mergedBody.imageUrl = getUploadedImageUrl(req.files['image'][0]);
+      }
+      if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
+        mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+      }
     }
 
     const { error } = productUpdateSchema.validate(mergedBody, { abortEarly: false, stripUnknown: true });
@@ -341,7 +300,12 @@ router.put('/:id', authMiddleware, adminMiddleware, (req, res, next) => {
     if (updates.imageUrl) {
       updates.imageUrl = await normalizeProductImage(updates.imageUrl);
     }
+    if (updates.canvasSketchImageUrl) {
+      updates.canvasSketchImageUrl = await normalizeProductImage(updates.canvasSketchImageUrl);
+    }
     if (updates.price) updates.price = Number(updates.price);
+    if (updates.printPrice !== undefined) updates.printPrice = Number(updates.printPrice);
+    if (updates.canvasSketchPrice !== undefined) updates.canvasSketchPrice = Number(updates.canvasSketchPrice);
     if (updates.stockQuantity !== undefined) updates.stockQuantity = Number(updates.stockQuantity);
     // Keep original-artwork stock at most 1
     if (updates.type === 'original-artwork' && updates.stockQuantity > 1) updates.stockQuantity = 1;

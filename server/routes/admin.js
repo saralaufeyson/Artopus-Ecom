@@ -2,6 +2,7 @@ import express from 'express';
 import User from '../models/User.js';
 import Artist from '../models/Artist.js';
 import WalletTransaction from '../models/WalletTransaction.js';
+import Wallet from '../models/Wallet.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
 import bcrypt from 'bcryptjs';
@@ -129,6 +130,11 @@ router.post('/artists/:id/payout', authMiddleware, adminMiddleware, async (req, 
     artist.totalWithdrawn = Number((artist.totalWithdrawn + payoutAmount).toFixed(2));
     await artist.save();
 
+    await Wallet.findOneAndUpdate(
+      { artist: artist._id },
+      { $set: { balance: 0 } }
+    );
+
     const transaction = await WalletTransaction.create({
       artist: artist._id,
       amount: payoutAmount,
@@ -226,6 +232,11 @@ router.post('/withdrawals/:id/reject', authMiddleware, adminMiddleware, validate
 
     artist.walletBalance = Number((artist.walletBalance + transaction.amount).toFixed(2));
     await artist.save();
+
+    await Wallet.findOneAndUpdate(
+      { artist: artist._id },
+      { $inc: { balance: transaction.amount } }
+    );
 
     transaction.status = 'rejected';
     transaction.note = req.body.note || 'Withdrawal rejected by admin';

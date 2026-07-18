@@ -84,7 +84,7 @@ const Cart: React.FC = () => {
                           </button>
                         </div>
                         <p className="text-xl font-bold text-gray-900 dark:text-white">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ₹{(item.price * item.quantity).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -99,7 +99,7 @@ const Cart: React.FC = () => {
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Subtotal ({cart.length} items)</span>
-                  <span>${getSubtotal().toFixed(2)}</span>
+                  <span>₹{getSubtotal().toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Shipping</span>
@@ -107,7 +107,7 @@ const Cart: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-gray-600 dark:text-gray-400">
                   <span>Estimated Tax</span>
-                  <span>$0.00</span>
+                  <span>₹0.00</span>
                 </div>
               </div>
 
@@ -115,7 +115,7 @@ const Cart: React.FC = () => {
                 <div className="flex justify-between items-end">
                   <span className="text-lg font-bold text-gray-900 dark:text-white">Total Amount</span>
                   <span className="text-3xl font-black text-logo-purple">
-                    ${getSubtotal().toFixed(2)}
+                    ₹{getSubtotal().toFixed(2)}
                   </span>
                 </div>
               </div>

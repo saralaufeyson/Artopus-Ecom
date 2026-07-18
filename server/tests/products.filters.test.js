@@ -21,15 +21,15 @@ test('Product filters (type, artistId, and full-text q) work as expected', async
 
   const resType = await request(app).get('/api/products?type=merchandise');
   expect(resType.status).toBe(200);
-  expect(resType.body.some(p => p.title === 'Sticker A')).toBeTruthy();
-  expect(resType.body.some(p => p.title === 'Unique Art')).toBeFalsy();
+  expect(resType.body.data.some(p => p.title === 'Sticker A')).toBeTruthy();
+  expect(resType.body.data.some(p => p.title === 'Unique Art')).toBeFalsy();
 
   const resArtist = await request(app).get(`/api/products?artistId=${artistA}`);
   expect(resArtist.status).toBe(200);
-  expect(resArtist.body).toHaveLength(1);
-  expect(resArtist.body[0].title).toBe('Sticker A');
+  expect(resArtist.body.data).toHaveLength(1);
+  expect(resArtist.body.data[0].title).toBe('Sticker A');
 
   const resQ = await request(app).get('/api/products?q=Unique');
   expect(resQ.status).toBe(200);
-  expect(resQ.body.some(p => p.title === 'Unique Art')).toBeTruthy();
+  expect(resQ.body.data.some(p => p.title === 'Unique Art')).toBeTruthy();
 });

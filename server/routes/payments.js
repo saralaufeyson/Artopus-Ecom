@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import Artist from '../models/Artist.js';
+import User from '../models/User.js';
 import WalletTransaction from '../models/WalletTransaction.js';
 import Wallet from '../models/Wallet.js';
 import CouponUsage from '../models/CouponUsage.js';
@@ -13,6 +14,7 @@ import { validateCoupon, recordCouponUsage } from '../utils/coupon.js';
 import { createIntentSchema } from '../validation/schemas.js';
 import { sendArtistOrderNotification } from '../utils/email.js';
 import { calculateTax } from '../utils/tax.js';
+import { sendSMS } from '../utils/sms.js';
 import {
   createPhonePePaymentUrl,
   extractPhonePeRedirectUrl,
@@ -146,17 +148,45 @@ async function sendOrderPaidNotifications(order) {
   ]);
 }
 
-async function addFundsToArtistWallet(artistUserId, totalPrice, session = null) {
-  const platformFee = 0.18;
-  const netAmount = Number((totalPrice * (1 - platformFee)).toFixed(2));
+async function sendOrderPaidSMSNotifications(order) {
+  try {
+    const customer = await User.findById(order.customer).select('phone');
+    if (customer && customer.phone) {
+      const buyerMessage = `Hi! Your payment for Artopus order #${order._id.toString().slice(-6).toUpperCase()} was successful! Tracking details will be shared once shipped.`;
+      await sendSMS(customer.phone, buyerMessage);
+    }
 
-  let wallet = await Wallet.findOne({ userId: artistUserId }).session(session);
+    for (const item of order.items) {
+      if (item.artistId) {
+        const artist = await Artist.findById(item.artistId);
+        let phone = null;
+        if (artist && artist.userId) {
+          const artistUser = await User.findById(artist.userId).select('phone');
+          if (artistUser) phone = artistUser.phone;
+        }
+        if (phone) {
+          const artistMessage = `Artopus Artist Alert: Your artwork "${item.title}" has been purchased! Please visit your dashboard to fulfill order #${order._id.toString().slice(-6).toUpperCase()}.`;
+          await sendSMS(phone, artistMessage);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to send order SMS notifications:', error.message);
+  }
+}
+
+async function addFundsToArtistWallet(artistId, totalPrice, commissionRate, session = null) {
+  const commissionPercent = typeof commissionRate === 'number' ? commissionRate : 18;
+  const netAmount = Number((totalPrice * (1 - commissionPercent / 100)).toFixed(2));
+
+  let wallet = await Wallet.findOne({ artist: artistId }).session(session);
 
   if (!wallet) {
-    [wallet] = await Wallet.create([{ userId: artistUserId, balance: 0 }], { session });
+    [wallet] = await Wallet.create([{ artist: artistId, balance: 0, lifetimeCredits: 0 }], { session });
   }
 
   wallet.balance = Number((wallet.balance + netAmount).toFixed(2));
+  wallet.lifetimeCredits = Number(((wallet.lifetimeCredits || 0) + netAmount).toFixed(2));
   await wallet.save({ session });
 
   return wallet;
@@ -170,7 +200,8 @@ async function creditArtistWallets(order, session = null) {
     if (!artist) continue;
 
     const grossAmount = item.price * item.quantity;
-    const commissionAmount = Number(((grossAmount * artist.commissionRate) / 100).toFixed(2));
+    const commissionPercent = typeof artist.commissionRate === 'number' ? artist.commissionRate : 18;
+    const commissionAmount = Number(((grossAmount * commissionPercent) / 100).toFixed(2));
     const netAmount = Number((grossAmount - commissionAmount).toFixed(2));
 
     const existingCredit = await WalletTransaction.findOne({
@@ -187,9 +218,7 @@ async function creditArtistWallets(order, session = null) {
     artist.lifetimeEarnings = Number((artist.lifetimeEarnings + netAmount).toFixed(2));
     await artist.save({ session });
 
-    if (artist.userId) {
-      await addFundsToArtistWallet(artist.userId, grossAmount, session);
-    }
+    await addFundsToArtistWallet(artist._id, grossAmount, commissionPercent, session);
 
     await WalletTransaction.create([{
       artist: artist._id,
@@ -233,12 +262,46 @@ async function recordCouponUsageIfNecessary(order) {
 async function fulfillOrderWithoutTransaction(order) {
   if (!order || order.status === 'succeeded') return order;
 
+  const completedItems = [];
   for (const item of order.items) {
     const product = await Product.findById(item.productId);
-    if (!product || product.stockQuantity < item.quantity) {
+    if (!product) {
+      // Rollback previous updates
+      for (const comp of completedItems) {
+        await Product.findByIdAndUpdate(comp.productId, { $inc: { stockQuantity: comp.quantity } });
+      }
       order.status = 'failed';
+      order.statusHistory.push({ status: 'failed', note: 'Product not found' });
       await order.save();
       return order;
+    }
+
+    const isOriginalVariant = !item.buyerOption || item.buyerOption === 'original' || item.buyerOption === 'painting';
+    const shouldDecrementStock = product.type !== 'original-artwork' || isOriginalVariant;
+
+    if (shouldDecrementStock) {
+      const updatedProduct = await Product.findOneAndUpdate(
+        { _id: item.productId, stockQuantity: { $gte: item.quantity } },
+        { $inc: { stockQuantity: -item.quantity } },
+        { new: true }
+      );
+
+      if (!updatedProduct) {
+        // Rollback previous updates
+        for (const comp of completedItems) {
+          await Product.findByIdAndUpdate(comp.productId, { $inc: { stockQuantity: comp.quantity } });
+        }
+        order.status = 'failed';
+        order.statusHistory.push({ status: 'failed', note: 'Insufficient stock' });
+        await order.save();
+        return order;
+      }
+
+      if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
+        updatedProduct.isActive = false;
+        await updatedProduct.save();
+      }
+      completedItems.push({ productId: item.productId, quantity: item.quantity });
     }
   }
 
@@ -246,29 +309,11 @@ async function fulfillOrderWithoutTransaction(order) {
   order.statusHistory.push({ status: 'succeeded', note: 'Payment confirmed' });
   await order.save();
 
-  for (const item of order.items) {
-    const updatedProduct = await Product.findOneAndUpdate(
-      { _id: item.productId, stockQuantity: { $gte: item.quantity } },
-      { $inc: { stockQuantity: -item.quantity } },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
-      order.status = 'failed';
-      await order.save();
-      return order;
-    }
-
-    if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
-      updatedProduct.isActive = false;
-      await updatedProduct.save();
-    }
-  }
-
   await recordCouponUsageIfNecessary(order);
   await sendArtistNotifications(order);
   await creditArtistWallets(order);
   await sendOrderPaidNotifications(order);
+  await sendOrderPaidSMSNotifications(order).catch(err => console.error('SMS notification error:', err));
   return order;
 }
 
@@ -293,23 +338,48 @@ async function fulfillOrderWithTransaction(order) {
     }
 
     for (const item of orderInSession.items) {
-      const updatedProduct = await Product.findOneAndUpdate(
-        { _id: item.productId, stockQuantity: { $gte: item.quantity } },
-        { $inc: { stockQuantity: -item.quantity } },
-        { session, new: true }
-      );
-
-      if (!updatedProduct) {
-        orderInSession.status = 'failed';
-        await orderInSession.save({ session });
-        await session.commitTransaction();
+      const product = await Product.findById(item.productId).session(session);
+      if (!product) {
+        await session.abortTransaction();
         session.endSession();
-        return orderInSession;
+        const finalOrder = await Order.findById(order._id);
+        if (finalOrder) {
+          finalOrder.status = 'failed';
+          finalOrder.statusHistory.push({ status: 'failed', note: 'Product not found' });
+          await finalOrder.save();
+          return finalOrder;
+        }
+        return order;
       }
 
-      if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
-        updatedProduct.isActive = false;
-        await updatedProduct.save({ session });
+      const isOriginalVariant = !item.buyerOption || item.buyerOption === 'original' || item.buyerOption === 'painting';
+      const shouldDecrementStock = product.type !== 'original-artwork' || isOriginalVariant;
+
+      if (shouldDecrementStock) {
+        const updatedProduct = await Product.findOneAndUpdate(
+          { _id: item.productId, stockQuantity: { $gte: item.quantity } },
+          { $inc: { stockQuantity: -item.quantity } },
+          { session, new: true }
+        );
+
+        if (!updatedProduct) {
+          await session.abortTransaction();
+          session.endSession();
+
+          const finalOrder = await Order.findById(order._id);
+          if (finalOrder) {
+            finalOrder.status = 'failed';
+            finalOrder.statusHistory.push({ status: 'failed', note: 'Insufficient stock' });
+            await finalOrder.save();
+            return finalOrder;
+          }
+          return order;
+        }
+
+        if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
+          updatedProduct.isActive = false;
+          await updatedProduct.save({ session });
+        }
       }
     }
 
@@ -323,6 +393,7 @@ async function fulfillOrderWithTransaction(order) {
     await recordCouponUsageIfNecessary(orderInSession);
     await sendArtistNotifications(orderInSession);
     await sendOrderPaidNotifications(orderInSession);
+    await sendOrderPaidSMSNotifications(orderInSession).catch(err => console.error('SMS notification error:', err));
     return orderInSession;
   } catch (error) {
     await session.abortTransaction();
@@ -479,7 +550,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
       try {
         const paymentIntent = await stripe.paymentIntents.create({
           amount: Math.round(totalWithTaxAndDiscount * 100),
-          currency: 'usd',
+          currency: 'inr',
           metadata: { integration_check: 'accept_a_payment' },
         });
         paymentIntentId = paymentIntent.id;
@@ -507,6 +578,10 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
       expectedDeliveryDate,
     });
     await sendOrderCreatedNotifications(order);
+
+    if (paymentProvider === 'mock') {
+      await fulfillOrder(order);
+    }
 
     return res.json({ clientSecret, orderId: order._id, provider: paymentProvider });
   } catch (error) {

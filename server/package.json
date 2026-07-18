@@ -17,6 +17,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "artopus-ecom": "file:..",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
@@ -31,6 +32,7 @@
     "multer-storage-cloudinary": "^2.2.1",
     "nodemailer": "^7.0.12",
     "stripe": "^20.1.0",
+    "twilio": "^6.0.2",
     "winston": "^3.13.0"
   },
   "devDependencies": {

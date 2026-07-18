@@ -69,19 +69,32 @@ const AdminDashboard = () => {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({ 
-    title: '', price: '', description: '', category: '', type: '', imageUrl: '',
+    title: '', price: '', printPrice: '', canvasSketchPrice: '', description: '', category: '', type: '', imageUrl: '', canvasSketchImageUrl: '',
     artistId: '', artistName: '', artistEmail: '',
     medium: '', dimensions: '', year: ''
   });
   const [newArtist, setNewArtist] = useState({ artistName: '', email: '', penName: '', bio: '', profileImage: '' });
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [newCanvasSketchImage, setNewCanvasSketchImage] = useState<File | null>(null);
   const [editingProductImage, setEditingProductImage] = useState<File | null>(null);
+  const [editingCanvasSketchImage, setEditingCanvasSketchImage] = useState<File | null>(null);
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
   const [payoutArtistId, setPayoutArtistId] = useState<string | null>(null);
   const [orderDrafts, setOrderDrafts] = useState<Record<string, { deliveryPartner: string; trackingNumber: string; trackingUrl: string; note: string }>>({});
+
+  const getPreview = (file: File | null, url: string) => {
+    if (file) {
+      try {
+        return URL.createObjectURL(file);
+      } catch (err) {
+        return '';
+      }
+    }
+    return url || '';
+  };
 
   const fetchData = async () => {
     try {
@@ -176,12 +189,15 @@ const AdminDashboard = () => {
     
     // Validate image (either file or URL)
     if (!newProductImage && !newProduct.imageUrl.trim()) {
-      return toast.error("Please upload an image or enter an image URL");
+      return toast.error("Please upload a main image or enter a main image URL");
     }
 
-    // Validate file size if image is selected
+    // Validate file sizes
     if (newProductImage && newProductImage.size > 2 * 1024 * 1024) {
-      return toast.error("Image file size must be less than 2MB");
+      return toast.error("Main image file size must be less than 2MB");
+    }
+    if (newCanvasSketchImage && newCanvasSketchImage.size > 2 * 1024 * 1024) {
+      return toast.error("Canvas sketch image file size must be less than 2MB");
     }
 
     setIsAddingProduct(true);
@@ -196,6 +212,9 @@ const AdminDashboard = () => {
       if (newProductImage) {
         formData.append('image', newProductImage);
       }
+      if (newCanvasSketchImage) {
+        formData.append('canvasSketchImage', newCanvasSketchImage);
+      }
 
       await axios.post('/api/products', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -204,12 +223,13 @@ const AdminDashboard = () => {
       toast.success('Product added successfully!');
       await fetchData(); // Refresh all data
       setNewProduct({ 
-        title: '', price: '', description: '', category: '', type: '', 
-        imageUrl: '',
+        title: '', price: '', printPrice: '', canvasSketchPrice: '', description: '', category: '', type: '', 
+        imageUrl: '', canvasSketchImageUrl: '',
         artistId: '', artistName: '', artistEmail: '',
         medium: '', dimensions: '', year: ''
       });
       setNewProductImage(null);
+      setNewCanvasSketchImage(null);
     } catch (err: any) {
       if (err.response?.data?.message?.includes('File too large')) {
         toast.error('Image file size must be less than 2MB');
@@ -251,7 +271,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    if (!window.confirm(`Pay out $${balance.toFixed(2)} to ${artist.artistName} and reset their wallet to zero?`)) return;
+    if (!window.confirm(`Pay out ₹${balance.toFixed(2)} to ${artist.artistName} and reset their wallet to zero?`)) return;
 
     setPayoutArtistId(artist._id);
     try {
@@ -269,9 +289,12 @@ const AdminDashboard = () => {
     e.preventDefault();
     if (!editingProduct) return;
 
-    // Validate file size if image is selected
+    // Validate file sizes
     if (editingProductImage && editingProductImage.size > 2 * 1024 * 1024) {
-      return toast.error("Image file size must be less than 2MB");
+      return toast.error("Main image file size must be less than 2MB");
+    }
+    if (editingCanvasSketchImage && editingCanvasSketchImage.size > 2 * 1024 * 1024) {
+      return toast.error("Canvas sketch image file size must be less than 2MB");
     }
 
     setIsEditingProduct(true);
@@ -286,6 +309,9 @@ const AdminDashboard = () => {
       if (editingProductImage) {
         formData.append('image', editingProductImage);
       }
+      if (editingCanvasSketchImage) {
+        formData.append('canvasSketchImage', editingCanvasSketchImage);
+      }
 
       await axios.put(`/api/products/${editingProduct._id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -294,6 +320,7 @@ const AdminDashboard = () => {
       await fetchData();
       setEditingProduct(null);
       setEditingProductImage(null);
+      setEditingCanvasSketchImage(null);
     } catch (err: any) {
       if (err.response?.data?.message?.includes('File too large')) {
         toast.error('Image file size must be less than 2MB');
@@ -451,7 +478,7 @@ const AdminDashboard = () => {
               </div>
               <div className="metric-card">
                 <p className="metric-label">Gross Sales</p>
-                <p className="metric-value">${(metrics.grossSales || 0).toFixed(2)}</p>
+                <p className="metric-value">₹{(metrics.grossSales || 0).toFixed(2)}</p>
               </div>
               <div className="metric-card">
                 <p className="metric-label">Page Views</p>
@@ -459,7 +486,7 @@ const AdminDashboard = () => {
               </div>
               <div className="metric-card">
                 <p className="metric-label">Avg Order Value</p>
-                <p className="metric-value">${(metrics.averageOrderValue || 0).toFixed(2)}</p>
+                <p className="metric-value">₹{(metrics.averageOrderValue || 0).toFixed(2)}</p>
               </div>
               <div className="metric-card">
                 <p className="metric-label">Conversion Rate</p>
@@ -478,7 +505,7 @@ const AdminDashboard = () => {
                   {(metrics.monthlySales || []).slice(-6).map((entry) => (
                     <div key={`${entry._id.year}-${entry._id.month}`} className="flex items-center justify-between">
                       <span>{entry._id.month}/{entry._id.year}</span>
-                      <span className="font-bold">${entry.revenue.toFixed(2)} · {entry.orders} orders</span>
+                      <span className="font-bold">₹{entry.revenue.toFixed(2)} · {entry.orders} orders</span>
                     </div>
                   ))}
                 </div>
@@ -503,7 +530,7 @@ const AdminDashboard = () => {
                   {(metrics.topProducts || []).map((product) => (
                     <div key={product._id} className="flex items-center justify-between">
                       <span>{product.title}</span>
-                      <span className="font-bold">{product.unitsSold} sold · ${product.revenue.toFixed(2)}</span>
+                      <span className="font-bold">{product.unitsSold} sold · ₹{product.revenue.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -531,7 +558,7 @@ const AdminDashboard = () => {
                       <p className="text-sm text-gray-500">{entry.artist?.artistName || 'Artist'} {entry.order?._id ? `· Order ${entry.order._id.slice(-6).toUpperCase()}` : ''}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">${entry.amount.toFixed(2)}</p>
+                      <p className="font-bold">₹{entry.amount.toFixed(2)}</p>
                       <p className="text-sm text-gray-500">{entry.status}</p>
                     </div>
                   </div>
@@ -573,7 +600,7 @@ const AdminDashboard = () => {
                         </span>
                       </td>
                       <td>{p.stockQuantity}</td>
-                      <td>${p.price}</td>
+                      <td>₹{p.price}</td>
                       <td>
                         <button 
                           onClick={() => setEditingProduct(p)} 
@@ -655,15 +682,29 @@ const AdminDashboard = () => {
                     <input 
                       type="number" 
                       className="admin-input"
-                      placeholder="Price" 
+                      placeholder="Price (Original)" 
                       value={editingProduct.price} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })} 
                       required 
                     />
                     <input 
+                      type="number" 
+                      className="admin-input"
+                      placeholder="Print Price" 
+                      value={editingProduct.printPrice || ''} 
+                      onChange={(e) => setEditingProduct({ ...editingProduct, printPrice: e.target.value })} 
+                    />
+                    <input 
+                      type="number" 
+                      className="admin-input"
+                      placeholder="Canvas Sketch Price" 
+                      value={editingProduct.canvasSketchPrice || ''} 
+                      onChange={(e) => setEditingProduct({ ...editingProduct, canvasSketchPrice: e.target.value })} 
+                    />
+                    <input 
                       type="text" 
                       className="admin-input"
-                      placeholder="Category (e.g., Sticker, Painting)" 
+                      placeholder="Category" 
                       value={editingProduct.category} 
                       onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })} 
                       required 
@@ -688,25 +729,50 @@ const AdminDashboard = () => {
                       onChange={(e) => setEditingProduct({ ...editingProduct, stockQuantity: parseInt(e.target.value) || 0 })} 
                     />
                   </div>
-                  <div className="form-row">
+                  <div className="form-row border-b pb-4 mb-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload New Image</label>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Main Image (Original/Print)</label>
                       <input 
                         type="file" 
                         className="admin-input pt-2"
                         accept="image/*"
                         onChange={(e) => setEditingProductImage(e.target.files?.[0] || null)} 
                       />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Or Image URL</label>
                       <input 
                         type="url" 
-                        className="admin-input"
-                        placeholder="Image URL" 
+                        className="admin-input mt-2"
+                        placeholder="Or Main Image URL" 
                         value={editingProduct.imageUrl || ''} 
                         onChange={(e) => setEditingProduct({ ...editingProduct, imageUrl: e.target.value })} 
                       />
+                      {getPreview(editingProductImage, editingProduct.imageUrl) && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          <p className="mb-1">Preview:</p>
+                          <img src={getPreview(editingProductImage, editingProduct.imageUrl)} className="h-24 w-auto rounded-xl object-cover border" alt="Main Preview" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Canvas Sketch Image</label>
+                      <input 
+                        type="file" 
+                        className="admin-input pt-2"
+                        accept="image/*"
+                        onChange={(e) => setEditingCanvasSketchImage(e.target.files?.[0] || null)} 
+                      />
+                      <input 
+                        type="url" 
+                        className="admin-input mt-2"
+                        placeholder="Or Canvas Sketch Image URL" 
+                        value={editingProduct.canvasSketchImageUrl || ''} 
+                        onChange={(e) => setEditingProduct({ ...editingProduct, canvasSketchImageUrl: e.target.value })} 
+                      />
+                      {getPreview(editingCanvasSketchImage, editingProduct.canvasSketchImageUrl) && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          <p className="mb-1">Preview:</p>
+                          <img src={getPreview(editingCanvasSketchImage, editingProduct.canvasSketchImageUrl)} className="h-24 w-auto rounded-xl object-cover border" alt="Canvas Sketch Preview" />
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="form-row">
@@ -778,8 +844,10 @@ const AdminDashboard = () => {
                 <input type="text" className="admin-input" placeholder="Title" value={newProduct.title} onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })} required />
               </div>
               <div className="form-row">
-                <input type="number" className="admin-input" placeholder="Price" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} required />
-                <input type="text" className="admin-input" placeholder="Category (e.g., Sticker, Painting)" value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })} required />
+                <input type="number" className="admin-input" placeholder="Price (Original)" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} required />
+                <input type="number" className="admin-input" placeholder="Print Price" value={newProduct.printPrice} onChange={(e) => setNewProduct({ ...newProduct, printPrice: e.target.value })} />
+                <input type="number" className="admin-input" placeholder="Canvas Sketch Price" value={newProduct.canvasSketchPrice} onChange={(e) => setNewProduct({ ...newProduct, canvasSketchPrice: e.target.value })} />
+                <input type="text" className="admin-input" placeholder="Category" value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })} required />
               </div>
               <textarea className="admin-input" placeholder="Description" value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} required rows={4} />
               <select className="form-select" value={newProduct.type} onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value })} required>
@@ -788,25 +856,50 @@ const AdminDashboard = () => {
                 <option value="merchandise">Merchandise</option>
               </select>
               
-              <div className="form-row">
+              <div className="form-row border-b pb-4 mb-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload Product Image</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Main Image (Original/Print)</label>
                   <input 
                     type="file" 
                     className="admin-input pt-2"
                     accept="image/*"
                     onChange={(e) => setNewProductImage(e.target.files?.[0] || null)} 
                   />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Or Image URL</label>
                   <input 
                     type="url" 
-                    className="admin-input"
-                    placeholder="Image URL (e.g., https://example.com/image.jpg)" 
+                    className="admin-input mt-2"
+                    placeholder="Or Main Image URL" 
                     value={newProduct.imageUrl} 
                     onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })} 
                   />
+                  {getPreview(newProductImage, newProduct.imageUrl) && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      <p className="mb-1">Preview:</p>
+                      <img src={getPreview(newProductImage, newProduct.imageUrl)} className="h-24 w-auto rounded-xl object-cover border" alt="Main Preview" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Canvas Sketch Image</label>
+                  <input 
+                    type="file" 
+                    className="admin-input pt-2"
+                    accept="image/*"
+                    onChange={(e) => setNewCanvasSketchImage(e.target.files?.[0] || null)} 
+                  />
+                  <input 
+                    type="url" 
+                    className="admin-input mt-2"
+                    placeholder="Or Canvas Sketch Image URL" 
+                    value={newProduct.canvasSketchImageUrl} 
+                    onChange={(e) => setNewProduct({ ...newProduct, canvasSketchImageUrl: e.target.value })} 
+                  />
+                  {getPreview(newCanvasSketchImage, newProduct.canvasSketchImageUrl) && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      <p className="mb-1">Preview:</p>
+                      <img src={getPreview(newCanvasSketchImage, newProduct.canvasSketchImageUrl)} className="h-24 w-auto rounded-xl object-cover border" alt="Canvas Sketch Preview" />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="form-row">
@@ -873,7 +966,7 @@ const AdminDashboard = () => {
                       </td>
                       <td>{a.email}</td>
                       <td>{a.penName || '-'}</td>
-                      <td>${Number(a.walletBalance || 0).toFixed(2)}</td>
+                      <td>₹{Number(a.walletBalance || 0).toFixed(2)}</td>
                       <td>
                         {a.isActive ? (
                           <button onClick={() => handleDeleteArtist(a._id)} className="action-btn delete-btn">Deactivate</button>
@@ -1017,7 +1110,7 @@ const AdminDashboard = () => {
                         })}
                       />
                     </div>
-                    <p className="order-total text-2xl font-black text-gray-900 dark:text-white">${order.totalAmount.toFixed(2)}</p>
+                    <p className="order-total text-2xl font-black text-gray-900 dark:text-white">₹{order.totalAmount.toFixed(2)}</p>
                     <select 
                       value={order.status} 
                       onChange={(e) => updateOrderStatus(order._id, e.target.value)} 
@@ -1042,9 +1135,9 @@ const AdminDashboard = () => {
                 <div key={withdrawal._id} className="p-6 rounded-3xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <p className="font-black text-lg">{withdrawal.artist?.artistName || 'Artist'}</p>
-                    <p className="text-sm text-gray-500">${withdrawal.amount.toFixed(2)} · {withdrawal.status}</p>
+                    <p className="text-sm text-gray-500">₹{withdrawal.amount.toFixed(2)} · {withdrawal.status}</p>
                     <p className="text-sm text-gray-500">{withdrawal.note || 'No note provided'}</p>
-                    <p className="text-sm text-gray-500">Wallet balance: ${withdrawal.artist?.walletBalance?.toFixed?.(2) || '0.00'}</p>
+                    <p className="text-sm text-gray-500">Wallet balance: ₹{withdrawal.artist?.walletBalance?.toFixed?.(2) || '0.00'}</p>
                   </div>
                   <div className="flex gap-3">
                     {withdrawal.status === 'pending' ? (

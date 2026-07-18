@@ -1,73 +1,18 @@
 import express from 'express';
-import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import CloudinaryStorage from 'multer-storage-cloudinary';
 import Artist from '../models/Artist.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import Wallet from '../models/Wallet.js';
 import WalletTransaction from '../models/WalletTransaction.js';
-import cloudinary, { ensureCloudinaryConfigured, getOptimizedCloudinaryUrl } from '../utils/cloudinary.js';
 import { sendAdminPayoutRequestNotification } from '../utils/email.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { artistMiddleware } from '../middleware/artist.js';
 import { validate } from '../middleware/validate.js';
 import { artistProductSchema, walletWithdrawalSchema } from '../validation/schemas.js';
 import { notifyRole, notifyUsers } from '../utils/notifications.js';
+import { getUploadedImageUrl, createUploadParser } from '../utils/upload.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const router = express.Router();
-
-function getUploadedImageUrl(file) {
-  if (!file) return null;
-
-  const filePath = typeof file.path === 'string' ? file.path : null;
-  const secureUrl = typeof file.secure_url === 'string' ? file.secure_url : null;
-  const filename = typeof file.filename === 'string' ? file.filename : null;
-  const publicId = typeof file.public_id === 'string' ? file.public_id : null;
-
-  if (filePath?.startsWith('http')) {
-    return getOptimizedCloudinaryUrl(filename || publicId || filePath);
-  }
-
-  if (secureUrl) {
-    return getOptimizedCloudinaryUrl(secureUrl);
-  }
-
-  if (filename || publicId) {
-    return getOptimizedCloudinaryUrl(filename || publicId);
-  }
-
-  if (filePath) {
-    return `/uploads/${path.basename(filePath)}`;
-  }
-
-  return null;
-}
-
-function createUploadParser() {
-  let storage;
-
-  if (ensureCloudinaryConfigured()) {
-    storage = new CloudinaryStorage({
-      cloudinary: { v2: cloudinary },
-      params: {
-        folder: 'artopus/artist-submissions',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-        transformation: [{ width: 1400, height: 1400, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
-      },
-    });
-  } else {
-    storage = multer.diskStorage({
-      destination: (req, file, cb) => cb(null, path.join(__dirname, '../uploads')),
-      filename: (req, file, cb) => cb(null, `${Date.now()}-${file.fieldname}${path.extname(file.originalname)}`),
-    });
-  }
-
-  return multer({ storage, limits: { fileSize: 4 * 1024 * 1024 } });
-}
 
 async function getArtistForUser(userId) {
   return Artist.findOne({ userId, isActive: true });
@@ -175,12 +120,24 @@ router.get('/products', authMiddleware, artistMiddleware, async (req, res, next)
 });
 
 router.post('/products', authMiddleware, artistMiddleware, (req, res, next) => {
-  createUploadParser().single('image')(req, res, (err) => {
+  createUploadParser({
+    folder: 'artopus/artist-submissions',
+    fileSizeLimit: 4 * 1024 * 1024,
+    transformation: [{ width: 1400, height: 1400, crop: 'limit', quality: 'auto', fetch_format: 'auto' }]
+  }).fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'canvasSketchImage', maxCount: 1 }
+  ])(req, res, (err) => {
     if (err) return next(err);
 
     const mergedBody = { ...req.body };
-    if (req.file) {
-      mergedBody.imageUrl = getUploadedImageUrl(req.file);
+    if (req.files) {
+      if (req.files['image'] && req.files['image'][0]) {
+        mergedBody.imageUrl = getUploadedImageUrl(req.files['image'][0]);
+      }
+      if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
+        mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+      }
     }
 
     req.body = mergedBody;
@@ -198,6 +155,8 @@ router.post('/products', authMiddleware, artistMiddleware, (req, res, next) => {
     const product = await Product.create({
       ...req.body,
       price: Number(req.body.price),
+      printPrice: Number(req.body.printPrice || 0),
+      canvasSketchPrice: Number(req.body.canvasSketchPrice || 0),
       outlineSketchPrice: Number(req.body.outlineSketchPrice || 0),
       coloringPrice: Number(req.body.coloringPrice || 0),
       stockQuantity: req.body.type === 'original-artwork' ? 1 : Number(req.body.stockQuantity || 0),
@@ -226,6 +185,69 @@ router.post('/products', authMiddleware, artistMiddleware, (req, res, next) => {
     ]);
 
     res.status(201).json(product);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/products/:id', authMiddleware, artistMiddleware, (req, res, next) => {
+  createUploadParser({
+    folder: 'artopus/artist-submissions',
+    fileSizeLimit: 4 * 1024 * 1024,
+    transformation: [{ width: 1400, height: 1400, crop: 'limit', quality: 'auto', fetch_format: 'auto' }]
+  }).fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'canvasSketchImage', maxCount: 1 }
+  ])(req, res, (err) => {
+    if (err) return next(err);
+
+    const mergedBody = { ...req.body };
+    if (req.files) {
+      if (req.files['image'] && req.files['image'][0]) {
+        mergedBody.imageUrl = getUploadedImageUrl(req.files['image'][0]);
+      }
+      if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
+        mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+      }
+    }
+
+    req.body = mergedBody;
+    next();
+  });
+}, (req, res, next) => {
+  const { error } = artistProductSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+  if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map((detail) => detail.message) });
+  next();
+}, async (req, res, next) => {
+  try {
+    const artist = await getArtistForUser(req.user._id);
+    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+
+    const product = await Product.findOne({ _id: req.params.id, artistId: artist._id });
+    if (!product) return res.status(404).json({ message: 'Product not found or access denied' });
+
+    const updates = {
+      ...req.body,
+      price: Number(req.body.price),
+      printPrice: Number(req.body.printPrice || 0),
+      canvasSketchPrice: Number(req.body.canvasSketchPrice || 0),
+      outlineSketchPrice: Number(req.body.outlineSketchPrice || 0),
+      coloringPrice: Number(req.body.coloringPrice || 0),
+      stockQuantity: req.body.type === 'original-artwork' ? 1 : Number(req.body.stockQuantity || 0),
+      approvalStatus: 'pending', // Re-verify upon edits
+    };
+
+    const updated = await Product.findByIdAndUpdate(req.params.id, updates, { new: true });
+
+    await notifyRole('admin', {
+      type: 'product_submission_received',
+      title: 'Artist updated product submission',
+      message: `${artist.artistName} updated ${updated.title}. Approval pending.`,
+      link: '/admin',
+      metadata: { productId: updated._id, artistId: artist._id },
+    });
+
+    res.json(updated);
   } catch (err) {
     next(err);
   }
@@ -261,6 +283,12 @@ router.post('/wallet/withdrawals', authMiddleware, artistMiddleware, validate(wa
 
     artist.walletBalance = Number((artist.walletBalance - req.body.amount).toFixed(2));
     await artist.save();
+
+    const wallet = await Wallet.findOne({ artist: artist._id });
+    if (wallet) {
+      wallet.balance = Number((wallet.balance - req.body.amount).toFixed(2));
+      await wallet.save();
+    }
 
     const transaction = await WalletTransaction.create({
       artist: artist._id,

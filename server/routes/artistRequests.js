@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import ArtistRequest from '../models/ArtistRequest.js';
 import Artist from '../models/Artist.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -91,18 +92,42 @@ router.post('/:id/approve', authMiddleware, adminMiddleware, async (req, res, ne
     request.processedAt = new Date();
     await request.save();
 
-    const matchingUser = await User.findOne({ email: request.email }).select('_id');
-    if (matchingUser) {
-      await notifyUsers([matchingUser._id], {
-        type: 'artist_request_approved',
-        title: 'Artist application approved',
-        message: 'Your artist application has been approved. You can now activate your artist account.',
-        link: '/artist-activate',
-        metadata: { artistRequestId: request._id, artistId: artist._id },
+    // Ensure a User account exists for this artist. Create one with a temporary password if needed.
+    const tempPassword = process.env.ARTIST_DEFAULT_PASSWORD || 'ChangeMe123!';
+    let user = await User.findOne({ email: request.email });
+
+    if (!user) {
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(tempPassword, salt);
+      user = await User.create({
+        name: request.artistName || request.penName || 'Artist',
+        email: request.email,
+        password: hash,
+        role: 'artist',
       });
+    } else {
+      // If user exists and is not admin, ensure role is artist and save
+      if (user.role !== 'admin') {
+        user.role = 'artist';
+        await user.save();
+      }
     }
 
-    res.json({ message: 'Artist request approved and profile created!', artist });
+    // Link artist profile to user
+    artist.userId = user._id;
+    await artist.save();
+
+    // Notify the user with activation info including temporary credentials
+    await notifyUsers([user._id], {
+      type: 'artist_request_approved',
+      title: 'Artist application approved',
+      message: `Your artist application has been approved. Login with email: ${request.email} and password: ${tempPassword}`,
+      link: '/artist-activate',
+      metadata: { artistRequestId: request._id, artistId: artist._id, credentials: { email: request.email, password: tempPassword } },
+    });
+
+    const { password: _, ...userWithoutPassword } = user.toObject();
+    res.json({ message: 'Artist request approved and profile created!', artist, user: userWithoutPassword, credentials: { email: request.email, password: tempPassword } });
   } catch (err) {
     next(err);
   }

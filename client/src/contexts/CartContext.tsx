@@ -9,7 +9,7 @@ interface Product {
   image: string;
   type: string;
   stockQuantity?: number;
-  buyerOption?: 'painting' | 'outline-sketch' | 'colored-version';
+  buyerOption?: 'original' | 'print' | 'canvas-sketch';
   buyerOptionLabel?: string;
 }
 

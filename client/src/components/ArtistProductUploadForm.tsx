@@ -26,9 +26,9 @@ type ArtistProductUploadFormProps = {
   onSubmit: (event: React.FormEvent) => void;
 };
 
-const priceFormatter = new Intl.NumberFormat('en-US', {
+const priceFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'INR',
 });
 
 const ArtistProductUploadForm: React.FC<ArtistProductUploadFormProps> = ({

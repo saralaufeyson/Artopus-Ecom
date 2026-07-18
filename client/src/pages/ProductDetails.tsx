@@ -13,6 +13,9 @@ interface Product {
   _id: string;
   title: string;
   price: number;
+  printPrice?: number;
+  canvasSketchPrice?: number;
+  canvasSketchImageUrl?: string;
   outlineSketchPrice?: number;
   coloringPrice?: number;
   imageUrl: string;
@@ -40,9 +43,9 @@ interface Review {
 }
 
 const optionConfig = [
-  { key: 'painting', label: 'Original Painting', getPrice: (product: Product) => product.price },
-  { key: 'outline-sketch', label: 'Outline Sketch', getPrice: (product: Product) => product.outlineSketchPrice || product.price },
-  { key: 'colored-version', label: 'Colored Version', getPrice: (product: Product) => product.coloringPrice || product.price },
+  { key: 'original', label: 'Original Artwork', getPrice: (product: Product) => product.price, getImage: (product: Product) => product.imageUrl },
+  { key: 'print', label: 'Print', getPrice: (product: Product) => product.printPrice || 0, getImage: (product: Product) => product.imageUrl },
+  { key: 'canvas-sketch', label: 'Canvas Sketch', getPrice: (product: Product) => product.canvasSketchPrice || 0, getImage: (product: Product) => product.canvasSketchImageUrl || product.imageUrl },
 ] as const;
 
 const ProductDetails: React.FC = () => {
@@ -53,7 +56,7 @@ const ProductDetails: React.FC = () => {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOption, setSelectedOption] = useState<'painting' | 'outline-sketch' | 'colored-version'>('painting');
+  const [selectedOption, setSelectedOption] = useState<'original' | 'print' | 'canvas-sketch'>('original');
   const { addToCart } = useContext(CartContext)!;
   const auth = useContext(AuthContext);
   const { collections, wishlistIds, toggleWishlist, addToCollection } = useCollections();
@@ -103,7 +106,7 @@ const ProductDetails: React.FC = () => {
         ...product,
         id: `${product._id}::${selectedOption}`,
         productId: product._id,
-        image: getOptimizedImageUrl(product.imageUrl),
+        image: getOptimizedImageUrl(selectedOptionData.getImage(product)),
         price: selectedPrice,
         buyerOption: selectedOption,
         buyerOptionLabel: selectedOptionData.label,
@@ -159,11 +162,11 @@ const ProductDetails: React.FC = () => {
 
   return (
     <div className="product-details-page">
-      <div className="page-container">
+      <div className="container-custom">
         <div className="product-layout grid grid-cols-1 md:grid-cols-2 gap-12 py-12">
           <div className="product-image-section">
             <div className="product-main-image rounded-2xl overflow-hidden shadow-2xl">
-              <img src={getOptimizedImageUrl(product.imageUrl)} alt={product.title} className="w-full h-auto object-cover" />
+              <img src={getOptimizedImageUrl(selectedOptionData.getImage(product))} alt={product.title} className="w-full h-auto object-cover" />
             </div>
           </div>
 
@@ -185,7 +188,7 @@ const ProductDetails: React.FC = () => {
               <span>({reviewSummary.totalReviews} reviews)</span>
             </div>
 
-            <p className="product-price-large text-3xl font-black text-logo-purple mb-6">${selectedPrice.toFixed(2)}</p>
+            <p className="product-price-large text-3xl font-black text-logo-purple mb-6">₹{selectedPrice.toFixed(2)}</p>
 
             <div className="flex flex-wrap gap-3 mb-8">
               <button
@@ -226,7 +229,7 @@ const ProductDetails: React.FC = () => {
                   >
                     <div className="flex items-center justify-between gap-4">
                       <span className="font-bold text-gray-900 dark:text-white">{option.label}</span>
-                      <span className="text-logo-purple font-bold">${option.getPrice(product).toFixed(2)}</span>
+                      <span className="text-logo-purple font-bold">₹{option.getPrice(product).toFixed(2)}</span>
                     </div>
                   </button>
                 ))}

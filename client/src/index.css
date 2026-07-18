@@ -137,7 +137,7 @@
 }
 
 @utility container-custom {
-  @apply max-w-[1400px] mx-auto px-4 w-full;
+  @apply max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 w-full;
 }
 
 @utility hero-section {

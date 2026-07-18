@@ -77,7 +77,7 @@ const Checkout: React.FC = () => {
         items: cart.map((item) => ({
           productId: item.productId || item.id,
           quantity: item.quantity,
-          buyerOption: item.buyerOption || 'painting',
+          buyerOption: item.buyerOption || 'original',
         })),
         shippingAddress: shipping,
         couponCode: couponCode || undefined,
@@ -125,7 +125,7 @@ const Checkout: React.FC = () => {
 
       if (res.data.valid) {
         setDiscountAmount(res.data.discount);
-        setCouponMessage(`✓ Coupon applied! You save $${res.data.discount.toFixed(2)}`);
+        setCouponMessage(`✓ Coupon applied! You save ₹${res.data.discount.toFixed(2)}`);
       } else {
         setCouponMessage(`✗ ${res.data.message}`);
         setDiscountAmount(0);
@@ -282,7 +282,7 @@ const Checkout: React.FC = () => {
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{item.title}</h3>
                     <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                     {item.buyerOptionLabel && <p className="text-xs text-gray-500">{item.buyerOptionLabel}</p>}
-                    <p className="text-sm font-bold text-logo-purple">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-sm font-bold text-logo-purple">₹{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -291,31 +291,31 @@ const Checkout: React.FC = () => {
             <div className="space-y-3 pt-6 border-t border-gray-100 dark:border-gray-800">
               <div className="order-summary-row">
                 <span className="text-gray-500">Subtotal</span>
-                <span className="font-bold text-gray-900 dark:text-white">${subtotal.toFixed(2)}</span>
+                <span className="font-bold text-gray-900 dark:text-white">₹{subtotal.toFixed(2)}</span>
               </div>
               <div className="order-summary-row">
                 <span className="text-gray-500">Shipping</span>
-                <span className="font-bold text-gray-900 dark:text-white">${shippingCost.toFixed(2)}</span>
+                <span className="font-bold text-gray-900 dark:text-white">₹{shippingCost.toFixed(2)}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="order-summary-row">
                   <span className="text-gray-500">Discount</span>
-                  <span className="font-bold text-green-600 dark:text-green-400">-${discountAmount.toFixed(2)}</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">-₹{discountAmount.toFixed(2)}</span>
                 </div>
               )}
               {taxAmount > 0 && (
                 <div className="order-summary-row">
                   <span className="text-gray-500">Sales Tax</span>
-                  <span className="font-bold text-gray-900 dark:text-white">${taxAmount.toFixed(2)}</span>
+                  <span className="font-bold text-gray-900 dark:text-white">₹{taxAmount.toFixed(2)}</span>
                 </div>
               )}
               <div className="order-summary-row">
                 <span className="text-gray-500">Order Total</span>
-                <span className="font-bold text-gray-900 dark:text-white">${totalBeforeTax.toFixed(2)}</span>
+                <span className="font-bold text-gray-900 dark:text-white">₹{totalBeforeTax.toFixed(2)}</span>
               </div>
               <div className="order-summary-total">
                 <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
-                <span className="text-2xl font-black text-logo-purple">${totalWithTax.toFixed(2)}</span>
+                <span className="text-2xl font-black text-logo-purple">₹{totalWithTax.toFixed(2)}</span>
               </div>
             </div>
 

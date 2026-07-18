@@ -115,7 +115,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </Link>
           )}
           <div className="flex justify-between items-end">
-            <p className="text-3xl font-black text-logo-purple">${product.price}</p>
+            <p className="text-3xl font-black text-logo-purple">₹{product.price}</p>
             {(product.stockQuantity ?? 0) > 0 && (product.stockQuantity ?? 0) < 5 && (
               <p className="text-xs font-bold text-red-500 mb-1">Only {product.stockQuantity ?? 0} left!</p>
             )}
