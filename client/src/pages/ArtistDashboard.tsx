@@ -159,7 +159,7 @@ const ArtistDashboard: React.FC = () => {
       });
       if (newCanvasSketchImage) formData.append('canvasSketchImage', newCanvasSketchImage);
 
-      const variants = [
+      const variants: any[] = [
         {
           category: 'Original',
           price: Number(newProduct.price) || null,
@@ -259,7 +259,7 @@ const ArtistDashboard: React.FC = () => {
       });
       if (editingCanvasSketchImage) formData.append('canvasSketchImage', editingCanvasSketchImage);
 
-      const variants = [
+      const variants: any[] = [
         {
           category: 'Original',
           price: Number(editingProduct.price) || null,
