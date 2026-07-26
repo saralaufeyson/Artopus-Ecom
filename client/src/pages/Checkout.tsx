@@ -77,7 +77,9 @@ const Checkout: React.FC = () => {
         items: cart.map((item) => ({
           productId: item.productId || item.id,
           quantity: item.quantity,
-          buyerOption: item.buyerOption || 'original',
+          buyerOption: item.buyerOption === 'outline-sketch' || item.buyerOption === 'colored-version'
+            ? item.buyerOption
+            : 'painting',
         })),
         shippingAddress: shipping,
         couponCode: couponCode || undefined,

@@ -85,7 +85,8 @@ const ArtistProfile: React.FC = () => {
             facebook: artistRes.data.socialLinks?.facebook || '',
           },
         });
-        const filteredProducts = productsRes.data.filter((p: Product) => p.artistId === id || (typeof p.artistId === 'object' && p.artistId !== null && '_id' in p.artistId && (p.artistId as { _id: string })._id === id));
+        const productsList = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data?.data || []);
+        const filteredProducts = productsList.filter((p: Product) => p.artistId === id || (typeof p.artistId === 'object' && p.artistId !== null && '_id' in p.artistId && (p.artistId as { _id: string })._id === id));
         setProducts(filteredProducts);
       } catch (err) {
         console.error('Failed to fetch artist data:', err);

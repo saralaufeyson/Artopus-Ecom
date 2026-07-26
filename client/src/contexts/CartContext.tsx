@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
 
+type BuyerOption = 'painting' | 'outline-sketch' | 'colored-version';
+
 interface Product {
   id: string;
   productId?: string;
@@ -9,7 +11,7 @@ interface Product {
   image: string;
   type: string;
   stockQuantity?: number;
-  buyerOption?: 'original' | 'print' | 'canvas-sketch';
+  buyerOption?: BuyerOption;
   buyerOptionLabel?: string;
 }
 

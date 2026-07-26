@@ -11,7 +11,9 @@
     "prepare:hooks": "husky install",
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "seed": "node scripts/seedAdmin.js"
+    "seed": "node scripts/seedAdmin.js",
+    "seed:artworks": "node scripts/seedArtworks.js",
+    "seed:artist": "node scripts/seedArtistSara.js"
   },
   "keywords": [],
   "author": "",

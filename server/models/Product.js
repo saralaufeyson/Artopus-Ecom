@@ -22,16 +22,32 @@ const ProductSchema = new mongoose.Schema(
     printPrice: { type: Number, min: 0, default: 0 },
     canvasSketchPrice: { type: Number, min: 0, default: 0 },
     canvasSketchImageUrl: { type: String },
+    images: { type: [String], default: [] },
+    variants: {
+      type: [
+        {
+          category: { type: String, required: true },
+          size: { type: String },
+          price: { type: Number },
+          dimensions: { type: String },
+          stockQuantity: { type: Number }
+        }
+      ],
+      default: []
+    },
     approvalStatus: { type: String, enum: ['draft', 'pending', 'approved', 'rejected'], default: 'approved' },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-// Ensure original artworks always have stock 1 or 0
+// Ensure original artworks always have stock 1 or 0 and sync main image URL
 ProductSchema.pre('save', function () {
   if (this.type === 'original-artwork') {
     if (this.stockQuantity > 1) this.stockQuantity = 1;
+  }
+  if (this.images && this.images.length > 0) {
+    this.imageUrl = this.images[0];
   }
 });
 

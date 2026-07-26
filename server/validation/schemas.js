@@ -13,6 +13,14 @@ export const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+const variantValidationSchema = Joi.object({
+  category: Joi.string().valid('Original', 'Print on Demand').required(),
+  size: Joi.string().allow('', null).optional(),
+  price: Joi.number().min(0).allow(null, '').optional(),
+  dimensions: Joi.string().allow('', null).optional(),
+  stockQuantity: Joi.number().integer().min(0).optional()
+});
+
 export const productCreateSchema = Joi.object({
   type: Joi.string().valid('original-artwork', 'merchandise').required(),
   title: Joi.string().min(1).required(),
@@ -34,6 +42,8 @@ export const productCreateSchema = Joi.object({
   printPrice: Joi.number().min(0).optional(),
   canvasSketchPrice: Joi.number().min(0).optional(),
   canvasSketchImageUrl: Joi.string().uri().allow('', null).optional(),
+  images: Joi.array().items(Joi.string().uri().allow('')).max(5).optional(),
+  variants: Joi.array().items(variantValidationSchema).optional(),
   approvalStatus: Joi.string().valid('draft', 'pending', 'approved', 'rejected').optional(),
 });
 
@@ -58,6 +68,8 @@ export const productUpdateSchema = Joi.object({
   printPrice: Joi.number().min(0).optional(),
   canvasSketchPrice: Joi.number().min(0).optional(),
   canvasSketchImageUrl: Joi.string().uri().allow('', null).optional(),
+  images: Joi.array().items(Joi.string().uri().allow('')).max(5).optional(),
+  variants: Joi.array().items(variantValidationSchema).optional(),
   approvalStatus: Joi.string().valid('draft', 'pending', 'approved', 'rejected').optional(),
 });
 
@@ -79,7 +91,7 @@ export const createIntentSchema = Joi.object({
   items: Joi.array().items(Joi.object({
     productId: Joi.string().required(),
     quantity: Joi.number().integer().min(1).required(),
-    buyerOption: Joi.string().valid('painting', 'outline-sketch', 'colored-version').optional(),
+    buyerOption: Joi.string().valid('painting', 'original', 'print', 'canvas-sketch', 'print-a5', 'print-a4', 'print-a3', 'outline-sketch', 'colored-version').optional(),
   })).min(1).required(),
   couponCode: Joi.string().allow('', null).optional(),
   shippingAddress: Joi.object({
@@ -124,6 +136,8 @@ export const artistProductSchema = Joi.object({
   printPrice: Joi.number().min(0).optional(),
   canvasSketchPrice: Joi.number().min(0).optional(),
   canvasSketchImageUrl: Joi.string().uri().allow('', null).optional(),
+  images: Joi.array().items(Joi.string().uri().allow('')).max(5).optional(),
+  variants: Joi.array().items(variantValidationSchema).optional(),
 });
 
 export const walletWithdrawalSchema = Joi.object({

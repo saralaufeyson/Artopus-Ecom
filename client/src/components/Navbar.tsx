@@ -51,12 +51,18 @@ function Navbar() {
 
         {/* Desktop menu */}
         <ul className="hidden lg:flex gap-8 list-none items-center">
-          {user?.role !== 'admin' && (
+          {user?.role === 'artist' && (
+            <>
+              <li><Link to="/" className="nav-link">Home</Link></li>
+              <li><Link to="/artist-dashboard" className="nav-link">Artist Dashboard</Link></li>
+            </>
+          )}
+
+          {user?.role !== 'artist' && user?.role !== 'admin' && (
             <>
               <li><Link to="/" className="nav-link">Home</Link></li>
               <li><Link to="/shop" className="nav-link">Shop</Link></li>
               <li><Link to="/join-as-artist" className="nav-link">Sell Your Art</Link></li>
-              {user?.role === 'artist' && <li><Link to="/artist-dashboard" className="nav-link">Artist Dashboard</Link></li>}
             </>
           )}
 
@@ -76,7 +82,7 @@ function Navbar() {
           {user && <NotificationBell />}
           {user ? (
             <div className="flex items-center gap-4">
-              {user.role !== 'admin' && <Link to="/profile" className="nav-link">Profile</Link>}
+              {user.role !== 'admin' && user.role !== 'artist' && <Link to="/profile" className="nav-link">Profile</Link>}
               {user.role === 'artist' && <Link to="/artist-dashboard" className="nav-link">Studio</Link>}
               <button
                 onClick={handleLogout}
@@ -89,7 +95,7 @@ function Navbar() {
             <Link to="/login" className="nav-link">Login</Link>
           )}
 
-          {user?.role !== 'admin' && (
+          {user?.role !== 'admin' && user?.role !== 'artist' && (
             <Link to="/cart" className="relative group p-2 text-gray-700 dark:text-gray-300 hover:text-logo-purple transition-colors">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:scale-110 transition-transform">
                 <path d="M9 2L7 4M15 2l2 2M7 4h10l1 9H6l1-9z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -119,12 +125,18 @@ function Navbar() {
             </div>
 
             <ul className="flex-1 overflow-y-auto py-4">
-              {user?.role !== 'admin' && (
+              {user?.role === 'artist' && (
+                <>
+                  <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
+                  <li><Link to="/artist-dashboard" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Artist Dashboard</Link></li>
+                </>
+              )}
+
+              {user?.role !== 'artist' && user?.role !== 'admin' && (
                 <>
                   <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
                   <li><Link to="/shop" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Shop</Link></li>
                   <li><Link to="/join-as-artist" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Sell Your Art</Link></li>
-                  {user?.role === 'artist' && <li><Link to="/artist-dashboard" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Artist Dashboard</Link></li>}
                 </>
               )}
 

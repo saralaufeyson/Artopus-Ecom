@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from 'axios';
 import { toast } from 'react-toastify';
+import { ImageSlotsManager } from './AdminDashboard';
+import type { ImageSlot } from './AdminDashboard';
 
 type Artist = {
   _id: string;
@@ -20,6 +22,7 @@ type Product = {
   canvasSketchPrice?: number;
   imageUrl: string;
   canvasSketchImageUrl?: string;
+  images?: string[];
   medium?: string;
   dimensions?: string;
   year?: string;
@@ -63,10 +66,13 @@ const ArtistDashboard: React.FC = () => {
     medium: '', dimensions: '', year: '', videoUrl: 'https://youtube.com'
   });
 
-  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [, setNewProductImage] = useState<File | null>(null);
   const [newCanvasSketchImage, setNewCanvasSketchImage] = useState<File | null>(null);
-  const [editingProductImage, setEditingProductImage] = useState<File | null>(null);
+  const [, setEditingProductImage] = useState<File | null>(null);
   const [editingCanvasSketchImage, setEditingCanvasSketchImage] = useState<File | null>(null);
+  const [newImagesList, setNewImagesList] = useState<ImageSlot[]>([]);
+  const [editingImagesList, setEditingImagesList] = useState<ImageSlot[]>([]);
+  const [offerPrint, setOfferPrint] = useState(true);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -85,9 +91,10 @@ const ArtistDashboard: React.FC = () => {
         axiosInstance.get('/api/orders', { params: { artistId } }),
       ]);
 
+      const productsList = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data?.data || []);
       setArtist(dashboardRes.data.artist);
       setWallet(artistWalletRes.data.wallet || { balance: dashboardRes.data.stats?.walletBalance || 0 });
-      setProducts(productsRes.data);
+      setProducts(productsList);
       setOrders(
         ordersRes.data.filter((order: Order) =>
           order.items.some((item) => String(item.artistId) === String(artistId))
@@ -125,9 +132,23 @@ const ArtistDashboard: React.FC = () => {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProductImage && !newProduct.imageUrl.trim()) {
-      return toast.error("Please upload a main image or enter a main image URL");
+    if (newImagesList.length === 0) {
+      return toast.error("Please add at least one product image");
     }
+    if (newImagesList.length > 5) {
+      return toast.error("Maximum 5 images allowed");
+    }
+
+    // Validate file sizes
+    for (const slot of newImagesList) {
+      if (slot.type === 'file' && slot.file && slot.file.size > 2 * 1024 * 1024) {
+        return toast.error("Each product image file size must be less than 2MB");
+      }
+    }
+    if (newCanvasSketchImage && newCanvasSketchImage.size > 2 * 1024 * 1024) {
+      return toast.error("Canvas sketch image file size must be less than 2MB");
+    }
+
     setIsSubmitting(true);
     try {
       const formData = new FormData();
@@ -136,8 +157,54 @@ const ArtistDashboard: React.FC = () => {
           formData.append(key, value.toString());
         }
       });
-      if (newProductImage) formData.append('image', newProductImage);
       if (newCanvasSketchImage) formData.append('canvasSketchImage', newCanvasSketchImage);
+
+      const variants = [
+        {
+          category: 'Original',
+          price: Number(newProduct.price) || null,
+          dimensions: newProduct.dimensions || '',
+          stockQuantity: 1
+        }
+      ];
+      if (offerPrint) {
+        variants.push(
+          {
+            category: 'Print on Demand',
+            size: 'A5',
+            price: 1234.70,
+            dimensions: '5.8 x 8.3 in',
+            stockQuantity: 999
+          },
+          {
+            category: 'Print on Demand',
+            size: 'A4',
+            price: 2806.70,
+            dimensions: newProduct.dimensions || '',
+            stockQuantity: 999
+          },
+          {
+            category: 'Print on Demand',
+            size: 'A3',
+            price: 3144.00,
+            dimensions: '11.7 x 16.5 in',
+            stockQuantity: 999
+          }
+        );
+      }
+      formData.append('variants', JSON.stringify(variants));
+
+      // Append images to FormData preserving order via placeholder strings
+      let fileCounter = 0;
+      newImagesList.forEach((slot) => {
+        if (slot.type === 'file' && slot.file) {
+          formData.append('images', slot.file);
+          formData.append('images', `file_${fileCounter}`);
+          fileCounter++;
+        } else if (slot.type === 'url' && slot.url) {
+          formData.append('images', slot.url);
+        }
+      });
 
       await axiosInstance.post('/api/artist-portal/products', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -152,6 +219,7 @@ const ArtistDashboard: React.FC = () => {
       });
       setNewProductImage(null);
       setNewCanvasSketchImage(null);
+      setNewImagesList([]);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to submit product');
     } finally {
@@ -162,16 +230,81 @@ const ArtistDashboard: React.FC = () => {
   const handleEditProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
+
+    if (editingImagesList.length === 0) {
+      return toast.error("Please add at least one product image");
+    }
+    if (editingImagesList.length > 5) {
+      return toast.error("Maximum 5 images allowed");
+    }
+
+    // Validate file sizes
+    for (const slot of editingImagesList) {
+      if (slot.type === 'file' && slot.file && slot.file.size > 2 * 1024 * 1024) {
+        return toast.error("Each product image file size must be less than 2MB");
+      }
+    }
+    if (editingCanvasSketchImage && editingCanvasSketchImage.size > 2 * 1024 * 1024) {
+      return toast.error("Canvas sketch image file size must be less than 2MB");
+    }
+
     setIsSubmitting(true);
     try {
       const formData = new FormData();
       Object.entries(editingProduct).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        // Exclude images, imageUrl, and other non-savable nested items to avoid duplicates/errors
+        if (key !== 'images' && key !== 'imageUrl' && key !== 'variants' && value !== undefined && value !== null && value !== '') {
           formData.append(key, value.toString());
         }
       });
-      if (editingProductImage) formData.append('image', editingProductImage);
       if (editingCanvasSketchImage) formData.append('canvasSketchImage', editingCanvasSketchImage);
+
+      const variants = [
+        {
+          category: 'Original',
+          price: Number(editingProduct.price) || null,
+          dimensions: editingProduct.dimensions || '',
+          stockQuantity: 1
+        }
+      ];
+      if (offerPrint) {
+        variants.push(
+          {
+            category: 'Print on Demand',
+            size: 'A5',
+            price: 1234.70,
+            dimensions: '5.8 x 8.3 in',
+            stockQuantity: 999
+          },
+          {
+            category: 'Print on Demand',
+            size: 'A4',
+            price: 2806.70,
+            dimensions: editingProduct.dimensions || '',
+            stockQuantity: 999
+          },
+          {
+            category: 'Print on Demand',
+            size: 'A3',
+            price: 3144.00,
+            dimensions: '11.7 x 16.5 in',
+            stockQuantity: 999
+          }
+        );
+      }
+      formData.append('variants', JSON.stringify(variants));
+
+      // Append images to FormData preserving order via placeholder strings
+      let fileCounter = 0;
+      editingImagesList.forEach((slot) => {
+        if (slot.type === 'file' && slot.file) {
+          formData.append('images', slot.file);
+          formData.append('images', `file_${fileCounter}`);
+          fileCounter++;
+        } else if (slot.type === 'url' && slot.url) {
+          formData.append('images', slot.url);
+        }
+      });
 
       await axiosInstance.put(`/api/artist-portal/products/${editingProduct._id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -181,6 +314,7 @@ const ArtistDashboard: React.FC = () => {
       setEditingProduct(null);
       setEditingProductImage(null);
       setEditingCanvasSketchImage(null);
+      setEditingImagesList([]);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to update product');
     } finally {
@@ -274,15 +408,16 @@ const ArtistDashboard: React.FC = () => {
                   required 
                 />
               </div>
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Print Price (₹)</label>
-                <input 
-                  type="number" 
-                  className="auth-input w-full" 
-                  placeholder="Print Price" 
-                  value={showAddForm ? newProduct.printPrice : editingProduct?.printPrice || ''} 
-                  onChange={(e) => showAddForm ? setNewProduct({ ...newProduct, printPrice: e.target.value }) : setEditingProduct({ ...editingProduct!, printPrice: Number(e.target.value) })}
-                />
+              <div className="flex items-center pt-6">
+                <label className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
+                  <input 
+                    type="checkbox"
+                    checked={offerPrint}
+                    onChange={(e) => setOfferPrint(e.target.checked)}
+                    className="w-4 h-4 text-logo-purple border-gray-350 rounded focus:ring-logo-purple"
+                  />
+                  Offer Print on Demand (A5, A4, A3)
+                </label>
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Canvas Sketch Price (₹)</label>
@@ -366,34 +501,25 @@ const ArtistDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 border-t pt-6">
+            <div className="grid gap-6 md:grid-cols-1 border-t pt-6">
               <div className="rounded-2xl border p-4 bg-gray-50 dark:bg-gray-800">
-                <label className="block text-sm font-bold mb-2 text-gray-900 dark:text-white">Main Image (Original/Print)</label>
-                <input 
-                  type="file" 
-                  className="auth-input w-full pt-2" 
-                  accept="image/*"
-                  onChange={(e) => showAddForm ? setNewProductImage(e.target.files?.[0] || null) : setEditingProductImage(e.target.files?.[0] || null)} 
+                <label className="block text-sm font-bold mb-2 text-gray-900 dark:text-white">Product Images (Original/Print) - Up to 5 Images</label>
+                <ImageSlotsManager 
+                  slots={showAddForm ? newImagesList : editingImagesList}
+                  onChange={(slots) => showAddForm ? setNewImagesList(slots) : setEditingImagesList(slots)}
+                  onAddUrl={(url) => showAddForm 
+                    ? setNewImagesList([...newImagesList, { id: `new_url_${Date.now()}`, type: 'url', url }])
+                    : setEditingImagesList([...editingImagesList, { id: `editing_url_${Date.now()}`, type: 'url', url }])
+                  }
+                  onAddFile={(file) => showAddForm
+                    ? setNewImagesList([...newImagesList, { id: `new_file_${Date.now()}`, type: 'file', file }])
+                    : setEditingImagesList([...editingImagesList, { id: `editing_file_${Date.now()}`, type: 'file', file }])
+                  }
                 />
-                <input 
-                  type="url" 
-                  className="auth-input w-full mt-2" 
-                  placeholder="Or Main Image URL" 
-                  value={showAddForm ? newProduct.imageUrl : editingProduct?.imageUrl || ''} 
-                  onChange={(e) => showAddForm ? setNewProduct({ ...newProduct, imageUrl: e.target.value }) : setEditingProduct({ ...editingProduct!, imageUrl: e.target.value })} 
-                />
-                {getPreview(showAddForm ? newProductImage : editingProductImage, showAddForm ? newProduct.imageUrl : editingProduct?.imageUrl || '') && (
-                  <div className="mt-3">
-                    <p className="text-xs text-gray-500 mb-1">Preview:</p>
-                    <img 
-                      src={getPreview(showAddForm ? newProductImage : editingProductImage, showAddForm ? newProduct.imageUrl : editingProduct?.imageUrl || '')} 
-                      className="h-24 w-auto rounded-xl object-cover border" 
-                      alt="Main Preview" 
-                    />
-                  </div>
-                )}
               </div>
+            </div>
 
+            <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-2xl border p-4 bg-gray-50 dark:bg-gray-800">
                 <label className="block text-sm font-bold mb-2 text-gray-900 dark:text-white">Canvas Sketch Image</label>
                 <input 
@@ -451,7 +577,10 @@ const ArtistDashboard: React.FC = () => {
             <h2 className="text-2xl font-black">Listings</h2>
             {!showAddForm && !editingProduct && (
               <button 
-                onClick={() => setShowAddForm(true)} 
+                onClick={() => {
+                  setShowAddForm(true);
+                  setOfferPrint(true);
+                }} 
                 className="rounded-xl bg-logo-purple/10 px-4 py-2 text-sm font-bold text-logo-purple transition hover:bg-logo-purple/20"
               >
                 + Add Artwork
@@ -483,6 +612,15 @@ const ArtistDashboard: React.FC = () => {
                     onClick={() => {
                       setEditingProduct(product);
                       setShowAddForm(false);
+                      const p = product as any;
+                      const hasPrints = p.variants && Array.isArray(p.variants) && p.variants.some((v: any) => v.category === 'Print on Demand');
+                      setOfferPrint(hasPrints);
+                      const initialImages: ImageSlot[] = (product.images && product.images.length > 0 ? product.images : [product.imageUrl]).filter(Boolean).map((imgUrl: string, idx: number) => ({
+                        id: `existing_${idx}_${Date.now()}`,
+                        type: 'url',
+                        url: imgUrl
+                      }));
+                      setEditingImagesList(initialImages);
                     }} 
                     className="rounded-lg bg-gray-200 dark:bg-gray-800 px-3 py-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:opacity-90"
                   >

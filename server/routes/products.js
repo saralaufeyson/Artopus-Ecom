@@ -168,14 +168,15 @@ router.get('/:id/related', async (req, res, next) => {
   }
 });
 
-// POST /api/products (admin only) - supports multipart/form-data with fields `image` and `canvasSketchImage` OR imageUrl/canvasSketchImageUrl in body
+// POST /api/products (admin only) - supports multipart/form-data with fields `image`, `canvasSketchImage`, and `images`
 router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
   // Check if this is a multipart request (file upload) or JSON request (URL)
   if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
     // Handle file upload
     createUploadParser().fields([
       { name: 'image', maxCount: 1 },
-      { name: 'canvasSketchImage', maxCount: 1 }
+      { name: 'canvasSketchImage', maxCount: 1 },
+      { name: 'images', maxCount: 5 }
     ])(req, res, (err) => {
       if (err) return next(err);
       // Merge body and file-derived urls
@@ -186,6 +187,26 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
         }
         if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
           mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+        }
+        
+        // Resolve images array placeholders
+        const uploadedUrls = (req.files['images'] || []).map(file => getUploadedImageUrl(file));
+        let fileIndex = 0;
+        let bodyImages = [];
+        if (mergedBody.images) {
+          bodyImages = Array.isArray(mergedBody.images) ? mergedBody.images : [mergedBody.images];
+        }
+        const finalImages = bodyImages.map(img => {
+          if (img.startsWith('file_')) {
+            const url = uploadedUrls[fileIndex];
+            fileIndex++;
+            return url;
+          }
+          return img;
+        }).filter(Boolean);
+        mergedBody.images = finalImages.length === 0 ? uploadedUrls : finalImages;
+        if (mergedBody.images.length > 0) {
+          mergedBody.imageUrl = mergedBody.images[0];
         }
       }
       req.body = mergedBody;
@@ -234,6 +255,7 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
       category,
       imageUrl: normalizedImageUrl || req.body.imageUrl,
       canvasSketchImageUrl: normalizedCanvasImageUrl || req.body.canvasSketchImageUrl,
+      images: req.body.images || [],
       stockQuantity: type === 'original-artwork' ? 1 : Number(stockQuantity || 0),
       artistId,
       artistUserId,
@@ -271,11 +293,12 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
   }
 });
 
-// PUT /api/products/:id (admin only) - supports multipart/form-data with fields `image` and `canvasSketchImage`
+// PUT /api/products/:id (admin only) - supports multipart/form-data with fields `image`, `canvasSketchImage`, and `images`
 router.put('/:id', authMiddleware, adminMiddleware, (req, res, next) => {
   createUploadParser().fields([
     { name: 'image', maxCount: 1 },
-    { name: 'canvasSketchImage', maxCount: 1 }
+    { name: 'canvasSketchImage', maxCount: 1 },
+    { name: 'images', maxCount: 5 }
   ])(req, res, (err) => {
     if (err) return next(err);
 
@@ -286,6 +309,26 @@ router.put('/:id', authMiddleware, adminMiddleware, (req, res, next) => {
       }
       if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
         mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+      }
+      
+      // Resolve images array placeholders
+      const uploadedUrls = (req.files['images'] || []).map(file => getUploadedImageUrl(file));
+      let fileIndex = 0;
+      let bodyImages = [];
+      if (mergedBody.images) {
+        bodyImages = Array.isArray(mergedBody.images) ? mergedBody.images : [mergedBody.images];
+      }
+      const finalImages = bodyImages.map(img => {
+        if (img.startsWith('file_')) {
+          const url = uploadedUrls[fileIndex];
+          fileIndex++;
+          return url;
+        }
+        return img;
+      }).filter(Boolean);
+      mergedBody.images = finalImages.length === 0 ? (uploadedUrls.length > 0 ? uploadedUrls : mergedBody.images) : finalImages;
+      if (mergedBody.images && mergedBody.images.length > 0) {
+        mergedBody.imageUrl = mergedBody.images[0];
       }
     }
 

@@ -57,6 +57,141 @@ interface User {
   createdAt: string;
 }
 
+export interface ImageSlot {
+  id: string;
+  type: 'file' | 'url';
+  file?: File;
+  url?: string;
+}
+
+export const ImageSlotsManager: React.FC<{ 
+  slots: ImageSlot[], 
+  onChange: (slots: ImageSlot[]) => void, 
+  onAddUrl: (url: string) => void, 
+  onAddFile: (file: File) => void 
+}> = ({ 
+  slots, 
+  onChange, 
+  onAddUrl, 
+  onAddFile 
+}) => {
+  const [urlInput, setUrlInput] = useState('');
+  
+  const handleAddUrl = () => {
+    if (urlInput.trim()) {
+      onAddUrl(urlInput.trim());
+      setUrlInput('');
+    }
+  };
+
+  const handleMove = (index: number, direction: 'up' | 'down') => {
+    const nextSlots = [...slots];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const temp = nextSlots[index];
+    nextSlots[index] = nextSlots[targetIndex];
+    nextSlots[targetIndex] = temp;
+    onChange(nextSlots);
+  };
+
+  const handleRemove = (index: number) => {
+    const nextSlots = slots.filter((_, i) => i !== index);
+    onChange(nextSlots);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 items-end">
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Add Image via URL</label>
+          <div className="flex gap-2">
+            <input 
+              type="url" 
+              className="admin-input flex-1" 
+              placeholder="Paste Image URL (e.g. https://...)" 
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              disabled={slots.length >= 5}
+            />
+            <button 
+              type="button" 
+              onClick={handleAddUrl}
+              className="admin-button shrink-0 py-2.5 px-4 bg-logo-purple text-white rounded-xl text-sm font-bold"
+              disabled={slots.length >= 5 || !urlInput.trim()}
+            >
+              Add URL
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Or Upload Image File</label>
+          <input 
+            type="file" 
+            className="admin-input pt-2" 
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                onAddFile(file);
+                e.target.value = '';
+              }
+            }}
+            disabled={slots.length >= 5}
+          />
+        </div>
+      </div>
+      
+      {slots.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
+          {slots.map((slot, index) => {
+            const previewUrl = slot.type === 'file' && slot.file ? URL.createObjectURL(slot.file) : slot.url || '';
+            return (
+              <div key={slot.id} className="relative rounded-2xl border bg-gray-50 dark:bg-gray-800 p-3 flex flex-col items-center justify-between gap-3 group">
+                <div className="absolute top-2 left-2 bg-logo-purple text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow z-10">
+                  {index + 1}
+                </div>
+                {previewUrl ? (
+                  <img src={previewUrl} className="h-32 w-full object-cover rounded-xl border bg-white" alt={`Preview ${index + 1}`} />
+                ) : (
+                  <div className="h-32 w-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-400 rounded-xl">No Image</div>
+                )}
+                <div className="flex gap-2 w-full justify-between mt-2">
+                  <div className="flex gap-1">
+                    <button 
+                      type="button" 
+                      onClick={() => handleMove(index, 'up')} 
+                      disabled={index === 0}
+                      className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-xs font-bold rounded hover:bg-gray-300 disabled:opacity-30"
+                    >
+                      ▲
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleMove(index, 'down')} 
+                      disabled={index === slots.length - 1}
+                      className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-xs font-bold rounded hover:bg-gray-300 disabled:opacity-30"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => handleRemove(index)} 
+                    className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-650 text-xs font-bold rounded hover:bg-red-200"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500 italic mt-2">No images added yet. Add up to 5 images (at least 1 is required).</p>
+      )}
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const auth = useContext(AuthContext);
   const user = auth?.user;
@@ -75,10 +210,12 @@ const AdminDashboard = () => {
   });
   const [newArtist, setNewArtist] = useState({ artistName: '', email: '', penName: '', bio: '', profileImage: '' });
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
-  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [, setNewProductImage] = useState<File | null>(null);
   const [newCanvasSketchImage, setNewCanvasSketchImage] = useState<File | null>(null);
-  const [editingProductImage, setEditingProductImage] = useState<File | null>(null);
+  const [, setEditingProductImage] = useState<File | null>(null);
   const [editingCanvasSketchImage, setEditingCanvasSketchImage] = useState<File | null>(null);
+  const [newImagesList, setNewImagesList] = useState<ImageSlot[]>([]);
+  const [editingImagesList, setEditingImagesList] = useState<ImageSlot[]>([]);
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '', password: '' });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
@@ -187,14 +324,19 @@ const AdminDashboard = () => {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate image (either file or URL)
-    if (!newProductImage && !newProduct.imageUrl.trim()) {
-      return toast.error("Please upload a main image or enter a main image URL");
+    // Validate images count
+    if (newImagesList.length === 0) {
+      return toast.error("Please add at least one product image");
+    }
+    if (newImagesList.length > 5) {
+      return toast.error("Maximum 5 images allowed");
     }
 
     // Validate file sizes
-    if (newProductImage && newProductImage.size > 2 * 1024 * 1024) {
-      return toast.error("Main image file size must be less than 2MB");
+    for (const slot of newImagesList) {
+      if (slot.type === 'file' && slot.file && slot.file.size > 2 * 1024 * 1024) {
+        return toast.error("Each product image file size must be less than 2MB");
+      }
     }
     if (newCanvasSketchImage && newCanvasSketchImage.size > 2 * 1024 * 1024) {
       return toast.error("Canvas sketch image file size must be less than 2MB");
@@ -209,12 +351,21 @@ const AdminDashboard = () => {
         }
       });
       
-      if (newProductImage) {
-        formData.append('image', newProductImage);
-      }
       if (newCanvasSketchImage) {
         formData.append('canvasSketchImage', newCanvasSketchImage);
       }
+
+      // Append images to FormData preserving order via placeholder strings
+      let fileCounter = 0;
+      newImagesList.forEach((slot) => {
+        if (slot.type === 'file' && slot.file) {
+          formData.append('images', slot.file);
+          formData.append('images', `file_${fileCounter}`);
+          fileCounter++;
+        } else if (slot.type === 'url' && slot.url) {
+          formData.append('images', slot.url);
+        }
+      });
 
       await axios.post('/api/products', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -230,6 +381,7 @@ const AdminDashboard = () => {
       });
       setNewProductImage(null);
       setNewCanvasSketchImage(null);
+      setNewImagesList([]);
     } catch (err: any) {
       if (err.response?.data?.message?.includes('File too large')) {
         toast.error('Image file size must be less than 2MB');
@@ -289,9 +441,19 @@ const AdminDashboard = () => {
     e.preventDefault();
     if (!editingProduct) return;
 
+    // Validate images count
+    if (editingImagesList.length === 0) {
+      return toast.error("Please add at least one product image");
+    }
+    if (editingImagesList.length > 5) {
+      return toast.error("Maximum 5 images allowed");
+    }
+
     // Validate file sizes
-    if (editingProductImage && editingProductImage.size > 2 * 1024 * 1024) {
-      return toast.error("Main image file size must be less than 2MB");
+    for (const slot of editingImagesList) {
+      if (slot.type === 'file' && slot.file && slot.file.size > 2 * 1024 * 1024) {
+        return toast.error("Each product image file size must be less than 2MB");
+      }
     }
     if (editingCanvasSketchImage && editingCanvasSketchImage.size > 2 * 1024 * 1024) {
       return toast.error("Canvas sketch image file size must be less than 2MB");
@@ -301,17 +463,27 @@ const AdminDashboard = () => {
     try {
       const formData = new FormData();
       Object.entries(editingProduct).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        // Exclude images, imageUrl to prevent duplicate string appending
+        if (key !== 'images' && key !== 'imageUrl' && value !== undefined && value !== null && value !== '') {
           formData.append(key, value.toString());
         }
       });
 
-      if (editingProductImage) {
-        formData.append('image', editingProductImage);
-      }
       if (editingCanvasSketchImage) {
         formData.append('canvasSketchImage', editingCanvasSketchImage);
       }
+
+      // Append images to FormData preserving order via placeholder strings
+      let fileCounter = 0;
+      editingImagesList.forEach((slot) => {
+        if (slot.type === 'file' && slot.file) {
+          formData.append('images', slot.file);
+          formData.append('images', `file_${fileCounter}`);
+          fileCounter++;
+        } else if (slot.type === 'url' && slot.url) {
+          formData.append('images', slot.url);
+        }
+      });
 
       await axios.put(`/api/products/${editingProduct._id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -321,6 +493,7 @@ const AdminDashboard = () => {
       setEditingProduct(null);
       setEditingProductImage(null);
       setEditingCanvasSketchImage(null);
+      setEditingImagesList([]);
     } catch (err: any) {
       if (err.response?.data?.message?.includes('File too large')) {
         toast.error('Image file size must be less than 2MB');
@@ -603,7 +776,15 @@ const AdminDashboard = () => {
                       <td>₹{p.price}</td>
                       <td>
                         <button 
-                          onClick={() => setEditingProduct(p)} 
+                          onClick={() => {
+                            setEditingProduct(p);
+                            const initialImages: ImageSlot[] = (p.images && p.images.length > 0 ? p.images : [p.imageUrl]).filter(Boolean).map((imgUrl: string, idx: number) => ({
+                              id: `existing_${idx}_${Date.now()}`,
+                              type: 'url',
+                              url: imgUrl
+                            }));
+                            setEditingImagesList(initialImages);
+                          }} 
                           className="action-btn edit-btn mr-2"
                         >
                           Edit
@@ -731,27 +912,16 @@ const AdminDashboard = () => {
                   </div>
                   <div className="form-row border-b pb-4 mb-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Main Image (Original/Print)</label>
-                      <input 
-                        type="file" 
-                        className="admin-input pt-2"
-                        accept="image/*"
-                        onChange={(e) => setEditingProductImage(e.target.files?.[0] || null)} 
+                      <label className="block text-sm font-bold text-gray-750 dark:text-gray-250 mb-2">Product Images (Original/Print) - Up to 5 Images</label>
+                      <ImageSlotsManager 
+                        slots={editingImagesList}
+                        onChange={(slots) => setEditingImagesList(slots)}
+                        onAddUrl={(url) => setEditingImagesList([...editingImagesList, { id: `editing_url_${Date.now()}`, type: 'url', url }])}
+                        onAddFile={(file) => setEditingImagesList([...editingImagesList, { id: `editing_file_${Date.now()}`, type: 'file', file }])}
                       />
-                      <input 
-                        type="url" 
-                        className="admin-input mt-2"
-                        placeholder="Or Main Image URL" 
-                        value={editingProduct.imageUrl || ''} 
-                        onChange={(e) => setEditingProduct({ ...editingProduct, imageUrl: e.target.value })} 
-                      />
-                      {getPreview(editingProductImage, editingProduct.imageUrl) && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          <p className="mb-1">Preview:</p>
-                          <img src={getPreview(editingProductImage, editingProduct.imageUrl)} className="h-24 w-auto rounded-xl object-cover border" alt="Main Preview" />
-                        </div>
-                      )}
                     </div>
+                  </div>
+                  <div className="form-row border-b pb-4 mb-4">
                     <div className="flex-1">
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Canvas Sketch Image</label>
                       <input 
@@ -858,27 +1028,16 @@ const AdminDashboard = () => {
               
               <div className="form-row border-b pb-4 mb-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Main Image (Original/Print)</label>
-                  <input 
-                    type="file" 
-                    className="admin-input pt-2"
-                    accept="image/*"
-                    onChange={(e) => setNewProductImage(e.target.files?.[0] || null)} 
+                  <label className="block text-sm font-bold text-gray-750 dark:text-gray-250 mb-2">Product Images (Original/Print) - Up to 5 Images</label>
+                  <ImageSlotsManager 
+                    slots={newImagesList}
+                    onChange={(slots) => setNewImagesList(slots)}
+                    onAddUrl={(url) => setNewImagesList([...newImagesList, { id: `new_url_${Date.now()}`, type: 'url', url }])}
+                    onAddFile={(file) => setNewImagesList([...newImagesList, { id: `new_file_${Date.now()}`, type: 'file', file }])}
                   />
-                  <input 
-                    type="url" 
-                    className="admin-input mt-2"
-                    placeholder="Or Main Image URL" 
-                    value={newProduct.imageUrl} 
-                    onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })} 
-                  />
-                  {getPreview(newProductImage, newProduct.imageUrl) && (
-                    <div className="mt-2 text-xs text-gray-500">
-                      <p className="mb-1">Preview:</p>
-                      <img src={getPreview(newProductImage, newProduct.imageUrl)} className="h-24 w-auto rounded-xl object-cover border" alt="Main Preview" />
-                    </div>
-                  )}
                 </div>
+              </div>
+              <div className="form-row border-b pb-4 mb-4">
                 <div className="flex-1">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Canvas Sketch Image</label>
                   <input 

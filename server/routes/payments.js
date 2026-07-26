@@ -71,6 +71,46 @@ function resolveBuyerOption(product, buyerOption = 'painting') {
     };
   }
 
+  if (buyerOption === 'canvas-sketch') {
+    return {
+      label: 'Canvas Sketch',
+      unitPrice: Number(product.canvasSketchPrice || product.price),
+    };
+  }
+
+  if (buyerOption.startsWith('print-') || buyerOption === 'print') {
+    const size = buyerOption.startsWith('print-') ? buyerOption.split('-')[1].toUpperCase() : '';
+    if (product.variants && product.variants.length > 0) {
+      const match = product.variants.find(v => v.category === 'Print on Demand' && (!size || v.size.toUpperCase() === size));
+      if (match) {
+        return {
+          label: size ? `${size} Print` : 'Print',
+          unitPrice: Number(match.price),
+        };
+      }
+    }
+    return {
+      label: size ? `${size} Print` : 'Print',
+      unitPrice: Number(product.printPrice || product.price),
+    };
+  }
+
+  if (buyerOption === 'original' || buyerOption === 'painting') {
+    if (product.variants && product.variants.length > 0) {
+      const match = product.variants.find(v => v.category === 'Original');
+      if (match && match.price !== null && match.price !== undefined) {
+        return {
+          label: 'Original Painting',
+          unitPrice: Number(match.price || product.price),
+        };
+      }
+    }
+    return {
+      label: 'Original Painting',
+      unitPrice: Number(product.price),
+    };
+  }
+
   return {
     label: 'Original Painting',
     unitPrice: Number(product.price),

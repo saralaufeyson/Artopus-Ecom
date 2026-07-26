@@ -7,7 +7,7 @@ const OrderItemSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   artistEmail: { type: String },
   artistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Artist' },
-  buyerOption: { type: String, enum: ['painting', 'outline-sketch', 'colored-version'], default: 'painting' },
+  buyerOption: { type: String, enum: ['painting', 'original', 'print', 'canvas-sketch', 'print-a5', 'print-a4', 'print-a3', 'outline-sketch', 'colored-version'], default: 'painting' },
   buyerOptionLabel: { type: String },
 });
 

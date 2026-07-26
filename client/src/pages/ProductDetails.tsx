@@ -19,6 +19,7 @@ interface Product {
   outlineSketchPrice?: number;
   coloringPrice?: number;
   imageUrl: string;
+  images?: string[];
   description: string;
   type: string;
   category?: string;
@@ -42,11 +43,21 @@ interface Review {
   };
 }
 
-const optionConfig = [
-  { key: 'original', label: 'Original Artwork', getPrice: (product: Product) => product.price, getImage: (product: Product) => product.imageUrl },
-  { key: 'print', label: 'Print', getPrice: (product: Product) => product.printPrice || 0, getImage: (product: Product) => product.imageUrl },
-  { key: 'canvas-sketch', label: 'Canvas Sketch', getPrice: (product: Product) => product.canvasSketchPrice || 0, getImage: (product: Product) => product.canvasSketchImageUrl || product.imageUrl },
-] as const;
+interface ResolvedOption {
+  key: string;
+  label: string;
+  price: number;
+  dimensions: string;
+  getImage: (product: Product) => string;
+}
+
+type BuyerOption = 'painting' | 'outline-sketch' | 'colored-version';
+
+const resolveBuyerOption = (optionKey: string): BuyerOption => {
+  if (optionKey === 'outline-sketch' || optionKey.includes('outline')) return 'outline-sketch';
+  if (optionKey === 'colored-version' || optionKey === 'canvas-sketch' || optionKey.includes('color')) return 'colored-version';
+  return 'painting';
+};
 
 const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,11 +67,47 @@ const ProductDetails: React.FC = () => {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOption, setSelectedOption] = useState<'original' | 'print' | 'canvas-sketch'>('original');
+  const [selectedOption, setSelectedOption] = useState<string>('painting');
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const { addToCart } = useContext(CartContext)!;
   const auth = useContext(AuthContext);
   const { collections, wishlistIds, toggleWishlist, addToCollection } = useCollections();
   const navigate = useNavigate();
+
+  const resolvedOptions = React.useMemo<ResolvedOption[]>(() => {
+    if (!product) return [];
+
+    const p = product as Product & { variants?: Array<{ size?: string; category?: string; price?: number; dimensions?: string }> };
+    if (p.variants && p.variants.length > 0) {
+      const opts: ResolvedOption[] = p.variants.map((v) => {
+        const key = v.size ? `print-${v.size.toLowerCase()}` : 'painting';
+        const label = v.category === 'Original' ? 'Original Artwork' : `${v.size} Print`;
+        return {
+          key,
+          label,
+          price: v.price || 0,
+          dimensions: v.dimensions || '',
+          getImage: (prod: Product) => prod.imageUrl,
+        };
+      });
+      if (product.canvasSketchPrice && product.canvasSketchPrice > 0) {
+        opts.push({
+          key: 'canvas-sketch',
+          label: 'Canvas Sketch',
+          price: product.canvasSketchPrice,
+          dimensions: '',
+          getImage: (prod: Product) => prod.canvasSketchImageUrl || prod.imageUrl,
+        });
+      }
+      return opts;
+    }
+
+    return [
+      { key: 'painting', label: 'Original Artwork', price: product.price, dimensions: product.dimensions || '', getImage: (prod: Product) => prod.imageUrl },
+      { key: 'outline-sketch', label: 'Outline Sketch', price: product.outlineSketchPrice || 0, dimensions: product.dimensions || '', getImage: (prod: Product) => prod.imageUrl },
+      { key: 'colored-version', label: 'Colored Version', price: product.coloringPrice || 0, dimensions: '', getImage: (prod: Product) => prod.canvasSketchImageUrl || prod.imageUrl },
+    ].filter((option) => option.key === 'painting' || option.price > 0);
+  }, [product]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -74,6 +121,9 @@ const ProductDetails: React.FC = () => {
         ]);
 
         setProduct(productRes.data);
+        if (productRes.data.variants && productRes.data.variants.length > 0) {
+          setSelectedOption(productRes.data.variants[0].size ? `print-${productRes.data.variants[0].size.toLowerCase()}` : 'original');
+        }
         setReviews(reviewsRes.data.reviews || []);
         setReviewSummary(reviewsRes.data.summary || { averageRating: 0, totalReviews: 0 });
         const relatedRes = await axios.get(`/api/products/${id}/related`).catch(() => ({ data: [] }));
@@ -89,10 +139,8 @@ const ProductDetails: React.FC = () => {
     fetchProduct();
   }, [id]);
 
-  const selectedOptionData = product
-    ? optionConfig.find((option) => option.key === selectedOption) || optionConfig[0]
-    : optionConfig[0];
-  const selectedPrice = product ? selectedOptionData.getPrice(product) : 0;
+  const selectedOptionData = resolvedOptions.find((option: ResolvedOption) => option.key === selectedOption) || resolvedOptions[0];
+  const selectedPrice = selectedOptionData ? selectedOptionData.price : 0;
 
   const handleAddToCart = () => {
     if (!auth?.user) {
@@ -101,14 +149,14 @@ const ProductDetails: React.FC = () => {
       navigate('/login');
       return;
     }
-    if (product) {
+    if (product && selectedOptionData) {
       addToCart({
         ...product,
         id: `${product._id}::${selectedOption}`,
         productId: product._id,
         image: getOptimizedImageUrl(selectedOptionData.getImage(product)),
         price: selectedPrice,
-        buyerOption: selectedOption,
+        buyerOption: resolveBuyerOption(selectedOption),
         buyerOptionLabel: selectedOptionData.label,
       });
       toast.success(`${selectedOptionData.label} added to cart`);
@@ -160,14 +208,58 @@ const ProductDetails: React.FC = () => {
     );
   }
 
+  const images = (product.images && product.images.length > 0) ? product.images : [product.imageUrl];
+  const showSketch = selectedOption === 'canvas-sketch' && product.canvasSketchImageUrl;
+  const carouselImages = showSketch ? [product.canvasSketchImageUrl] : images;
+
   return (
     <div className="product-details-page">
       <div className="container-custom">
         <div className="product-layout grid grid-cols-1 md:grid-cols-2 gap-12 py-12">
           <div className="product-image-section">
-            <div className="product-main-image rounded-2xl overflow-hidden shadow-2xl">
-              <img src={getOptimizedImageUrl(selectedOptionData.getImage(product))} alt={product.title} className="w-full h-auto object-cover" />
-            </div>
+            {carouselImages.length <= 1 ? (
+              <div className="product-main-image rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-800">
+                <img src={getOptimizedImageUrl(carouselImages[0])} alt={product.title} className="w-full h-auto object-cover" />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="relative product-main-image rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-gray-800 group">
+                  <img src={getOptimizedImageUrl(carouselImages[carouselIndex] || carouselImages[0])} alt={product.title} className="w-full h-auto object-cover transition-all duration-300" />
+                  
+                  {/* Prev Button */}
+                  <button 
+                    type="button"
+                    onClick={() => setCarouselIndex((prev) => (prev === 0 ? carouselImages.length - 1 : prev - 1))}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur flex items-center justify-center shadow hover:bg-white text-gray-800 dark:text-gray-250 transition opacity-0 group-hover:opacity-100 font-bold"
+                  >
+                    ◀
+                  </button>
+                  
+                  {/* Next Button */}
+                  <button 
+                    type="button"
+                    onClick={() => setCarouselIndex((prev) => (prev === carouselImages.length - 1 ? 0 : prev + 1))}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 dark:bg-gray-900/80 backdrop-blur flex items-center justify-center shadow hover:bg-white text-gray-800 dark:text-gray-250 transition opacity-0 group-hover:opacity-100 font-bold"
+                  >
+                    ▶
+                  </button>
+                </div>
+                
+                {/* Thumbnail Indicators */}
+                <div className="flex gap-2 justify-center overflow-x-auto py-2">
+                  {carouselImages.map((img, idx) => (
+                    <button 
+                      key={idx}
+                      type="button"
+                      onClick={() => setCarouselIndex(idx)}
+                      className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition shrink-0 ${carouselIndex === idx ? 'border-logo-purple' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                    >
+                      <img src={getOptimizedImageUrl(img)} className="w-full h-full object-cover" alt={`Thumbnail ${idx + 1}`} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="product-details-section">
@@ -216,7 +308,7 @@ const ProductDetails: React.FC = () => {
             <div className="mb-8">
               <h3 className="font-semibold mb-3">Choose Format</h3>
               <div className="grid gap-3">
-                {optionConfig.map((option) => (
+                {resolvedOptions.map((option: ResolvedOption) => (
                   <button
                     key={option.key}
                     type="button"
@@ -228,8 +320,11 @@ const ProductDetails: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between gap-4">
-                      <span className="font-bold text-gray-900 dark:text-white">{option.label}</span>
-                      <span className="text-logo-purple font-bold">₹{option.getPrice(product).toFixed(2)}</span>
+                      <div>
+                        <span className="font-bold text-gray-900 dark:text-white block">{option.label}</span>
+                        {option.dimensions && <span className="text-xs text-gray-500 block mt-0.5">{option.dimensions}</span>}
+                      </div>
+                      <span className="text-logo-purple font-bold">₹{option.price.toFixed(2)}</span>
                     </div>
                   </button>
                 ))}
@@ -248,7 +343,7 @@ const ProductDetails: React.FC = () => {
               </div>
               <div className="detail-item">
                 <span className="detail-label font-semibold">Dimensions:</span>
-                <span className="detail-value">{product.dimensions || '-'}</span>
+                <span className="detail-value">{selectedOptionData?.dimensions || product.dimensions || '-'}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label font-semibold">Year:</span>

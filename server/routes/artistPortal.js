@@ -126,7 +126,8 @@ router.post('/products', authMiddleware, artistMiddleware, (req, res, next) => {
     transformation: [{ width: 1400, height: 1400, crop: 'limit', quality: 'auto', fetch_format: 'auto' }]
   }).fields([
     { name: 'image', maxCount: 1 },
-    { name: 'canvasSketchImage', maxCount: 1 }
+    { name: 'canvasSketchImage', maxCount: 1 },
+    { name: 'images', maxCount: 5 }
   ])(req, res, (err) => {
     if (err) return next(err);
 
@@ -137,6 +138,34 @@ router.post('/products', authMiddleware, artistMiddleware, (req, res, next) => {
       }
       if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
         mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+      }
+      
+      // Resolve images array placeholders
+      const uploadedUrls = (req.files['images'] || []).map(file => getUploadedImageUrl(file));
+      let fileIndex = 0;
+      let bodyImages = [];
+      if (mergedBody.images) {
+        bodyImages = Array.isArray(mergedBody.images) ? mergedBody.images : [mergedBody.images];
+      }
+      const finalImages = bodyImages.map(img => {
+        if (img.startsWith('file_')) {
+          const url = uploadedUrls[fileIndex];
+          fileIndex++;
+          return url;
+        }
+        return img;
+      }).filter(Boolean);
+      mergedBody.images = finalImages.length === 0 ? uploadedUrls : finalImages;
+      if (mergedBody.images.length > 0) {
+        mergedBody.imageUrl = mergedBody.images[0];
+      }
+    }
+
+    if (mergedBody.variants && typeof mergedBody.variants === 'string') {
+      try {
+        mergedBody.variants = JSON.parse(mergedBody.variants);
+      } catch (e) {
+        mergedBody.variants = [];
       }
     }
 
@@ -165,6 +194,7 @@ router.post('/products', authMiddleware, artistMiddleware, (req, res, next) => {
       artistName: artist.artistName,
       artistEmail: artist.email,
       approvalStatus: 'pending',
+      images: req.body.images || [],
     });
 
     await Promise.all([
@@ -197,7 +227,8 @@ router.put('/products/:id', authMiddleware, artistMiddleware, (req, res, next) =
     transformation: [{ width: 1400, height: 1400, crop: 'limit', quality: 'auto', fetch_format: 'auto' }]
   }).fields([
     { name: 'image', maxCount: 1 },
-    { name: 'canvasSketchImage', maxCount: 1 }
+    { name: 'canvasSketchImage', maxCount: 1 },
+    { name: 'images', maxCount: 5 }
   ])(req, res, (err) => {
     if (err) return next(err);
 
@@ -208,6 +239,34 @@ router.put('/products/:id', authMiddleware, artistMiddleware, (req, res, next) =
       }
       if (req.files['canvasSketchImage'] && req.files['canvasSketchImage'][0]) {
         mergedBody.canvasSketchImageUrl = getUploadedImageUrl(req.files['canvasSketchImage'][0]);
+      }
+      
+      // Resolve images array placeholders
+      const uploadedUrls = (req.files['images'] || []).map(file => getUploadedImageUrl(file));
+      let fileIndex = 0;
+      let bodyImages = [];
+      if (mergedBody.images) {
+        bodyImages = Array.isArray(mergedBody.images) ? mergedBody.images : [mergedBody.images];
+      }
+      const finalImages = bodyImages.map(img => {
+        if (img.startsWith('file_')) {
+          const url = uploadedUrls[fileIndex];
+          fileIndex++;
+          return url;
+        }
+        return img;
+      }).filter(Boolean);
+      mergedBody.images = finalImages.length === 0 ? (uploadedUrls.length > 0 ? uploadedUrls : mergedBody.images) : finalImages;
+      if (mergedBody.images && mergedBody.images.length > 0) {
+        mergedBody.imageUrl = mergedBody.images[0];
+      }
+    }
+
+    if (mergedBody.variants && typeof mergedBody.variants === 'string') {
+      try {
+        mergedBody.variants = JSON.parse(mergedBody.variants);
+      } catch (e) {
+        mergedBody.variants = [];
       }
     }
 
@@ -234,6 +293,7 @@ router.put('/products/:id', authMiddleware, artistMiddleware, (req, res, next) =
       outlineSketchPrice: Number(req.body.outlineSketchPrice || 0),
       coloringPrice: Number(req.body.coloringPrice || 0),
       stockQuantity: req.body.type === 'original-artwork' ? 1 : Number(req.body.stockQuantity || 0),
+      images: req.body.images || [],
       approvalStatus: 'pending', // Re-verify upon edits
     };
 
