@@ -15,6 +15,7 @@ interface Product {
   category?: string;
   stockQuantity?: number;
   artistName?: string;
+  variants?: any[];
 }
 
 interface ApiProduct {
@@ -35,6 +36,7 @@ function Home() {
   const user = auth?.user;
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [freshArrivals, setFreshArrivals] = useState<Product[]>([]);
+  const [galleryWorthProducts, setGalleryWorthProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     const fetchFeatured = async () => {
@@ -67,6 +69,9 @@ function Home() {
           setFeaturedProducts(formattedLatest.slice(0, 4));
         }
         setFreshArrivals(formattedLatest.slice(0, 3));
+
+        const galleryWorth = formattedLatest.filter(p => p.price > 6000);
+        setGalleryWorthProducts(galleryWorth.slice(0, 4));
       } catch (err) {
         console.error('Failed to fetch homepage products:', err);
       }
@@ -234,6 +239,42 @@ function Home() {
           {featuredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 dark:bg-gray-700 h-80 rounded-2xl mb-4"></div>
+                  <div className="bg-gray-200 dark:bg-gray-700 h-6 rounded w-3/4 mb-2"></div>
+                  <div className="bg-gray-200 dark:bg-gray-700 h-4 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Gallery Worth Paintings Section */}
+      <section className="py-24 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900/10 dark:to-gray-950/20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+            <div className="max-w-2xl">
+              <span className="text-xs font-bold uppercase tracking-widest text-logo-purple mb-3 block">Premium Collection</span>
+              <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Gallery Worth Paintings</h2>
+              <p className="text-lg text-gray-600 dark:text-gray-400">
+                Museum-grade original canvas masterpieces and certified fine art prints.
+              </p>
+            </div>
+            <Link to="/shop?category=Gallery+worth+paintings" className="text-logo-purple font-bold flex items-center gap-2 group">
+              View Premium Art <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </Link>
+          </div>
+
+          {galleryWorthProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {galleryWorthProducts.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>

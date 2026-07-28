@@ -3,6 +3,14 @@ import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 
+interface Variant {
+  category: string;
+  size?: string;
+  price: number;
+  dimensions?: string;
+  stockQuantity?: number;
+}
+
 interface Product {
   _id: string;
   title: string;
@@ -13,6 +21,7 @@ interface Product {
   stockQuantity?: number;
   artistId: string;
   artistName: string;
+  variants?: Variant[];
 }
 
 interface PaginationInfo {
@@ -37,7 +46,7 @@ const Shop: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const categories = Array.from(
+  const baseCategories = Array.from(
     new Set(
       products
         .map((product) => product.category?.trim())
@@ -45,6 +54,7 @@ const Shop: React.FC = () => {
         .sort((a, b) => a.localeCompare(b))
     )
   );
+  const categories = ['Gallery worth paintings', ...baseCategories];
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -53,8 +63,15 @@ const Shop: React.FC = () => {
         const params: Record<string, string | number> = {};
         if (searchTerm.trim()) params.q = searchTerm.trim();
         if (typeFilter) params.type = typeFilter;
-        if (categoryFilter) params.category = categoryFilter;
-        if (minPrice) params.minPrice = minPrice;
+        if (categoryFilter) {
+          if (categoryFilter === 'Gallery worth paintings') {
+            params.minPrice = 6000;
+            params.type = 'original-artwork';
+          } else {
+            params.category = categoryFilter;
+          }
+        }
+        if (minPrice && categoryFilter !== 'Gallery worth paintings') params.minPrice = minPrice;
         if (maxPrice) params.maxPrice = maxPrice;
         if (inStockOnly) params.inStock = 'true';
         if (sortBy) params.sort = sortBy;

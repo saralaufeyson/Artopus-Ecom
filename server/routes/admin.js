@@ -104,7 +104,7 @@ router.get('/withdrawals', authMiddleware, adminMiddleware, async (req, res, nex
       type: { $in: ['withdrawal_request', 'withdrawal_paid'] },
     })
       .sort({ createdAt: -1 })
-      .populate('artist', 'artistName walletBalance totalWithdrawn')
+      .populate('artist', 'artistName walletBalance totalWithdrawn paymentDetails')
       .populate('order', '_id');
 
     res.json(withdrawals);
@@ -209,7 +209,7 @@ router.post('/withdrawals/:id/approve', authMiddleware, adminMiddleware, validat
       });
     }
 
-    const populated = await WalletTransaction.findById(transaction._id).populate('artist', 'artistName walletBalance totalWithdrawn');
+    const populated = await WalletTransaction.findById(transaction._id).populate('artist', 'artistName walletBalance totalWithdrawn paymentDetails');
     res.json(populated);
   } catch (err) {
     next(err);

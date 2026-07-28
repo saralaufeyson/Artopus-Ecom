@@ -9,6 +9,7 @@ import { Save, X, CreditCard as Edit3, Upload, Loader as Loader2 } from 'lucide-
 
 interface Artist {
   _id: string;
+  userId?: string;
   artistName: string;
   penName?: string;
   email: string;
@@ -19,6 +20,13 @@ interface Artist {
     instagram?: string;
     twitter?: string;
     facebook?: string;
+  };
+  paymentDetails?: {
+    upiId?: string;
+    bankName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    accountHolderName?: string;
   };
   dateOfJoining: string;
 }
@@ -59,9 +67,16 @@ const ArtistProfile: React.FC = () => {
       twitter: '',
       facebook: '',
     },
+    paymentDetails: {
+      upiId: '',
+      bankName: '',
+      accountNumber: '',
+      ifscCode: '',
+      accountHolderName: '',
+    },
   });
 
-  const isOwnProfile = auth?.user?.role === 'artist' && auth?.user?.id === id;
+  const isOwnProfile = auth?.user?.role === 'artist' && artist && (artist.userId === auth?.user?.id);
 
   useEffect(() => {
     const fetchArtistData = async () => {
@@ -83,6 +98,13 @@ const ArtistProfile: React.FC = () => {
             instagram: artistRes.data.socialLinks?.instagram || '',
             twitter: artistRes.data.socialLinks?.twitter || '',
             facebook: artistRes.data.socialLinks?.facebook || '',
+          },
+          paymentDetails: {
+            upiId: artistRes.data.paymentDetails?.upiId || '',
+            bankName: artistRes.data.paymentDetails?.bankName || '',
+            accountNumber: artistRes.data.paymentDetails?.accountNumber || '',
+            ifscCode: artistRes.data.paymentDetails?.ifscCode || '',
+            accountHolderName: artistRes.data.paymentDetails?.accountHolderName || '',
           },
         });
         const productsList = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data?.data || []);
@@ -107,6 +129,15 @@ const ArtistProfile: React.FC = () => {
         socialLinks: {
           ...prev.socialLinks,
           [socialField]: value,
+        },
+      }));
+    } else if (name.startsWith('payment.')) {
+      const paymentField = name.replace('payment.', '');
+      setFormData((prev) => ({
+        ...prev,
+        paymentDetails: {
+          ...prev.paymentDetails,
+          [paymentField]: value,
         },
       }));
     } else {
@@ -175,6 +206,13 @@ const ArtistProfile: React.FC = () => {
         instagram: artist.socialLinks?.instagram || '',
         twitter: artist.socialLinks?.twitter || '',
         facebook: artist.socialLinks?.facebook || '',
+      },
+      paymentDetails: {
+        upiId: artist.paymentDetails?.upiId || '',
+        bankName: artist.paymentDetails?.bankName || '',
+        accountNumber: artist.paymentDetails?.accountNumber || '',
+        ifscCode: artist.paymentDetails?.ifscCode || '',
+        accountHolderName: artist.paymentDetails?.accountHolderName || '',
       },
     });
     setIsEditing(false);
@@ -312,18 +350,82 @@ const ArtistProfile: React.FC = () => {
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Facebook</label>
-                      <input
-                        type="text"
-                        name="social.facebook"
-                        value={formData.socialLinks.facebook}
-                        onChange={handleInputChange}
-                        placeholder="https://facebook.com/username"
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
-                      />
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Facebook</label>
+                        <input
+                          type="text"
+                          name="social.facebook"
+                          value={formData.socialLinks.facebook}
+                          onChange={handleInputChange}
+                          placeholder="https://facebook.com/username"
+                          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
+                        />
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Payout Details (Only visible to the owner) */}
+                    <div className="border-t border-gray-100 dark:border-gray-800 pt-6 mt-6">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Payout Settings (Private)</h3>
+                      <p className="text-xs text-gray-500 mb-4">Please provide either your UPI ID or bank account details so the administrator can process your earnings payouts.</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">UPI ID</label>
+                          <input
+                            type="text"
+                            name="payment.upiId"
+                            value={formData.paymentDetails.upiId}
+                            onChange={handleInputChange}
+                            placeholder="e.g. name@upi"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Account Holder Name</label>
+                          <input
+                            type="text"
+                            name="payment.accountHolderName"
+                            value={formData.paymentDetails.accountHolderName}
+                            onChange={handleInputChange}
+                            placeholder="As in bank account"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Bank Name</label>
+                          <input
+                            type="text"
+                            name="payment.bankName"
+                            value={formData.paymentDetails.bankName}
+                            onChange={handleInputChange}
+                            placeholder="e.g. HDFC Bank"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Account Number</label>
+                          <input
+                            type="text"
+                            name="payment.accountNumber"
+                            value={formData.paymentDetails.accountNumber}
+                            onChange={handleInputChange}
+                            placeholder="Bank account number"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">IFSC Code</label>
+                          <input
+                            type="text"
+                            name="payment.ifscCode"
+                            value={formData.paymentDetails.ifscCode}
+                            onChange={handleInputChange}
+                            placeholder="IFSC Code"
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
                   {/* Action Buttons */}
                   <div className="flex gap-4 pt-4">
@@ -415,6 +517,23 @@ const ArtistProfile: React.FC = () => {
                     </a>
                   )}
                 </div>
+
+                {isOwnProfile && artist.paymentDetails && (artist.paymentDetails.upiId || artist.paymentDetails.accountNumber) && (
+                  <div className="mt-8 p-6 rounded-3xl bg-logo-purple/5 border border-logo-purple/10 max-w-2xl text-left">
+                    <h3 className="text-base font-bold text-logo-purple mb-3">Payout Details (Private to You)</h3>
+                    {artist.paymentDetails.upiId && (
+                      <p className="text-sm text-gray-700 dark:text-gray-300"><strong>UPI ID:</strong> {artist.paymentDetails.upiId}</p>
+                    )}
+                    {artist.paymentDetails.accountNumber && (
+                      <div className="text-sm text-gray-700 dark:text-gray-300 mt-2 space-y-1">
+                        <p><strong>Account Holder Name:</strong> {artist.paymentDetails.accountHolderName || '-'}</p>
+                        <p><strong>Bank Name:</strong> {artist.paymentDetails.bankName || '-'}</p>
+                        <p><strong>Account Number:</strong> {artist.paymentDetails.accountNumber || '-'}</p>
+                        <p><strong>IFSC Code:</strong> {artist.paymentDetails.ifscCode || '-'}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="bg-logo-purple/5 p-8 rounded-3xl border border-logo-purple/10 text-center min-w-[200px]">

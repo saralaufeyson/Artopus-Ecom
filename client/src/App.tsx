@@ -19,6 +19,7 @@ import ArtistProfile from './pages/ArtistProfile.tsx';
 import JoinAsArtist from './pages/JoinAsArtist.tsx';
 import AdminDashboard from './pages/AdminDashboard.tsx';
 import ArtistDashboard from './pages/ArtistDashboard.tsx';
+import ArtistEarnings from './pages/ArtistEarnings.tsx';
 import ArtistActivate from './pages/ArtistActivate.tsx';
 import NotFound from './pages/NotFound.tsx';
 import { ToastContainer } from 'react-toastify';
@@ -148,6 +149,11 @@ function App() {
                   <Route path="artist-dashboard" element={
                     <ArtistRoute>
                       <ArtistDashboard />
+                    </ArtistRoute>
+                  } />
+                  <Route path="artist-earnings" element={
+                    <ArtistRoute>
+                      <ArtistEarnings />
                     </ArtistRoute>
                   } />
                   

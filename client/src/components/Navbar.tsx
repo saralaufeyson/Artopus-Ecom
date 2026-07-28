@@ -84,6 +84,7 @@ function Navbar() {
             <div className="flex items-center gap-4">
               {user.role !== 'admin' && user.role !== 'artist' && <Link to="/profile" className="nav-link">Profile</Link>}
               {user.role === 'artist' && <Link to="/artist-dashboard" className="nav-link">Studio</Link>}
+              {user.role === 'artist' && <Link to="/artist-earnings" className="nav-link">Wallet</Link>}
               <button
                 onClick={handleLogout}
                 className="text-red-600 hover:text-red-700 font-medium py-2 transition-colors"
@@ -129,6 +130,7 @@ function Navbar() {
                 <>
                   <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
                   <li><Link to="/artist-dashboard" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Artist Dashboard</Link></li>
+                  <li><Link to="/artist-earnings" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>My Wallet</Link></li>
                 </>
               )}
 
@@ -157,6 +159,7 @@ function Navbar() {
                     </div>
                     {user.role !== 'admin' && <Link to="/profile" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Profile</Link>}
                     {user.role === 'artist' && <Link to="/artist-dashboard" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Artist Dashboard</Link>}
+                    {user.role === 'artist' && <Link to="/artist-earnings" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>My Wallet</Link>}
                     <button onClick={handleLogout} className="w-full text-left text-red-600 font-medium">Logout</button>
                   </div>
                 ) : (

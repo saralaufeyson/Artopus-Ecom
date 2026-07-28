@@ -1297,6 +1297,20 @@ const AdminDashboard = () => {
                     <p className="text-sm text-gray-500">₹{withdrawal.amount.toFixed(2)} · {withdrawal.status}</p>
                     <p className="text-sm text-gray-500">{withdrawal.note || 'No note provided'}</p>
                     <p className="text-sm text-gray-500">Wallet balance: ₹{withdrawal.artist?.walletBalance?.toFixed?.(2) || '0.00'}</p>
+                    {withdrawal.artist?.paymentDetails && (
+                      <div className="mt-2 p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <p className="font-bold text-gray-700 dark:text-gray-300">Payout Credentials:</p>
+                        {withdrawal.artist.paymentDetails.upiId && <p><strong>UPI ID:</strong> {withdrawal.artist.paymentDetails.upiId}</p>}
+                        {withdrawal.artist.paymentDetails.accountNumber && (
+                          <>
+                            <p><strong>Holder:</strong> {withdrawal.artist.paymentDetails.accountHolderName}</p>
+                            <p><strong>Bank:</strong> {withdrawal.artist.paymentDetails.bankName}</p>
+                            <p><strong>Acc No:</strong> {withdrawal.artist.paymentDetails.accountNumber}</p>
+                            <p><strong>IFSC:</strong> {withdrawal.artist.paymentDetails.ifscCode}</p>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     {withdrawal.status === 'pending' ? (

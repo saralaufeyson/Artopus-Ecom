@@ -18,6 +18,13 @@ const ArtistSchema = new mongoose.Schema(
       twitter: { type: String },
       facebook: { type: String },
     },
+    paymentDetails: {
+      upiId: { type: String },
+      bankName: { type: String },
+      accountNumber: { type: String },
+      ifscCode: { type: String },
+      accountHolderName: { type: String },
+    },
     dateOfJoining: { type: Date, default: Date.now },
     isActive: { type: Boolean, default: true },
   },

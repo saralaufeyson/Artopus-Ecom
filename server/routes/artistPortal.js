@@ -77,7 +77,7 @@ router.put('/profile', authMiddleware, artistMiddleware, async (req, res, next) 
     protectedFields.forEach((field) => delete updates[field]);
 
     // Allow only specific fields to be updated
-    const allowedUpdates = ['artistName', 'penName', 'bio', 'profileImage', 'socialLinks'];
+    const allowedUpdates = ['artistName', 'penName', 'bio', 'profileImage', 'socialLinks', 'paymentDetails'];
     const filteredUpdates = {};
     allowedUpdates.forEach((field) => {
       if (updates[field] !== undefined) {
@@ -92,6 +92,17 @@ router.put('/profile', authMiddleware, artistMiddleware, async (req, res, next) 
         instagram: updates.socialLinks.instagram ?? artist.socialLinks?.instagram,
         twitter: updates.socialLinks.twitter ?? artist.socialLinks?.twitter,
         facebook: updates.socialLinks.facebook ?? artist.socialLinks?.facebook,
+      };
+    }
+
+    // Handle paymentDetails nested object
+    if (updates.paymentDetails) {
+      filteredUpdates.paymentDetails = {
+        upiId: updates.paymentDetails.upiId ?? artist.paymentDetails?.upiId,
+        bankName: updates.paymentDetails.bankName ?? artist.paymentDetails?.bankName,
+        accountNumber: updates.paymentDetails.accountNumber ?? artist.paymentDetails?.accountNumber,
+        ifscCode: updates.paymentDetails.ifscCode ?? artist.paymentDetails?.ifscCode,
+        accountHolderName: updates.paymentDetails.accountHolderName ?? artist.paymentDetails?.accountHolderName,
       };
     }
 

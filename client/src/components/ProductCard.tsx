@@ -7,6 +7,14 @@ import { toast } from 'react-toastify';
 import { getOptimizedImageUrl } from '../utils/image';
 import { Heart } from 'lucide-react';
 
+interface Variant {
+  category: string;
+  size?: string;
+  price: number;
+  dimensions?: string;
+  stockQuantity?: number;
+}
+
 interface Product {
   _id: string;
   title: string;
@@ -16,6 +24,7 @@ interface Product {
   stockQuantity?: number;
   artistId?: string;
   artistName?: string;
+  variants?: Variant[];
 }
 
 interface ProductCardProps {
@@ -25,6 +34,10 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useContext(CartContext)!;
   const auth = useContext(AuthContext);
+
+  const isOriginal = product.type === 'original-artwork';
+  const a4Variant = product.variants?.find((v) => v.category === 'Print on Demand' && v.size === 'A4');
+  const displayPrice = isOriginal ? (a4Variant?.price || 2806.70) : product.price;
   const navigate = useNavigate();
   const { wishlistIds, toggleWishlist } = useCollections();
 
@@ -115,7 +128,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </Link>
           )}
           <div className="flex justify-between items-end">
-            <p className="text-3xl font-black text-logo-purple">₹{product.price}</p>
+            <div>
+              <p className="text-3xl font-black text-logo-purple">₹{displayPrice}</p>
+              {isOriginal && (
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mt-0.5">
+                  A4 Print Price
+                </span>
+              )}
+            </div>
             {(product.stockQuantity ?? 0) > 0 && (product.stockQuantity ?? 0) < 5 && (
               <p className="text-xs font-bold text-red-500 mb-1">Only {product.stockQuantity ?? 0} left!</p>
             )}

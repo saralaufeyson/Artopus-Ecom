@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axiosInstance from 'axios';
 import { toast } from 'react-toastify';
 import { ImageSlotsManager } from './AdminDashboard';
@@ -346,13 +347,18 @@ const ArtistDashboard: React.FC = () => {
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-logo-purple">Artist Dashboard</p>
             <h1 className="mb-1 text-4xl font-black text-gray-900 dark:text-white">{artist?.artistName || 'Artist'}</h1>
-            <p className="text-gray-500">Track earnings, listings, and order fulfillment in one place.</p>
+            <p className="text-gray-500 mb-2">Track earnings, listings, and order fulfillment in one place.</p>
+            {artist?._id && (
+              <Link to={`/artist/${artist._id}`} className="text-sm font-bold text-logo-purple hover:underline inline-flex items-center gap-1.5 mt-2">
+                🎨 View & Edit Public Profile
+              </Link>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-3xl border border-gray-100 bg-gray-50 px-6 py-5 dark:border-gray-800 dark:bg-gray-950">
-              <p className="text-sm text-gray-500">Total Earnings</p>
+            <Link to="/artist-earnings" className="block rounded-3xl border border-gray-100 bg-gray-50 px-6 py-5 hover:bg-gray-100 transition-all dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-900">
+              <p className="text-sm text-gray-500 flex items-center gap-1">Total Earnings <span className="text-xs text-logo-purple font-bold">Details →</span></p>
               <p className="text-3xl font-black text-logo-purple">₹{Number(wallet?.balance || 0).toFixed(2)}</p>
-            </div>
+            </Link>
             <div className="rounded-3xl border border-gray-100 bg-gray-50 px-6 py-5 dark:border-gray-800 dark:bg-gray-950">
               <p className="text-sm text-gray-500">Active Listings</p>
               <p className="text-3xl font-black text-gray-900 dark:text-white">{activeListings}</p>
