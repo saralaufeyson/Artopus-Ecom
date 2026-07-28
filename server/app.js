@@ -37,6 +37,8 @@ const baseOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://test-frontend-wzvi.onrender.com',
+  'https://artopusindia.com',
+  'https://www.artopusindia.com',
   ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean),
 ];
 
