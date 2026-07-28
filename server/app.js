@@ -33,12 +33,25 @@ dotenv.config();
 const app = express();
 app.use(helmet());
 
-const allowedOrigins = new Set([
+const baseOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'https://test-frontend-wzvi.onrender.com',
   ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean),
-]);
+];
+
+const allowedOrigins = new Set();
+baseOrigins.forEach((origin) => {
+  allowedOrigins.add(origin);
+  if (origin.startsWith('https://')) {
+    const domain = origin.replace('https://', '');
+    if (domain.startsWith('www.')) {
+      allowedOrigins.add(`https://${domain.replace('www.', '')}`);
+    } else {
+      allowedOrigins.add(`https://www.${domain}`);
+    }
+  }
+});
 
 const corsOptions = {
   origin(origin, callback) {
