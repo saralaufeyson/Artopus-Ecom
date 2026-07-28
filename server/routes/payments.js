@@ -222,7 +222,29 @@ async function addFundsToArtistWallet(artistId, totalPrice, commissionRate, sess
   let wallet = await Wallet.findOne({ artist: artistId }).session(session);
 
   if (!wallet) {
-    [wallet] = await Wallet.create([{ artist: artistId, balance: 0, lifetimeCredits: 0 }], { session });
+    try {
+      wallet = await Wallet.findOneAndUpdate(
+        { artist: artistId },
+        {
+          $setOnInsert: {
+            artist: artistId,
+            balance: 0,
+            lifetimeCredits: 0,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true, session }
+      );
+    } catch (error) {
+      if (error?.code === 11000) {
+        wallet = await Wallet.findOne({ artist: artistId }).session(session);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  if (!wallet) {
+    throw new Error(`Unable to create or load wallet for artist ${artistId}`);
   }
 
   wallet.balance = Number((wallet.balance + netAmount).toFixed(2));

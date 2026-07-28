@@ -81,14 +81,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const markAllAsRead = useCallback(async () => {
+    // Optimistically mark all current notifications as read in the UI instantly
+    setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+    setUnreadCount(0);
+
     try {
       const res = await axios.patch('/api/notifications/read-all');
       setNotifications(res.data.notifications || []);
       setUnreadCount(res.data.unreadCount || 0);
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
+      // Revert/sync with server state on failure
+      refresh();
     }
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
     refresh();
