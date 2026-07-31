@@ -22,9 +22,9 @@ function Footer() {
           </div>
 
           <div className="flex flex-col">
-            <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Support</h4>
+            <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Terms of Service</h4>
             <ul className="space-y-2">
-              <li><Link to="/policies?tab=terms" className="text-gray-400 hover:text-white transition-colors duration-200">Contact Us</Link></li>
+              <li><Link to="/policies?tab=terms" className="text-gray-400 hover:text-white transition-colors duration-200">Terms and conditions</Link></li>
               <li><Link to="/policies?tab=shipping" className="text-gray-400 hover:text-white transition-colors duration-200">Shipping Info</Link></li>
               <li><Link to="/policies?tab=return" className="text-gray-400 hover:text-white transition-colors duration-200">Returns & Refund</Link></li>
             </ul>
@@ -33,9 +33,9 @@ function Footer() {
           <div className="flex flex-col">
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Follow Us</h4>
             <div className="flex flex-col space-y-2">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">Instagram</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">Twitter</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors duration-200">Pinterest</a>
+              <a href="https://www.instagram.com/artopus_india/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-200">Instagram</a>
+              <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-200">Twitter</a>
+              <a href="https://www.youtube.com/@ArtopusIndia" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-200">Youtube</a>
             </div>
           </div>
         </div>
@@ -54,3 +54,4 @@ function Footer() {
 }
 
 export default Footer;
+
