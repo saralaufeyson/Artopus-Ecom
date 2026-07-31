@@ -115,8 +115,8 @@ function Navbar() {
 
       {/* Mobile menu overlay */}
       {isMenuOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 lg:hidden" onClick={closeMenu}>
-          <div className="absolute right-0 top-0 h-full w-80 bg-white dark:bg-gray-900 shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-gray-950/40 backdrop-blur-sm z-50 lg:hidden" onClick={closeMenu}>
+          <div className="absolute top-0 left-0 right-0 max-h-[60vh] w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-2xl flex flex-col border-b border-gray-200 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
               <span className="font-bold text-xl text-gray-900 dark:text-white">Menu</span>
               <div className="flex items-center gap-2">
@@ -125,48 +125,67 @@ function Navbar() {
               </div>
             </div>
 
-            <ul className="flex-1 overflow-y-auto py-4">
-              {user?.role === 'artist' && (
-                <>
-                  <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
-                  <li><Link to="/artist-dashboard" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Artist Dashboard</Link></li>
-                  <li><Link to="/artist-earnings" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>My Wallet</Link></li>
-                </>
-              )}
+            <div className="flex-1 overflow-y-auto py-6 px-6 space-y-6">
+              {/* Navigation Links */}
+              <div className="space-y-1">
+                <Link to="/" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Home</Link>
+                <Link to="/shop" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Shop Artworks</Link>
+                
+                {user?.role === 'artist' && (
+                  <>
+                    <Link to="/artist-dashboard" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Artist Dashboard</Link>
+                    <Link to="/artist-earnings" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>My Wallet</Link>
+                  </>
+                )}
 
-              {user?.role !== 'artist' && user?.role !== 'admin' && (
-                <>
-                  <li><Link to="/" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Home</Link></li>
-                  <li><Link to="/shop" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Shop</Link></li>
-                  <li><Link to="/join-as-artist" className="flex items-center px-6 py-4 text-gray-900 dark:text-white hover:bg-logo-purple/5 hover:text-logo-purple font-medium" onClick={closeMenu}>Sell Your Art</Link></li>
-                </>
-              )}
+                {user?.role === 'admin' && (
+                  <Link to="/admin" className="block py-3 text-base font-bold text-logo-purple hover:text-logo-purple/85 transition-colors" onClick={closeMenu}>Admin Panel</Link>
+                )}
 
-              {user?.role === 'admin' && (
-                <li>
-                  <Link to="/admin" className="flex items-center px-6 py-4 text-logo-purple font-bold hover:bg-logo-purple/5" onClick={closeMenu}>
-                    Admin Panel
-                  </Link>
-                </li>
-              )}
+                {(!user || (user.role !== 'artist' && user.role !== 'admin')) && (
+                  <Link to="/join-as-artist" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Sell Your Art</Link>
+                )}
 
-              <li className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 mt-4">
+                <Link to="/policies?tab=terms" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Terms & Policies</Link>
+              </div>
+
+              {/* User Actions Divider */}
+              <div className="border-t border-gray-100 dark:border-gray-800 pt-6">
                 {user ? (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-900 dark:text-white font-medium">Notifications</span>
+                    <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+                      <div>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Logged in as</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[160px]">{user.name || user.email}</p>
+                      </div>
                       <NotificationBell />
                     </div>
-                    {user.role !== 'admin' && <Link to="/profile" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Profile</Link>}
-                    {user.role === 'artist' && <Link to="/artist-dashboard" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>Artist Dashboard</Link>}
-                    {user.role === 'artist' && <Link to="/artist-earnings" className="block text-gray-900 dark:text-white font-medium" onClick={closeMenu}>My Wallet</Link>}
-                    <button onClick={handleLogout} className="w-full text-left text-red-600 font-medium">Logout</button>
+
+                    {user.role !== 'admin' && (
+                      <Link to="/profile" className="block text-center py-3 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" onClick={closeMenu}>
+                        My Profile
+                      </Link>
+                    )}
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-center py-3 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold rounded-xl hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors"
+                    >
+                      Logout
+                    </button>
                   </div>
                 ) : (
-                  <Link to="/login" className="block btn-primary" onClick={closeMenu}>Login</Link>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link to="/login" className="text-center py-3 border border-logo-purple/30 text-logo-purple font-bold rounded-xl hover:bg-logo-purple/5 transition-colors" onClick={closeMenu}>
+                      Login
+                    </Link>
+                    <Link to="/register" className="text-center py-3 bg-logo-purple text-white font-bold rounded-xl hover:bg-logo-purple/90 transition-colors" onClick={closeMenu}>
+                      Register
+                    </Link>
+                  </div>
                 )}
-              </li>
-            </ul>
+              </div>
+            </div>
           </div>
         </div>
       )}

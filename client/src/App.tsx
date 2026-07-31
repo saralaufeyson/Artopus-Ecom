@@ -21,6 +21,7 @@ import AdminDashboard from './pages/AdminDashboard.tsx';
 import ArtistDashboard from './pages/ArtistDashboard.tsx';
 import ArtistEarnings from './pages/ArtistEarnings.tsx';
 import ArtistActivate from './pages/ArtistActivate.tsx';
+import Policies from './pages/Policies.tsx';
 import NotFound from './pages/NotFound.tsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -122,6 +123,7 @@ function App() {
                     </PublicRouteGuard>
                   } />
                   <Route path="artist-activate" element={<ArtistActivate />} />
+                  <Route path="policies" element={<Policies />} />
                   <Route path="cart" element={
                     <PublicRouteGuard>
                       <Cart />

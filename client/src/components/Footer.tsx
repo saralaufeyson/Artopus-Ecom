@@ -24,9 +24,9 @@ function Footer() {
           <div className="flex flex-col">
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Support</h4>
             <ul className="space-y-2">
-              <li><Link to="/" className="text-gray-400 hover:text-white transition-colors duration-200">Contact Us</Link></li>
-              <li><Link to="/" className="text-gray-400 hover:text-white transition-colors duration-200">Shipping Info</Link></li>
-              <li><Link to="/" className="text-gray-400 hover:text-white transition-colors duration-200">Returns</Link></li>
+              <li><Link to="/policies?tab=terms" className="text-gray-400 hover:text-white transition-colors duration-200">Contact Us</Link></li>
+              <li><Link to="/policies?tab=shipping" className="text-gray-400 hover:text-white transition-colors duration-200">Shipping Info</Link></li>
+              <li><Link to="/policies?tab=return" className="text-gray-400 hover:text-white transition-colors duration-200">Returns & Refund</Link></li>
             </ul>
           </div>
 
@@ -40,8 +40,13 @@ function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 pt-8 text-center">
+        <div className="border-t border-gray-800 pt-8 text-center flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-gray-500 text-sm">&copy; 2025 Artopus India. All rights reserved.</p>
+          <div className="flex gap-4 text-xs text-gray-500">
+            <Link to="/policies?tab=terms" className="hover:text-white transition-colors duration-200">Terms & Conditions</Link>
+            <span>&middot;</span>
+            <Link to="/policies?tab=privacy" className="hover:text-white transition-colors duration-200">Privacy Policy</Link>
+          </div>
         </div>
       </div>
     </footer>
