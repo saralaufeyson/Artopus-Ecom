@@ -116,7 +116,7 @@ const Policies: React.FC = () => {
     // Read optional tab from URL search parameters (e.g. /policies?tab=privacy)
     const tab = searchParams.get('tab');
     if (tab && ['terms', 'privacy', 'refund', 'return', 'shipping'].includes(tab)) {
-      scrollToSection(tab);
+      scrollToSection(tab as keyof typeof sectionRefs);
     }
   }, [searchParams]);
 
