@@ -104,7 +104,7 @@ const Shop: React.FC = () => {
 
   return (
     <div className="shop-page">
-      <div className="page-container">
+      <div className="page-container px-8 md:px-16 lg:px-24">
         <div className="page-header">
           <h1 className="page-title">Shop Artworks</h1>
           <p className="page-description">Curated originals, prints, and custom options from independent artists</p>
@@ -134,8 +134,8 @@ const Shop: React.FC = () => {
         </div>
 
         <div className="shop-content">
-          <aside className="filters-sidebar">
-            <div className="mb-6">
+          <aside className="filters-sidebar bg-white dark:bg-[#1c1c1e] p-8 rounded-[2rem] border border-gray-100 dark:border-gray-850 shadow-sm flex flex-col gap-6 lg:mr-2">
+            <div>
               <button
                 onClick={() => {
                   setSearchTerm('');
@@ -147,35 +147,60 @@ const Shop: React.FC = () => {
                   setSortBy('newest');
                   setCurrentPage(1);
                 }}
-                className="w-full px-4 py-2 bg-logo-purple text-white rounded-lg font-semibold hover:bg-logo-purple/90 transition-colors"
+                className="w-full py-2.5 border border-logo-purple/30 text-logo-purple hover:bg-logo-purple/5 rounded-2xl font-bold transition-all text-sm"
               >
                 Clear All Filters
               </button>
             </div>
 
-            <h3 className="font-bold text-lg mb-4">Collections</h3>
-            
-            {/* Category Filter */}
-            <div className="filter-group mb-6">
-              <h4 className="font-semibold mb-3">Category</h4>
-              <select
-                className="w-full filter-select"
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
+            {/* COLLECTIONS GROUP */}
+            <div>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-3">
+                Collections
+              </span>
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => {
+                    setCategoryFilter('');
+                    setCurrentPage(1);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+                    categoryFilter === ''
+                      ? 'bg-logo-purple/10 text-logo-purple'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/40'
+                  }`}
+                >
+                  <span>All Categories</span>
+                  {categoryFilter === '' && <span className="w-1.5 h-1.5 rounded-full bg-logo-purple"></span>}
+                </button>
+                {categories.map((category) => {
+                  const isActive = categoryFilter === category;
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => {
+                        setCategoryFilter(category);
+                        setCurrentPage(1);
+                      }}
+                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+                        isActive
+                          ? 'bg-logo-purple/10 text-logo-purple'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/40'
+                      }`}
+                    >
+                      <span className="truncate">{category}</span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-logo-purple"></span>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Price Range Filter */}
-            <div className="filter-group mb-6">
-              <h4 className="font-semibold mb-3">Price Range</h4>
+            {/* PRICE FILTER GROUP */}
+            <div>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-3">
+                Price Range
+              </span>
               <div className="flex gap-2 items-center">
                 <input
                   type="number"
@@ -185,9 +210,9 @@ const Shop: React.FC = () => {
                     setMinPrice(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-800 bg-gray-55 dark:bg-gray-900 rounded-2xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
                 />
-                <span className="text-gray-400">-</span>
+                <span className="text-gray-400 dark:text-gray-600 font-bold">-</span>
                 <input
                   type="number"
                   placeholder="Max"
@@ -196,25 +221,34 @@ const Shop: React.FC = () => {
                     setMaxPrice(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-800 bg-gray-55 dark:bg-gray-900 rounded-2xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-logo-purple focus:border-transparent outline-none transition-all"
                 />
               </div>
             </div>
 
-            {/* In Stock Filter */}
-            <div className="filter-group mb-6">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={inStockOnly}
-                  onChange={(e) => {
-                    setInStockOnly(e.target.checked);
-                    setCurrentPage(1);
-                  }}
-                  className="w-4 h-4"
-                />
-                <span className="font-semibold">In Stock Only</span>
-              </label>
+            {/* STATUS / AVAILABILITY GROUP */}
+            <div>
+              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-3">
+                Availability
+              </span>
+              <button
+                onClick={() => {
+                  setInStockOnly(!inStockOnly);
+                  setCurrentPage(1);
+                }}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+                  inStockOnly
+                    ? 'bg-logo-purple/10 text-logo-purple'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/40'
+                }`}
+              >
+                <span>In Stock Only</span>
+                <span className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 shrink-0 ${
+                  inStockOnly ? 'bg-logo-purple flex justify-end' : 'bg-gray-250 dark:bg-gray-700 flex justify-start'
+                }`}>
+                  <span className="w-3 h-3 rounded-full bg-white shadow-sm"></span>
+                </span>
+              </button>
             </div>
 
             {/* Quick Picks */}
