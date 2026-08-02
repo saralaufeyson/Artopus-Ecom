@@ -24,9 +24,9 @@ function Footer() {
           <div className="flex flex-col">
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Terms of Service</h4>
             <ul className="space-y-2">
-              <li><Link to="/policies?tab=terms" className="text-gray-400 hover:text-white transition-colors duration-200">Terms and conditions</Link></li>
-              <li><Link to="/policies?tab=shipping" className="text-gray-400 hover:text-white transition-colors duration-200">Shipping Info</Link></li>
-              <li><Link to="/policies?tab=return" className="text-gray-400 hover:text-white transition-colors duration-200">Returns & Refund</Link></li>
+              <li><Link to="/terms-and-conditions" className="text-gray-400 hover:text-white transition-colors duration-200">Terms and conditions</Link></li>
+              <li><Link to="/shipping-policy" className="text-gray-400 hover:text-white transition-colors duration-200">Shipping Info</Link></li>
+              <li><Link to="/return-policy" className="text-gray-400 hover:text-white transition-colors duration-200">Returns & Refund</Link></li>
             </ul>
           </div>
 
@@ -43,9 +43,9 @@ function Footer() {
         <div className="border-t border-gray-800 pt-8 text-center flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-gray-500 text-sm">&copy; 2025 Artopus India. All rights reserved.</p>
           <div className="flex gap-4 text-xs text-gray-500">
-            <Link to="/policies?tab=terms" className="hover:text-white transition-colors duration-200">Terms & Conditions</Link>
+            <Link to="/terms-and-conditions" className="hover:text-white transition-colors duration-200">Terms & Conditions</Link>
             <span>&middot;</span>
-            <Link to="/policies?tab=privacy" className="hover:text-white transition-colors duration-200">Privacy Policy</Link>
+            <Link to="/privacy-policy" className="hover:text-white transition-colors duration-200">Privacy Policy</Link>
           </div>
         </div>
       </div>

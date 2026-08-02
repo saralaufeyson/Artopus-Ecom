@@ -123,7 +123,11 @@ function App() {
                     </PublicRouteGuard>
                   } />
                   <Route path="artist-activate" element={<ArtistActivate />} />
-                  <Route path="policies" element={<Policies />} />
+                  <Route path="terms-and-conditions" element={<Policies activeTab="terms" />} />
+                  <Route path="privacy-policy" element={<Policies activeTab="privacy" />} />
+                  <Route path="refund-policy" element={<Policies activeTab="refund" />} />
+                  <Route path="return-policy" element={<Policies activeTab="return" />} />
+                  <Route path="shipping-policy" element={<Policies activeTab="shipping" />} />
                   <Route path="cart" element={
                     <PublicRouteGuard>
                       <Cart />

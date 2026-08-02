@@ -146,7 +146,7 @@ function Navbar() {
                   <Link to="/join-as-artist" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Sell Your Art</Link>
                 )}
 
-                <Link to="/policies?tab=terms" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Terms & Policies</Link>
+                <Link to="/terms-and-conditions" className="block py-3 text-base font-semibold text-gray-900 dark:text-white hover:text-logo-purple transition-colors" onClick={closeMenu}>Terms & Policies</Link>
               </div>
 
               {/* User Actions Divider */}
