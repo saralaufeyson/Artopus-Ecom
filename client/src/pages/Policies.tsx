@@ -4,14 +4,14 @@ import { toast } from 'react-toastify';
 import { ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 interface PolicySection {
-  id: 'terms' | 'privacy' | 'refund' | 'return' | 'shipping';
+  id: 'terms' | 'privacy' | 'refund' | 'shipping';
   number: number;
   title: string;
   content: string[];
 }
 
 interface PoliciesProps {
-  activeTab: 'terms' | 'privacy' | 'refund' | 'return' | 'shipping';
+  activeTab: 'terms' | 'privacy' | 'refund' | 'shipping';
 }
 
 const Policies: React.FC<PoliciesProps> = ({ activeTab }) => {
@@ -24,15 +24,13 @@ const Policies: React.FC<PoliciesProps> = ({ activeTab }) => {
     terms: useRef<HTMLDivElement>(null),
     privacy: useRef<HTMLDivElement>(null),
     refund: useRef<HTMLDivElement>(null),
-    return: useRef<HTMLDivElement>(null),
     shipping: useRef<HTMLDivElement>(null),
   };
 
   const routeMap = {
     terms: '/terms-and-conditions',
     privacy: '/privacy-policy',
-    refund: '/refund-policy',
-    return: '/return-policy',
+    refund: '/return-refund-cancellation-policy',
     shipping: '/shipping-policy',
   };
 
@@ -59,7 +57,7 @@ const Policies: React.FC<PoliciesProps> = ({ activeTab }) => {
       number: 2,
       title: 'Privacy Policy',
       content: [
-        'Introduction: This Privacy Policy describes how Sasirekha creations and its affiliates collect, use, share, protect or otherwise process your information through our website https://www.artopusindia.com. Your data will primarily be stored and processed in India. By visiting the Platform or providing your information, you agree to be bound by the terms of this Privacy Policy.',
+        'Introduction: This Privacy Policy describes how Sasirekha Creations (Proprietorship) and its affiliates collect, use, share, protect or otherwise process your information through our website https://www.artopusindia.com. Your data will primarily be stored and processed in India. By visiting the Platform or providing your information, you agree to be bound by the terms of this Privacy Policy.',
         'Collection: We collect personal information when you sign up, register, or transact on the Platform. This includes name, date of birth, address, email, telephone number, and proof of identity. Sensitive information (such as bank details or facial features for authentication features) is collected with your explicit consent.',
         'Usage: We use your personal data to handle orders, resolve disputes, customize your shopping experience, detect and protect against fraud, and conduct marketing analytics. You have the option to opt-out of marketing communications at any time.',
         'Sharing: We disclose personal data to logistics providers, secure payment gateways, and reward channels to facilitate fulfillment. We may share data with government agencies if required by law or to protect user safety and platform security.',
@@ -70,42 +68,43 @@ const Policies: React.FC<PoliciesProps> = ({ activeTab }) => {
     {
       id: 'refund',
       number: 3,
-      title: 'Refund & Cancellation Policy',
+      title: 'Return, Refund & Cancellation Policy',
       content: [
-        'This refund and cancellation policy outlines how you can cancel or seek a refund for products/services purchased through Artopus India.',
-        'Cancellations: Cancellation requests must be sent to contact@artopusindia.com and are considered only if made within 3 days of placing the order. Cancellations are not accepted if production (for print-on-demand items) or shipping has already commenced.',
-        'Perishables & Custom items: No cancellations are accepted for custom commissions or highly personalized works. However, replacements may be issued if the quality is verified to be defective.',
-        'Damage & Defects: If you receive a damaged or defective item, please report it to our customer service team within 3 days of receipt. Verification and approval of refunds or replacements will require photographic evidence.',
-        'Refund Settlement: Once approved, your refund will be processed and automatically credited back to your original payment method within 7 days.'
-      ]
-    },
-    {
-      id: 'return',
-      number: 4,
-      title: 'Return Policy',
-      content: [
-        'Return & Exchange Window: We offer a return or exchange request window of 3 days from the delivery date. If 3 days have passed since delivery, we cannot offer a return, exchange, or refund.',
-        'Eligibility Requirements: To be eligible for a return or exchange, the purchased item must be unused, in its original packaging, and in the same condition that you received it. Items purchased on sale are generally exempt from returns or exchanges.',
-        'Exclusions: Custom commission paintings and customized sized prints are exempt from returns and refunds unless arriving damaged.',
-        'Process: Once your return is received and inspected at our facility, we will notify you of the status. Approved exchange requests will be shipped out within 7 days.'
+        'This Return, Refund & Cancellation Policy outlines the rules for cancellations, returns, and refund requests for purchases made through Artopus India.',
+        '1. Order Cancellation: Orders can be cancelled within three (3) days of the order being placed, provided that production (for print-on-demand items) or shipping has not yet commenced. Please request cancellation by writing to contact@artopusindia.com.',
+        '2. Original Artworks Returns: Original artworks are unique and handmade. They can only be returned or exchanged if the wrong item is delivered or the artwork arrives damaged. Return requests must be filed within three (3) working days of delivery, accompanied by clear photographic evidence.',
+        '3. Print-on-Demand Returns: Print-on-demand canvas prints are custom manufactured after the order is confirmed. They cannot be returned or exchanged unless the product arrives damaged, defective, or an incorrect item has been delivered.',
+        '4. Damage Reporting: Any damage or defect must be reported to our grievance email contact@artopusindia.com within three (3) working days of delivery for verification.',
+        '5. Refund Settlement: Once a return is approved, refunds are processed within two to three (2–3) business days to the original method of payment.'
       ]
     },
     {
       id: 'shipping',
-      number: 5,
+      number: 4,
       title: 'Shipping Policy',
       content: [
-        'Carrier Rules: All order shipments are dispatched through registered domestic courier companies or Speed Post.',
-        'Handling Time: Orders are generally processed and shipped within seven (7) business days of order confirmation.',
-        'Transit Timelines: Domestic deliveries within India typically take 10 to 14 business days. International shipping transit times vary by destination and local customs clearance procedures.',
-        'Shipping Fees: Applicable shipping costs are calculated and visible during checkout. Customs duties, local import taxes, and related entry clearance fees are the sole responsibility of the buyer.',
-        'Delays: Sasirekha Creations is not liable for transit delays caused by customs checkpoints, local logistics grid disruptions, or force majeure events.'
+        'Sasirekha Creations handles domestic and international packaging and logistics grids for Artopus India.',
+        '1. Processing Time: Order handling and preparation takes up to seven (7) business days from order confirmation.',
+        '2. Transit & Delivery Timelines:',
+        '- Deliveries within India: 10 to 14 business days.',
+        '- International Shipments: Delivery timelines vary depending on the destination and local customs clearance procedures.',
+        '3. Shipping Charges: Applicable shipping fees are calculated dynamically and displayed during checkout prior to payment.',
+        '4. International Customs: Customs duties, local entry clearance fees, and import taxes are the sole responsibility of the customer and are collected at delivery.',
+        '5. Logistics Disclaimer: We are not liable for transit delays caused by courier service issues, customs hold-ups, or force majeure events.'
       ]
     }
   ];
 
-  // Sync scroll position when activeTab prop changes
+  // Sync scroll position when activeTab prop changes & update SEO title
   useEffect(() => {
+    const metaTitles = {
+      terms: 'Terms and Conditions - Artopus India',
+      privacy: 'Privacy Policy - Artopus India',
+      refund: 'Return, Refund and Cancellation Policy - Artopus India',
+      shipping: 'Shipping Policy - Artopus India',
+    };
+    document.title = metaTitles[activeTab];
+
     const targetRef = sectionRefs[activeTab];
     if (targetRef && targetRef.current && rightPaneRef.current) {
       const topOffset = targetRef.current.offsetTop - rightPaneRef.current.offsetTop;
@@ -129,7 +128,7 @@ const Policies: React.FC<PoliciesProps> = ({ activeTab }) => {
     }
   }, [activeSection]);
 
-  const handleTabClick = (id: 'terms' | 'privacy' | 'refund' | 'return' | 'shipping') => {
+  const handleTabClick = (id: 'terms' | 'privacy' | 'refund' | 'shipping') => {
     navigate(routeMap[id]);
   };
 

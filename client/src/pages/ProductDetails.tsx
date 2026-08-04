@@ -336,27 +336,47 @@ const ProductDetails: React.FC = () => {
               <p>{product.description}</p>
             </div>
 
-            <div className="product-details-list mb-6">
-              <div className="detail-item">
-                <span className="detail-label font-semibold">Medium:</span>
-                <span className="detail-value">{product.medium || '-'}</span>
+             <div className="product-details-list mb-6 space-y-2 border-t border-b border-gray-150 dark:border-gray-800 py-4">
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-gray-500">Category:</span>
+                <span className="font-bold text-gray-900 dark:text-white capitalize">{product.category || 'Artwork'}</span>
               </div>
-              <div className="detail-item">
-                <span className="detail-label font-semibold">Dimensions:</span>
-                <span className="detail-value">{selectedOptionData?.dimensions || product.dimensions || '-'}</span>
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-gray-500">Medium:</span>
+                <span className="font-bold text-gray-900 dark:text-white">{product.medium || 'Fine Art'}</span>
               </div>
-              <div className="detail-item">
-                <span className="detail-label font-semibold">Year:</span>
-                <span className="detail-value">{product.year || '-'}</span>
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-gray-500">Dimensions:</span>
+                <span className="font-bold text-gray-900 dark:text-white">{selectedOptionData?.dimensions || product.dimensions || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-gray-500">Year:</span>
+                <span className="font-bold text-gray-900 dark:text-white">{product.year || 'Recent'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="font-semibold text-gray-500">Stock Status:</span>
+                <span className={`font-bold px-2 py-0.5 rounded text-xs ${(product.stockQuantity ?? 0) > 0 ? 'bg-green-100 text-green-700 dark:bg-green-950/20 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-950/20 dark:text-red-400'}`}>
+                  {(product.stockQuantity ?? 0) > 0 ? 'In Stock (Available)' : 'Sold Out'}
+                </span>
               </div>
               {product.videoUrl && (
-                <div className="detail-item">
-                  <span className="detail-label font-semibold">Making-of Video:</span>
-                  <a href={product.videoUrl} target="_blank" rel="noreferrer" className="text-logo-purple font-medium hover:underline">
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold text-gray-500">Making-of Video:</span>
+                  <a href={product.videoUrl} target="_blank" rel="noreferrer" className="text-logo-purple font-bold hover:underline">
                     Watch Reference
                   </a>
                 </div>
               )}
+            </div>
+
+            {/* Compliance Info box */}
+            <div className="bg-gray-50 dark:bg-gray-800/30 border border-gray-150 dark:border-gray-800 rounded-2xl p-5 mb-8 space-y-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+              <p>
+                <strong>Artwork Curation:</strong> Original artworks are handmade, unique creations and include a signed Certificate of Authenticity. Print-on-demand items are custom manufactured only after order placement. Colors may vary slightly due to device screen calibrations.
+              </p>
+              <p>
+                <strong>Shipping Info:</strong> Processing takes up to 7 business days. Delivery: 10–14 business days within India; international varies by customs.
+              </p>
             </div>
 
             {(product.stockQuantity ?? 0) > 0 ? (

@@ -22,6 +22,8 @@ import ArtistDashboard from './pages/ArtistDashboard.tsx';
 import ArtistEarnings from './pages/ArtistEarnings.tsx';
 import ArtistActivate from './pages/ArtistActivate.tsx';
 import Policies from './pages/Policies.tsx';
+import AboutUs from './pages/AboutUs.tsx';
+import ContactUs from './pages/ContactUs.tsx';
 import NotFound from './pages/NotFound.tsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -123,10 +125,11 @@ function App() {
                     </PublicRouteGuard>
                   } />
                   <Route path="artist-activate" element={<ArtistActivate />} />
+                  <Route path="about-us" element={<AboutUs />} />
+                  <Route path="contact-us" element={<ContactUs />} />
                   <Route path="terms-and-conditions" element={<Policies activeTab="terms" />} />
                   <Route path="privacy-policy" element={<Policies activeTab="privacy" />} />
-                  <Route path="refund-policy" element={<Policies activeTab="refund" />} />
-                  <Route path="return-policy" element={<Policies activeTab="return" />} />
+                  <Route path="return-refund-cancellation-policy" element={<Policies activeTab="refund" />} />
                   <Route path="shipping-policy" element={<Policies activeTab="shipping" />} />
                   <Route path="cart" element={
                     <PublicRouteGuard>
