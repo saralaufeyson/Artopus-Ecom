@@ -34,7 +34,6 @@ const Policies: React.FC<PoliciesProps> = ({ activeTab }) => {
     shipping: '/shipping-policy',
   };
 
-  ```ts
 const sections: PolicySection[] = [
   {
     id: 'terms',
@@ -340,7 +339,6 @@ const sections: PolicySection[] = [
     ]
   }
 ];
-```
   // Sync scroll position when activeTab prop changes & update SEO title
   useEffect(() => {
     const metaTitles = {
