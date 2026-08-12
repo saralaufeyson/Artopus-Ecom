@@ -252,7 +252,7 @@ const Shop: React.FC = () => {
             </div>
 
             {/* Quick Picks */}
-            <div className="filter-group">
+            {/*         <div className="filter-group">
               <h4 className="font-semibold mb-3">Quick Picks</h4>
               <div className="flex flex-col gap-2">
                 {['Painting', 'Print', 'Drawing', 'Merchandise'].map((category) => (
@@ -272,6 +272,7 @@ const Shop: React.FC = () => {
                 ))}
               </div>
             </div>
+            */}
           </aside>
 
           <div className="products-section">
