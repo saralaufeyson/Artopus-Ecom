@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, type ReactNode } from 'react';
 import { toast } from 'react-toastify';
 
-type BuyerOption = 'painting' | 'outline-sketch' | 'colored-version';
+type BuyerOption = string;
 
 interface Product {
   id: string;
@@ -47,16 +47,24 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setCart(prevCart => {
       const existing = prevCart.find(item => item.id === product.id);
       const baseProductId = product.productId || product.id;
-      const totalForProduct = prevCart
-        .filter(item => (item.productId || item.id) === baseProductId)
+      
+      const isOriginalVariant = !product.buyerOption || product.buyerOption === 'original' || product.buyerOption === 'painting';
+      const isBuyingOriginal = product.type === 'original-artwork' && isOriginalVariant;
+      const isMerchandise = product.type === 'merchandise';
+      
+      const totalOriginals = prevCart
+        .filter(item => (item.productId || item.id) === baseProductId && (!item.buyerOption || item.buyerOption === 'original' || item.buyerOption === 'painting'))
         .reduce((sum, item) => sum + item.quantity, 0);
+
+      const totalForThisItem = existing ? existing.quantity : 0;
+
       if (existing) {
-        if (product.type === 'original-artwork' && totalForProduct >= 1) {
+        if (isBuyingOriginal && totalOriginals >= 1) {
           toast.error("Original artworks are limited to one per customer");
           success = false;
           return prevCart;
         }
-        if (totalForProduct >= (product.stockQuantity ?? 0)) {
+        if ((isBuyingOriginal || isMerchandise) && totalForThisItem >= (product.stockQuantity ?? 0)) {
           toast.error(`Only ${product.stockQuantity ?? 0} items available in stock`);
           success = false;
           return prevCart;
@@ -66,13 +74,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         );
       }
       
-      if ((product.stockQuantity ?? 0) <= 0) {
+      if ((isBuyingOriginal || isMerchandise) && (product.stockQuantity ?? 0) <= 0) {
         toast.error("This item is out of stock");
         success = false;
         return prevCart;
       }
 
-      if (product.type === 'original-artwork' && totalForProduct >= 1) {
+      if (isBuyingOriginal && totalOriginals >= 1) {
         toast.error("Original artworks are limited to one per customer");
         success = false;
         return prevCart;

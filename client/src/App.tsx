@@ -14,6 +14,7 @@ import Checkout from './pages/Checkout.tsx';
 import Success from './pages/Success.tsx';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import Profile from './pages/Profile';
 import ArtistProfile from './pages/ArtistProfile.tsx';
 import JoinAsArtist from './pages/JoinAsArtist.tsx';
@@ -150,6 +151,7 @@ function App() {
                   } />
                   <Route path="login" element={<Login />} />
                   <Route path="register" element={<Register />} />
+                  <Route path="verify-email" element={<VerifyEmail />} />
                   <Route path="profile" element={
                     <AuthRequiredRoute>
                       <Profile />

@@ -151,7 +151,7 @@ const ArtistProfile: React.FC = () => {
 
     try {
       setSaving(true);
-      const sigRes = await axios.get('/api/uploads/signature');
+      const sigRes = await axios.get('/api/uploads/signature?folder=artopus/artists');
       const { signature, timestamp, apiKey, cloudName } = sigRes.data;
 
       const uploadData = new FormData();

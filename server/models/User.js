@@ -16,7 +16,14 @@ const UserSchema = new mongoose.Schema(
     role: { type: String, enum: ['admin', 'customer', 'artist'], default: 'customer' },
     phone: { type: String },
     whatsappNumber: { type: String },
+    gender: { type: String },
+    profilePicture: { type: String },
     shippingAddress: { type: AddressSchema },
+    isVerified: { type: Boolean, default: false },
+    otpHash: { type: String },
+    otpExpires: { type: Date },
+    otpAttempts: { type: Number, default: 0 },
+    otpResendCooldown: { type: Date },
   },
   { timestamps: true }
 );

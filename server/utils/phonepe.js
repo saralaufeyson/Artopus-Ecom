@@ -1,7 +1,25 @@
-const DEFAULT_PHONEPE_BASE_URL = 'https://api-preprod.phonepe.com/apis/pg-sandbox';
+import { StandardCheckoutClient, Env, StandardCheckoutPayRequest } from '@phonepe-pg/pg-sdk-node';
 
-function getPhonePeBaseUrl() {
-  return process.env.PHONEPE_BASE_URL || DEFAULT_PHONEPE_BASE_URL;
+let clientInstance = null;
+
+function getClientInstance() {
+  if (!clientInstance) {
+    const clientId = process.env.PHONEPE_CLIENT_ID;
+    const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
+    
+    let version = process.env.PHONEPE_CLIENT_VERSION || '1';
+    if (version.startsWith('v')) {
+      version = version.slice(1);
+    }
+    const clientVersion = parseInt(version, 10) || 1;
+
+    // Use PHONEPE_ENV if set, otherwise check NODE_ENV or default to SANDBOX
+    const isProduction = process.env.PHONEPE_ENV === 'PRODUCTION' || process.env.NODE_ENV === 'production';
+    const env = isProduction ? Env.PRODUCTION : Env.SANDBOX;
+
+    clientInstance = StandardCheckoutClient.getInstance(clientId, clientSecret, clientVersion, env);
+  }
+  return clientInstance;
 }
 
 export function isPhonePeConfigured() {
@@ -12,63 +30,23 @@ export function isPhonePeConfigured() {
   );
 }
 
-export async function fetchPhonePeAccessToken() {
-  const response = await fetch(`${getPhonePeBaseUrl()}/v1/oauth/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      client_id: process.env.PHONEPE_CLIENT_ID,
-      client_version: process.env.PHONEPE_CLIENT_VERSION,
-      client_secret: process.env.PHONEPE_CLIENT_SECRET,
-      grant_type: 'client_credentials',
-    }),
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || data.error_description || 'PhonePe auth token request failed');
-  }
-
-  return data.access_token || data.accessToken || data.token;
-}
-
 export async function createPhonePePaymentUrl(payload) {
-  const accessToken = await fetchPhonePeAccessToken();
-  const response = await fetch(`${getPhonePeBaseUrl()}/checkout/v2/pay`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `O-Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const client = getClientInstance();
+  
+  const request = StandardCheckoutPayRequest.builder()
+    .merchantOrderId(payload.merchantOrderId)
+    .amount(payload.amount) // In paisa (e.g., total * 100)
+    .redirectUrl(payload.redirectUrl)
+    .build();
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || data.error_description || 'PhonePe payment URL request failed');
-  }
-
-  return data;
+  const response = await client.pay(request);
+  return response;
 }
 
 export async function fetchPhonePeOrderStatus(merchantOrderId) {
-  const accessToken = await fetchPhonePeAccessToken();
-  const response = await fetch(`${getPhonePeBaseUrl()}/checkout/v2/order/${merchantOrderId}/status`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `O-Bearer ${accessToken}`,
-    },
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.message || data.error_description || 'PhonePe order status request failed');
-  }
-
-  return data;
+  const client = getClientInstance();
+  const response = await client.getOrderStatus(merchantOrderId);
+  return response;
 }
 
 export function extractPhonePeRedirectUrl(payload) {
@@ -108,4 +86,22 @@ export function mapPhonePeStateToOrderStatus(payload) {
   }
 
   return 'created';
+}
+
+import crypto from 'crypto';
+
+export function validatePhonePeCallback(body, headers) {
+  const response = body?.response;
+  const xVerify = headers['x-verify'] || headers['x-verify-signature'];
+  if (!response || !xVerify) return false;
+
+  const saltKey = process.env.PHONEPE_CLIENT_SECRET;
+  const saltIndex = process.env.PHONEPE_SALT_INDEX || '1';
+
+  const hash = crypto.createHash('sha256')
+    .update(response + saltKey)
+    .digest('hex');
+
+  const expected = `${hash}###${saltIndex}`;
+  return xVerify === expected;
 }

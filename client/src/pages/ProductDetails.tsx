@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Heart, ShoppingBag, Star, Award, Truck, ShieldCheck, RotateCcw } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { useCollections } from '../contexts/CollectionsContext';
@@ -51,12 +51,10 @@ interface ResolvedOption {
   getImage: (product: Product) => string;
 }
 
-type BuyerOption = 'painting' | 'outline-sketch' | 'colored-version';
+type BuyerOption = string;
 
 const resolveBuyerOption = (optionKey: string): BuyerOption => {
-  if (optionKey === 'outline-sketch' || optionKey.includes('outline')) return 'outline-sketch';
-  if (optionKey === 'colored-version' || optionKey === 'canvas-sketch' || optionKey.includes('color')) return 'colored-version';
-  return 'painting';
+  return optionKey;
 };
 
 const ProductDetails: React.FC = () => {
@@ -265,6 +263,17 @@ const ProductDetails: React.FC = () => {
           <div className="product-details-section">
             <h1 className="product-name text-4xl font-black text-gray-900 dark:text-white mb-2">{product.title}</h1>
 
+            {product.type === 'original-artwork' && (
+              <div className="flex gap-2 mb-4 mt-2">
+                <span className="bg-logo-purple/10 text-logo-purple px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                  Original
+                </span>
+                <span className="bg-green-100 text-green-700 dark:bg-green-950/20 dark:text-green-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                  Prints Available
+                </span>
+              </div>
+            )}
+
             {product.artistName && (
               <Link
                 to={`/artist/${product.artistId}`}
@@ -369,26 +378,48 @@ const ProductDetails: React.FC = () => {
               )}
             </div>
 
-            {/* Compliance Info box */}
-            <div className="bg-gray-50 dark:bg-gray-800/30 border border-gray-150 dark:border-gray-800 rounded-2xl p-5 mb-8 space-y-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-              <p>
-                <strong>Artwork Curation:</strong> Original artworks are handmade, unique creations and include a signed Certificate of Authenticity. Print-on-demand items are custom manufactured only after order placement. Colors may vary slightly due to device screen calibrations.
-              </p>
-              <p>
-                <strong>Shipping Info:</strong> Processing takes up to 7 business days. Delivery: 10–14 business days within India; international varies by customs.
-              </p>
+            {/* Visual Trust System Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <div className="flex gap-3 p-4 rounded-xl border border-gray-150 dark:border-border-dark bg-gray-50/50 dark:bg-background-card-dark/40">
+                <Award className="text-logo-purple shrink-0 animate-pulse-slow" size={20} />
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-text-dark-primary mb-0.5">Authenticity Guaranteed</h4>
+                  <p className="text-[10px] text-gray-550 dark:text-text-dark-secondary leading-snug">Original works include a signed Certificate of Authenticity by the artist.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 rounded-xl border border-gray-150 dark:border-border-dark bg-gray-50/50 dark:bg-background-card-dark/40">
+                <Truck className="text-logo-purple shrink-0" size={20} />
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-text-dark-primary mb-0.5">Premium Art Insured Shipping</h4>
+                  <p className="text-[10px] text-gray-550 dark:text-text-dark-secondary leading-snug">Secure packing in custom wooden crates/heavy tubes. Delivered in 10-14 days.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 rounded-xl border border-gray-150 dark:border-border-dark bg-gray-50/50 dark:bg-background-card-dark/40">
+                <RotateCcw className="text-logo-purple shrink-0" size={20} />
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-text-dark-primary mb-0.5">14-Day Easy Returns</h4>
+                  <p className="text-[10px] text-gray-550 dark:text-text-dark-secondary leading-snug">Not completely in love? We offer hassle-free return shipping and processing.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 rounded-xl border border-gray-150 dark:border-border-dark bg-gray-50/50 dark:bg-background-card-dark/40">
+                <ShieldCheck className="text-logo-purple shrink-0" size={20} />
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-text-dark-primary mb-0.5">Secure Transaction</h4>
+                  <p className="text-[10px] text-gray-550 dark:text-text-dark-secondary leading-snug">SSL encrypted checkout processing powered by PhonePe and Stripe protocols.</p>
+                </div>
+              </div>
             </div>
 
             {(product.stockQuantity ?? 0) > 0 ? (
               <button
                 onClick={handleAddToCart}
-                className="w-full md:w-auto bg-logo-purple text-white px-10 py-4 rounded-2xl font-black text-lg hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-logo-purple/30 flex items-center justify-center gap-3"
+                className="w-full md:w-auto bg-logo-purple text-white px-8 py-3 rounded-xl font-bold text-sm hover:opacity-90 active:scale-95 transition-all shadow-md shadow-logo-purple/10 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <ShoppingBag size={24} />
+                <ShoppingBag size={18} />
                 Add to Cart
               </button>
             ) : (
-              <button className="bg-gray-400 text-white px-6 py-2 rounded-lg cursor-not-allowed" disabled>
+              <button className="bg-gray-200 dark:bg-gray-800 text-gray-450 dark:text-gray-500 px-6 py-2.5 rounded-xl cursor-not-allowed font-semibold text-xs" disabled>
                 Sold Out
               </button>
             )}

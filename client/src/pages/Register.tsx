@@ -2,7 +2,6 @@ import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
- 
 
 function Register() {
   const [name, setName] = useState('');
@@ -27,6 +26,9 @@ function Register() {
     if (result.success) {
       toast.success('Registration successful!');
       navigate('/');
+    } else if (result.unverified && result.email) {
+      toast.info('Verification required. We have sent you a code.');
+      navigate(`/verify-email?email=${encodeURIComponent(result.email)}`);
     } else {
       toast.error(result.error || 'Registration failed');
     }

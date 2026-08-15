@@ -6,6 +6,7 @@ import Artist from '../models/Artist.js';
 import User from '../models/User.js';
 import { buildTrackingWhatsAppMessage, sendWhatsAppMessage } from '../utils/whatsapp.js';
 import { notifyRole, notifyUsers } from '../utils/notifications.js';
+import { emailService } from '../utils/emailService.js';
 
 const router = express.Router();
 
@@ -137,10 +138,27 @@ router.patch('/admin/orders/:id/status', authMiddleware, adminMiddleware, async 
     order.statusHistory.push({ status, note: note || '' });
     await order.save();
 
-    const customer = await User.findById(order.customer).select('whatsappNumber');
+    const customer = await User.findById(order.customer).select('name email whatsappNumber');
     if (customer?.whatsappNumber && ['shipped', 'delivered'].includes(status)) {
       sendWhatsAppMessage(customer.whatsappNumber, buildTrackingWhatsAppMessage(order, status))
         .catch((error) => console.error('Silent fail on WhatsApp notification:', error.message));
+    }
+
+    if (customer?.email) {
+      if (status === 'shipped') {
+        emailService.sendOrderShippedEmail(customer.email, {
+          customerName: customer.name,
+          orderId: order._id,
+          deliveryPartner: order.deliveryPartner,
+          trackingNumber: order.trackingNumber,
+          trackingUrl: order.trackingUrl
+        }).catch((err) => console.error('Silent fail on order shipped email:', err.message));
+      } else if (status === 'delivered') {
+        emailService.sendOrderDeliveredEmail(customer.email, {
+          customerName: customer.name,
+          orderId: order._id
+        }).catch((err) => console.error('Silent fail on order delivered email:', err.message));
+      }
     }
 
     const relatedArtists = await Artist.find({ _id: { $in: order.items.map((item) => item.artistId).filter(Boolean) } }).select('userId');

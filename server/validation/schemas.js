@@ -13,6 +13,15 @@ export const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+export const verifyEmailSchema = Joi.object({
+  email: Joi.string().email().required(),
+  otp: Joi.string().length(6).pattern(/^\d+$/).required(),
+});
+
+export const resendVerificationSchema = Joi.object({
+  email: Joi.string().email().required(),
+});
+
 const variantValidationSchema = Joi.object({
   category: Joi.string().valid('Original', 'Print on Demand').required(),
   size: Joi.string().allow('', null).optional(),

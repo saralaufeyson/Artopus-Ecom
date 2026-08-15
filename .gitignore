@@ -68,3 +68,7 @@ coverage/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+artwork_pricing.json
+test.artworks.json
+server/scripts/seedArtistSara.js
+server/scripts/seedArtworks.js

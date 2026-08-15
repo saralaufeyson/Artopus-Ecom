@@ -57,7 +57,7 @@ const ArtistProductForm: React.FC = () => {
       setUploadingImage(true);
       try {
         // Get signature from server
-        const sigRes = await axios.get('/api/uploads/signature');
+        const sigRes = await axios.get('/api/uploads/signature?folder=artopus/artist-submissions');
         const { signature, timestamp, apiKey, cloudName } = sigRes.data;
 
         // Upload to Cloudinary

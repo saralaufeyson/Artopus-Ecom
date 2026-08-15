@@ -20,6 +20,9 @@ function Login() {
       const redirectPath = localStorage.getItem('redirectAfterLogin') || '/';
       localStorage.removeItem('redirectAfterLogin');
       navigate(redirectPath);
+    } else if (result.unverified && result.email) {
+      toast.warn(result.error || 'Email verification required');
+      navigate(`/verify-email?email=${encodeURIComponent(result.email)}`);
     } else {
       toast.error(result.error || 'Login failed');
     }

@@ -24,6 +24,28 @@ const Checkout: React.FC = () => {
   const { cart, getSubtotal, clearCart } = useContext(CartContext)!;
   const [shipping, setShipping] = useState<Shipping>({ street: '', city: '', state: '', zip: '', country: '' });
   const [loading, setLoading] = useState(false);
+
+  // Load saved shipping address from user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await axios.get('/api/auth/me');
+        if (response.data && response.data.shippingAddress) {
+          const { street, city, state, zip, country } = response.data.shippingAddress;
+          setShipping({
+            street: street || '',
+            city: city || '',
+            state: state || '',
+            zip: zip || '',
+            country: country || '',
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load profile for address auto-fill:', err);
+      }
+    };
+    fetchProfile();
+  }, []);
   const [taxAmount, setTaxAmount] = useState(0);
   const [couponCode, setCouponCode] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -77,12 +99,15 @@ const Checkout: React.FC = () => {
         items: cart.map((item) => ({
           productId: item.productId || item.id,
           quantity: item.quantity,
-          buyerOption: item.buyerOption === 'outline-sketch' || item.buyerOption === 'colored-version'
-            ? item.buyerOption
-            : 'painting',
+          buyerOption: item.buyerOption || 'painting',
         })),
         shippingAddress: shipping,
         couponCode: couponCode || undefined,
+      });
+
+      // Auto-save shipping address to user's profile
+      await axios.patch('/api/auth/shipping-address', shipping).catch((err) => {
+        console.error('Failed to auto-save address to profile:', err);
       });
 
       const { redirectUrl, orderId, clientSecret } = res.data;
@@ -95,6 +120,7 @@ const Checkout: React.FC = () => {
       }
 
       if (redirectUrl) {
+        clearCart();
         window.location.href = redirectUrl;
         return;
       }

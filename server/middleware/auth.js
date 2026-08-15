@@ -9,6 +9,11 @@ export async function authMiddleware(req, res, next) {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.id).select('-password');
     if (!user) return res.status(401).json({ message: 'Unauthorized' });
+    
+    if (!user.isVerified && process.env.NODE_ENV !== 'test') {
+      return res.status(403).json({ message: 'Email verification required', unverified: true, email: user.email });
+    }
+
     req.user = user;
     next();
   } catch (err) {

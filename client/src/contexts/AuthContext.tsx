@@ -8,15 +8,25 @@ interface User {
   role: string;
   phone?: string;
   whatsappNumber?: string;
+  gender?: string;
+  profilePicture?: string;
+  shippingAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+  };
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; error?: string }>;
-  register: (userData: { name: string; email: string; password: string; phone?: string; whatsappNumber?: string }) => Promise<{ success: boolean; error?: string }>;
+  login: (credentials: { email: string; password: string }) => Promise<{ success: boolean; unverified?: boolean; email?: string; error?: string }>;
+  register: (userData: { name: string; email: string; password: string; phone?: string; whatsappNumber?: string }) => Promise<{ success: boolean; unverified?: boolean; email?: string; error?: string }>;
   logout: () => void;
+  fetchUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,28 +63,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [loading, setLoading] = useState<boolean>(!!localStorage.getItem('token'));
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        try {
-          const res = await axios.get('/api/auth/me');
-          setUser(res.data);
-        } catch (err) {
-          console.error('Error fetching user:', err);
-          localStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
-          delete axios.defaults.headers.common['Authorization'];
-        }
+  const fetchUser = async () => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      try {
+        const res = await axios.get('/api/auth/me');
+        setUser(res.data);
+      } catch (err) {
+        console.error('Error fetching user:', err);
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        delete axios.defaults.headers.common['Authorization'];
       }
-      setLoading(false);
-    };
+    }
+    setLoading(false);
+  };
 
+  useEffect(() => {
     fetchUser();
   }, [token]);
 
-  const login = async (credentials: { email: string; password: string }): Promise<{ success: boolean; error?: string }> => {
+  const login = async (credentials: { email: string; password: string }): Promise<{ success: boolean; unverified?: boolean; email?: string; error?: string }> => {
     try {
       const res = await axios.post('/api/auth/login', credentials);
       const authResponse = parseAuthResponse(res.data);
@@ -89,14 +99,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData);
       return { success: true };
     } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.unverified) {
+        return {
+          success: false,
+          unverified: true,
+          email: err.response.data.email,
+          error: err.response.data.message,
+        };
+      }
       const errorMsg = axios.isAxiosError(err) ? err.response?.data?.message : 'Login failed';
       return { success: false, error: errorMsg || 'Login failed' };
     }
   };
 
-  const register = async (userData: { name: string; email: string; password: string; phone?: string; whatsappNumber?: string }): Promise<{ success: boolean; error?: string }> => {
+  const register = async (userData: { name: string; email: string; password: string; phone?: string; whatsappNumber?: string }): Promise<{ success: boolean; unverified?: boolean; email?: string; error?: string }> => {
     try {
       const res = await axios.post('/api/auth/register', userData);
+      if (res.data && res.data.unverified) {
+        return {
+          success: false,
+          unverified: true,
+          email: res.data.email,
+        };
+      }
       const authResponse = parseAuthResponse(res.data);
       if (!authResponse) {
         return { success: false, error: 'Invalid response from registration server' };
@@ -122,7 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

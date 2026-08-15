@@ -58,7 +58,21 @@ const Success: React.FC = () => {
       }
     };
 
-    if (orderId) fetchOrder();
+    if (orderId) {
+      fetchOrder();
+
+      // Poll local database order status every 10 seconds to reflect admin changes in real time
+      const interval = setInterval(async () => {
+        try {
+          const res = await axios.get(`/api/orders/${orderId}`);
+          setOrder(res.data);
+        } catch (err) {
+          console.error('Error polling order status:', err);
+        }
+      }, 10000);
+
+      return () => clearInterval(interval);
+    }
   }, [clearCart, location.search, orderId]);
 
   if (loading) {

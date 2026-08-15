@@ -13,6 +13,7 @@ import { validate } from '../middleware/validate.js';
 import { validateCoupon, recordCouponUsage } from '../utils/coupon.js';
 import { createIntentSchema } from '../validation/schemas.js';
 import { sendArtistOrderNotification } from '../utils/email.js';
+import { emailService } from '../utils/emailService.js';
 import { calculateTax } from '../utils/tax.js';
 import { sendSMS } from '../utils/sms.js';
 import {
@@ -22,6 +23,7 @@ import {
   isPhonePeConfigured,
   mapPhonePeStateToOrderStatus,
   extractPhonePeState,
+  validatePhonePeCallback,
 } from '../utils/phonepe.js';
 import { notifyRole, notifyUsers } from '../utils/notifications.js';
 
@@ -157,6 +159,21 @@ async function sendOrderCreatedNotifications(order) {
       metadata: { orderId: order._id, status: order.status },
     }),
   ]);
+
+  // Send Order Created pending-payment Email to the customer
+  try {
+    const customer = await User.findById(order.customer).select('name email');
+    if (customer && customer.email) {
+      await emailService.sendOrderCreatedEmail(customer.email, {
+        customerName: customer.name,
+        orderId: order._id,
+        items: order.items,
+        totalAmount: order.totalAmount,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to send order creation pending-payment email:', error.message);
+  }
 }
 
 async function sendOrderPaidNotifications(order) {
@@ -186,6 +203,21 @@ async function sendOrderPaidNotifications(order) {
       metadata: { orderId: order._id, status: order.status },
     }),
   ]);
+
+  // Send Order Confirmation Email to the customer
+  try {
+    const customer = await User.findById(order.customer).select('name email');
+    if (customer && customer.email) {
+      await emailService.sendOrderConfirmationEmail(customer.email, {
+        customerName: customer.name,
+        orderId: order._id,
+        items: order.items,
+        totalAmount: order.totalAmount,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to send order confirmation email:', error.message);
+  }
 }
 
 async function sendOrderPaidSMSNotifications(order) {
@@ -359,7 +391,8 @@ async function fulfillOrderWithoutTransaction(order) {
         return order;
       }
 
-      if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
+      const hasPrints = updatedProduct.variants && updatedProduct.variants.some(v => v.category === 'Print on Demand');
+      if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0 && !hasPrints) {
         updatedProduct.isActive = false;
         await updatedProduct.save();
       }
@@ -438,7 +471,8 @@ async function fulfillOrderWithTransaction(order) {
           return order;
         }
 
-        if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0) {
+        const hasPrints = updatedProduct.variants && updatedProduct.variants.some(v => v.category === 'Print on Demand');
+        if (updatedProduct.type === 'original-artwork' && updatedProduct.stockQuantity === 0 && !hasPrints) {
           updatedProduct.isActive = false;
           await updatedProduct.save({ session });
         }
@@ -485,8 +519,9 @@ async function buildCheckoutContext(items) {
       return { error: `Product ${item.productId} not available` };
     }
 
-    if (product.type === 'original-artwork' && product.stockQuantity < 1) {
-      return { error: `${product.title} is sold out` };
+    const isBuyingOriginal = item.buyerOption === 'original' || item.buyerOption === 'painting' || !item.buyerOption;
+    if (product.type === 'original-artwork' && isBuyingOriginal && product.stockQuantity < 1) {
+      return { error: `The original painting for ${product.title} is sold out` };
     }
 
     if (product.type === 'merchandise' && product.stockQuantity < item.quantity) {
@@ -571,6 +606,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
         const phonePePayload = {
           merchantOrderId,
           amount: Math.round(totalWithTaxAndDiscount * 100),
+          redirectUrl,
           expireAfter: 1200,
           metaInfo: {
             udf1: req.user._id.toString(),
@@ -666,25 +702,78 @@ router.get('/phonepe/status/:orderId', authMiddleware, async (req, res, next) =>
       return res.json({ order, providerState: order.status });
     }
 
-    const providerPayload = await fetchPhonePeOrderStatus(order.paymentIntentId);
-    const providerState = extractPhonePeState(providerPayload);
-    const mappedStatus = mapPhonePeStateToOrderStatus(providerPayload);
+    try {
+      const providerPayload = await fetchPhonePeOrderStatus(order.paymentIntentId);
+      const providerState = extractPhonePeState(providerPayload);
+      const mappedStatus = mapPhonePeStateToOrderStatus(providerPayload);
 
-    let updatedOrder = order;
-    if (mappedStatus === 'succeeded') {
-      updatedOrder = await fulfillOrder(order);
-    } else if (mappedStatus === 'failed' && order.status === 'created') {
-      order.status = 'failed';
-      updatedOrder = await order.save();
+      let updatedOrder = order;
+      if (mappedStatus === 'succeeded') {
+        updatedOrder = await fulfillOrder(order);
+      } else if (mappedStatus === 'failed' && order.status === 'created') {
+        order.status = 'failed';
+        updatedOrder = await order.save();
+      }
+
+      return res.json({
+        order: updatedOrder,
+        providerState,
+        providerStatus: mappedStatus,
+      });
+    } catch (err) {
+      console.error('PhonePe status fetch error, falling back to local order state:', err.message);
+      return res.json({
+        order,
+        providerState: order.status,
+        providerStatus: 'unknown',
+        error: err.message,
+      });
     }
-
-    return res.json({
-      order: updatedOrder,
-      providerState,
-      providerStatus: mappedStatus,
-    });
   } catch (error) {
     return next(error);
+  }
+});
+
+// PhonePe webhook callback
+router.post('/phonepe/webhook', express.json(), async (req, res) => {
+  try {
+    const isValid = validatePhonePeCallback(req.body, req.headers);
+    if (!isValid && process.env.NODE_ENV !== 'test') {
+      console.error('PhonePe Webhook validation failed');
+      return res.status(400).json({ success: false, message: 'Invalid signature' });
+    }
+
+    const base64Response = req.body?.response;
+    if (!base64Response) {
+      return res.status(400).json({ success: false, message: 'Missing response data' });
+    }
+
+    const decodedJson = Buffer.from(base64Response, 'base64').toString('utf-8');
+    const payload = JSON.parse(decodedJson);
+
+    const merchantOrderId = payload.data?.merchantTransactionId;
+    if (!merchantOrderId) {
+      return res.status(400).json({ success: false, message: 'Missing transaction ID' });
+    }
+
+    const order = await Order.findOne({ paymentIntentId: merchantOrderId });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const mappedStatus = mapPhonePeStateToOrderStatus(payload.data);
+
+    if (mappedStatus === 'succeeded') {
+      await fulfillOrder(order);
+    } else if (mappedStatus === 'failed' && order.status === 'created') {
+      order.status = 'failed';
+      await order.save();
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('PhonePe Webhook processing error:', error);
+    return res.status(500).json({ success: false });
   }
 });
 

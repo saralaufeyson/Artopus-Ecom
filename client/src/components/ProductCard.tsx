@@ -81,81 +81,86 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <div className={`card h-full flex flex-col group transition-all duration-300 hover:shadow-2xl border-2 border-gray-100 dark:border-gray-800 rounded-[2.5rem] overflow-hidden bg-white dark:bg-gray-900 ${(product.stockQuantity ?? 0) <= 0 ? 'opacity-75' : ''}`}>
-      <Link to={`/product/${product._id}`} className="relative block overflow-hidden m-4 rounded-[2rem]">
+    <div className={`card h-full flex flex-col group transition-all duration-300 hover:shadow-md border border-gray-150 dark:border-border-dark rounded-2xl overflow-hidden bg-white dark:bg-background-card-dark ${(product.stockQuantity ?? 0) <= 0 ? 'opacity-75' : ''}`}>
+      <Link to={`/product/${product._id}`} className="relative block overflow-hidden m-3 rounded-xl aspect-[4/3]">
         <img
           src={getOptimizedImageUrl(product.imageUrl)}
           alt={product.title}
-          className={`w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110 ${(product.stockQuantity ?? 0) <= 0 ? 'grayscale' : ''}`}
+          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${(product.stockQuantity ?? 0) <= 0 ? 'grayscale' : ''}`}
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <button
           type="button"
           onClick={handleToggleWishlist}
-          className={`absolute top-4 right-4 w-11 h-11 rounded-full backdrop-blur-md flex items-center justify-center transition-colors ${
-            wishlistIds.has(product._id) ? 'bg-red-500 text-white' : 'bg-white/80 text-gray-700'
+          className={`absolute top-3 right-3 w-9 h-9 rounded-full backdrop-blur-md flex items-center justify-center transition-colors shadow-sm ${
+            wishlistIds.has(product._id) ? 'bg-red-500 text-white' : 'bg-black/35 text-white hover:bg-black/55'
           }`}
           aria-label="Toggle wishlist"
         >
-          <Heart size={18} className={wishlistIds.has(product._id) ? 'fill-white' : ''} />
+          <Heart size={16} className={wishlistIds.has(product._id) ? 'fill-white' : ''} />
         </button>
         {product.type === 'original-artwork' && (
-          <div className="absolute top-4 left-4 bg-logo-purple text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg backdrop-blur-md">
-            Original
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            <span className="bg-logo-purple/95 text-white px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shadow-sm">
+              Original
+            </span>
+            <span className="bg-emerald-600/95 text-white px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider shadow-sm">
+              Prints
+            </span>
           </div>
         )}
         {(product.stockQuantity ?? 0) <= 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-red-600 text-white px-6 py-2 rounded-full font-black uppercase tracking-widest text-sm shadow-xl">Sold Out</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <span className="bg-red-600 text-white px-4 py-1.5 rounded-lg font-bold uppercase tracking-wider text-xs shadow-md">Sold Out</span>
           </div>
         )}
       </Link>
 
-      <div className="p-8 flex-1 flex flex-col">
-        <div className="mb-6">
+      <div className="p-5 flex-1 flex flex-col">
+        <div className="mb-4">
           <Link to={`/product/${product._id}`}>
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2 line-clamp-1 group-hover:text-logo-purple transition-colors">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-text-dark-primary mb-1 line-clamp-1 group-hover:text-logo-purple transition-colors">
               {product.title}
             </h3>
           </Link>
           {product.artistName && (
             <Link 
               to={`/artist/${product.artistId}`}
-              className="text-base text-gray-500 hover:text-logo-purple transition-colors mb-3 block font-medium"
+              className="text-xs text-gray-500 dark:text-text-dark-secondary hover:text-logo-purple transition-colors mb-2 block font-medium"
             >
               by {product.artistName}
             </Link>
           )}
-          <div className="flex justify-between items-end">
+          <div className="flex justify-between items-end mt-2">
             <div>
-              <p className="text-3xl font-black text-logo-purple">₹{displayPrice}</p>
+              <p className="text-xl font-bold text-logo-purple">₹{displayPrice}</p>
               {isOriginal && (
-                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 dark:text-gray-400 block mt-0.5">
+                <span className="text-[9px] uppercase font-semibold tracking-wider text-gray-400 dark:text-gray-500 block mt-0.5">
                   A4 Print Price
                 </span>
               )}
             </div>
-            {(product.stockQuantity ?? 0) > 0 && (product.stockQuantity ?? 0) < 5 && (
-              <p className="text-xs font-bold text-red-500 mb-1">Only {product.stockQuantity ?? 0} left!</p>
+            {!isOriginal && (product.stockQuantity ?? 0) > 0 && (product.stockQuantity ?? 0) < 5 && (
+              <p className="text-[10px] font-bold text-red-500 mb-0.5">Only {product.stockQuantity ?? 0} left!</p>
             )}
           </div>
         </div>
 
-        <div className="mt-auto flex gap-4 items-center">
+        <div className="mt-auto flex gap-3 items-center">
           <Link
             to={`/product/${product._id}`}
-            className="flex-1 text-center py-4 rounded-2xl border-2 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-white font-black text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+            className="flex-1 text-center py-2 rounded-xl border border-gray-200 dark:border-border-dark text-gray-805 dark:text-text-dark-primary font-bold text-xs hover:bg-gray-50 dark:hover:bg-slate-800 transition-all"
           >
             Details
           </Link>
           <button
             onClick={handleAddToCart}
             disabled={(product.stockQuantity ?? 0) <= 0}
-            className={`flex-[1.5] py-4 rounded-2xl font-black text-sm transition-all shadow-xl ${
+            className={`flex-[1.5] py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${
               (product.stockQuantity ?? 0) > 0 
-                ? 'bg-logo-purple text-white hover:opacity-90 active:scale-95 shadow-logo-purple/30' 
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
+                ? 'bg-logo-purple text-white hover:opacity-90 active:scale-95 shadow-logo-purple/10' 
+                : 'bg-gray-150 dark:bg-gray-800 text-gray-400 dark:text-gray-505 cursor-not-allowed shadow-none'
             }`}
           >
             {(product.stockQuantity ?? 0) > 0 ? 'Add to Cart' : 'Out of Stock'}
