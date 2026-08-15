@@ -34,67 +34,311 @@ const Policies: React.FC<PoliciesProps> = ({ activeTab }) => {
     shipping: '/shipping-policy',
   };
 
-  const sections: PolicySection[] = [
-    {
-      id: 'terms',
-      number: 1,
-      title: 'Terms & Conditions',
-      content: [
-        'Welcome to Artopus India. These Terms and Conditions ("Terms") constitute a legally binding agreement between you ("Customer," "you," or "your") and Sasirekha Creations, a proprietorship operating under the brand name "Artopus India" ("Company," "we," "us," or "our"), governing your access to and use of our website https://www.artopusindia.com (the "Website") and your purchase of products offered by us.',
-        '1. Acceptance of Terms: Your access to and use of the Website is conditioned upon your acceptance of and compliance with these Terms. By browsing our products, creating an account, or placing an order, you acknowledge that you have read, understood, and agree to be bound by these Terms.',
-        '2. Eligibility: To use the Website or place an order, you must be at least 18 years of age and capable of entering into a legally binding contract under the Indian Contract Act, 1872. If you are under 18, you may use the Website only under the supervision of a parent or legal guardian.',
-        '3. Products: We sell (a) Original Artworks – one-of-a-kind, handmade pieces, each accompanied by a Certificate of Authenticity. (b) Print-on-Demand Framed Canvas Prints – available in A5, A4, and A3 sizes, produced only after an order is placed and confirmed. Minor variations in texture, brushwork, framing, or finish are natural characteristics of handmade pieces and do not constitute defects. Colors may vary slightly due to device monitor settings.',
-        '4. Pricing: All prices displayed on the Website are in Indian Rupees (INR / ₹), inclusive of applicable taxes, and are subject to change without prior notice. We reserve the right to refuse or cancel orders due to pricing errors, suspected fraud, or unavailability.',
-        '5. Payments: Full payment is required at the time of placing an order. Payments are processed through trusted secure third-party payment gateways (UPI, credit/debit cards, net banking). We do not store complete card information on our servers.',
-        '6. User Conduct: You agree not to use the Website for any unlawful purpose, attempt to gain unauthorized access, upload harmful files, or interfere with the proper functioning of the Platform.',
-        '7. Intellectual Property: All content on the Website, including artworks, images, logos, and descriptions, is the exclusive property of Sasirekha Creations. Purchase of physical products does not transfer copyright or reproduction rights to the buyer.',
-        '8. Limitation of Liability: Products and Website access are provided on an "as is" basis. Sasirekha Creations\' aggregate liability under any order shall not exceed the amount paid by the customer for that specific purchase.',
-        '9. Grievance Redressal: In accordance with applicable laws, any concerns may be directed to our Grievance Officer: Kanchi Chithra, Proprietor. Email: contact@artopusindia.com. Phone: +91 8073424401. Working Hours: Mon-Sat, 10:00 AM – 6:00 PM IST. We aim to acknowledge and address grievances within 48 hours.'
-      ]
-    },
-    {
-      id: 'privacy',
-      number: 2,
-      title: 'Privacy Policy',
-      content: [
-        'Introduction: This Privacy Policy describes how Sasirekha Creations (Proprietorship) and its affiliates collect, use, share, protect or otherwise process your information through our website https://www.artopusindia.com. Your data will primarily be stored and processed in India. By visiting the Platform or providing your information, you agree to be bound by the terms of this Privacy Policy.',
-        'Collection: We collect personal information when you sign up, register, or transact on the Platform. This includes name, date of birth, address, email, telephone number, and proof of identity. Sensitive information (such as bank details or facial features for authentication features) is collected with your explicit consent.',
-        'Usage: We use your personal data to handle orders, resolve disputes, customize your shopping experience, detect and protect against fraud, and conduct marketing analytics. You have the option to opt-out of marketing communications at any time.',
-        'Sharing: We disclose personal data to logistics providers, secure payment gateways, and reward channels to facilitate fulfillment. We may share data with government agencies if required by law or to protect user safety and platform security.',
-        'Security Precautions: We adopt industry-standard security procedures to protect your data. While we maintain secure servers, transmission of information over the internet carries inherent risks, and users are responsible for protecting account passwords.',
-        'Data Deletion: You have the right to request deletion of your account and related information by contacting us. We may delay or deny deletion in cases of pending shipments, legal claims, or unresolved grievances.'
-      ]
-    },
-    {
-      id: 'refund',
-      number: 3,
-      title: 'Return, Refund & Cancellation Policy',
-      content: [
-        'This Return, Refund & Cancellation Policy outlines the rules for cancellations, returns, and refund requests for purchases made through Artopus India.',
-        '1. Order Cancellation: Orders can be cancelled within three (3) days of the order being placed, provided that production (for print-on-demand items) or shipping has not yet commenced. Please request cancellation by writing to contact@artopusindia.com.',
-        '2. Original Artworks Returns: Original artworks are unique and handmade. They can only be returned or exchanged if the wrong item is delivered or the artwork arrives damaged. Return requests must be filed within three (3) working days of delivery, accompanied by clear photographic evidence.',
-        '3. Print-on-Demand Returns: Print-on-demand canvas prints are custom manufactured after the order is confirmed. They cannot be returned or exchanged unless the product arrives damaged, defective, or an incorrect item has been delivered.',
-        '4. Damage Reporting: Any damage or defect must be reported to our grievance email contact@artopusindia.com within three (3) working days of delivery for verification.',
-        '5. Refund Settlement: Once a return is approved, refunds are processed within two to three (2–3) business days to the original method of payment.'
-      ]
-    },
-    {
-      id: 'shipping',
-      number: 4,
-      title: 'Shipping Policy',
-      content: [
-        'Sasirekha Creations handles domestic and international packaging and logistics grids for Artopus India.',
-        '1. Processing Time: Order handling and preparation takes up to seven (7) business days from order confirmation.',
-        '2. Transit & Delivery Timelines:',
-        '- Deliveries within India: 10 to 14 business days.',
-        '- International Shipments: Delivery timelines vary depending on the destination and local customs clearance procedures.',
-        '3. Shipping Charges: Applicable shipping fees are calculated dynamically and displayed during checkout prior to payment.',
-        '4. International Customs: Customs duties, local entry clearance fees, and import taxes are the sole responsibility of the customer and are collected at delivery.',
-        '5. Logistics Disclaimer: We are not liable for transit delays caused by courier service issues, customs hold-ups, or force majeure events.'
-      ]
-    }
-  ];
+const sections: PolicySection[] = [
+  {
+    id: 'terms',
+    number: 1,
+    title: 'Terms & Conditions',
+    content: [
+      'These Terms & Conditions govern your access to and use of https://artopusindia.com and the products and services offered by Sasirekha Creations. By accessing or using the Website, you agree to be bound by these Terms.',
 
+      '1. Business Information',
+      'Business Name: Sasirekha Creations',
+      'Address:\nSecond Floor, BBMP 18/1/18, 12th Main Veerasagara Main Road, Back Side of Akkayamma Temple, Akshaya Sree Magnus Layout, Attur, Yelahanka, Bengaluru, Karnataka – 560064, India',
+      'Email: contact@artopusindia.com\nPhone: +91 8073424401\nWebsite: https://artopusindia.com/',
+
+      '2. Website Usage',
+      'The Website is provided for browsing, purchasing products, and accessing information about Sasirekha Creations.',
+      'By using the Website, you agree that you will:',
+      '- Provide accurate information when placing an order or creating an account.',
+      '- Use the Website only for lawful purposes.',
+      '- Not attempt to gain unauthorized access to the Website or its systems.',
+      '- Not interfere with the security or operation of the Website.',
+      '- Not use the Website for fraudulent or abusive activities.',
+
+      '3. Products and Product Information',
+      'We make reasonable efforts to ensure that product descriptions, images, specifications, prices, and availability displayed on the Website are accurate.',
+      'However, minor variations in colour, appearance, size, texture, or finish may occur due to screen settings, photography, manufacturing processes, or the nature of the product.',
+      'We reserve the right to modify product information, pricing, availability, or specifications without prior notice.',
+
+      '4. Orders and Acceptance',
+      'When you place an order through the Website, you are making an offer to purchase the selected product.',
+      'An order is considered accepted only after payment verification and confirmation by Sasirekha Creations.',
+      'We reserve the right to accept, reject, or cancel an order for reasons including:',
+      '- Product unavailability.',
+      '- Incorrect pricing or product information.',
+      '- Payment failure.',
+      '- Incorrect customer information.',
+      '- Suspected fraudulent or unauthorized transactions.',
+      '- Any other legitimate operational reason.',
+      'If an order is cancelled after payment has been received, an eligible refund will be processed according to our Refund Policy.',
+
+      '5. Pricing and Payment',
+      'All prices are displayed in Indian Rupees (INR), unless otherwise stated.',
+      'Customers are responsible for providing accurate billing and payment information.',
+      'Payments may be processed through authorized third-party payment gateways. Sasirekha Creations does not intentionally store complete card details, CVV, UPI PIN, or internet banking credentials.',
+
+      '6. Shipping and Delivery',
+      'Please refer to the shipping policy.',
+
+      '7. Returns, Refunds and Cancellations',
+      'Please refer to the Return and Refund policy.',
+      'Customers are advised to review the applicable policy before placing an order.',
+
+      '8. Customer Account',
+      'If account registration is available, customers are responsible for maintaining the confidentiality of their login credentials and for all activities carried out through their account.',
+      'Customers must immediately notify us if they suspect unauthorized access to their account.',
+
+      '9. Intellectual Property',
+      'All content available on the Website, including text, product images, photographs, graphics, logos, designs, trademarks, videos, and other materials, is owned by or licensed to Sasirekha Creations unless otherwise stated.',
+      'You may not copy, reproduce, modify, distribute, publish, or commercially exploit Website content without prior written permission.',
+
+      '10. Third-Party Services',
+      'The Website may use third-party services, including payment gateways, logistics providers, hosting providers, analytics services, and other technology providers.',
+      'Sasirekha Creations is not responsible for the availability, policies, or actions of independent third-party service providers.',
+
+      '11. Limitation of Liability',
+      'To the extent permitted by applicable law, Sasirekha Creations shall not be liable for indirect, incidental, special, or consequential losses arising from the use of the Website or purchase of products.',
+      'Our liability relating to a particular order shall not exceed the amount paid by the customer for that order, except where otherwise required by applicable law.',
+
+      '12. Website Availability',
+      'We make reasonable efforts to keep the Website available and functioning properly. However, temporary interruptions may occur due to maintenance, technical issues, network failures, or circumstances beyond our control.',
+
+      '13. Changes to These Terms',
+      'Sasirekha Creations reserves the right to modify or update these Terms & Conditions at any time.',
+      'Updated Terms will become effective when published on the Website. Customers are encouraged to review this page periodically.',
+
+      '14. Governing Law and Jurisdiction',
+      'These Terms & Conditions shall be governed by the laws of India.',
+      'Any dispute arising from or relating to these Terms or the use of the Website shall be subject to the applicable courts having jurisdiction in Bengaluru, Karnataka.',
+
+      '15. Contact Us',
+      'Sasirekha Creations',
+      'Second Floor, BBMP 18/1/18, 12th Main Veerasagara Main Road, Back Side of Akkayamma Temple, Akshaya Sree Magnus Layout, Attur, Yelahanka, Bengaluru, Karnataka – 560064, India',
+      'Email: contact@artopusindia.com\nPhone: +91 8073424401\nWebsite: https://artopusindia.com/'
+    ]
+  },
+
+  {
+    id: 'privacy',
+    number: 2,
+    title: 'Privacy Policy',
+    content: [
+      'Sasirekha Creations respects your privacy and is committed to protecting your personal information. This Privacy Policy explains how we collect, use, store, and protect information when you visit or make a purchase through https://artopusindia.com',
+
+      '1. Business Information',
+      'Business Name: Sasirekha Creations',
+      'Address:\nSecond Floor, BBMP 18/1/18, 12th Main Veerasagara Main Road, Back Side of Akkayamma Temple, Akshaya Sree Magnus Layout, Attur, Yelahanka, Bengaluru, Karnataka – 560064, India',
+      'Email: contact@artopusindia.com\nPhone: +91 8073424401\nWebsite: https://artopusindia.com/',
+
+      '2. Information We Collect',
+      'When you use our Website or place an order, we may collect:',
+      '- Full name',
+      '- Mobile number',
+      '- Email address',
+      '- Billing and shipping address',
+      '- Order details',
+      '- Payment and transaction information',
+      '- Customer support communications',
+      '- IP address',
+      '- Browser and device information',
+      '- Website usage and cookie information',
+      'We collect only information that is reasonably necessary to provide our services and operate the Website.',
+
+      '3. How We Use Your Information',
+      'We may use your information to:',
+      '- Process and fulfill orders.',
+      '- Deliver purchased products.',
+      '- Confirm payments and transactions.',
+      '- Provide customer support.',
+      '- Send order confirmations, invoices, and delivery updates.',
+      '- Process returns, refunds, cancellations, or other service requests.',
+      '- Improve our Website, products, and services.',
+      '- Prevent fraud, unauthorized transactions, and misuse.',
+      '- Comply with applicable legal, tax, accounting, and regulatory requirements.',
+
+      '4. Payment Information',
+      'Payments may be processed through authorized third-party payment gateways.',
+      'We do not intentionally store your complete debit card or credit card number, CVV, UPI PIN, internet banking password, or other sensitive payment credentials.',
+      'Payment information is handled according to the applicable security and privacy practices of the payment service provider.',
+
+      '5. Sharing of Personal Information',
+      'We do not sell or rent your personal information.',
+      'We may share necessary information with trusted third parties when required to provide our services, including:',
+      '- Payment gateway and payment processing providers.',
+      '- Courier and logistics partners.',
+      '- Website hosting and technology providers.',
+      '- Customer support and communication service providers.',
+      '- Government authorities, regulators, or law-enforcement agencies when legally required.',
+      'These parties may access only the information reasonably necessary to perform their services.',
+
+      '6. Cookies and Similar Technologies',
+      'Our Website may use cookies and similar technologies to:',
+      '- Maintain Website functionality.',
+      '- Remember user preferences.',
+      '- Improve browsing experience.',
+      '- Understand Website traffic and usage.',
+      '- Improve our services.',
+      'You may disable or manage cookies through your browser settings. However, disabling certain cookies may affect some Website functionality.',
+
+      '7. Data Security',
+      'We take reasonable technical, administrative, and organizational measures to protect personal information against unauthorized access, disclosure, alteration, misuse, or destruction.',
+      'However, no method of transmission or electronic storage can be guaranteed to be completely secure.',
+
+      '8. Data Retention',
+      'We retain personal information only for as long as reasonably necessary to:',
+      '- Fulfill orders and provide services.',
+      '- Maintain business and transaction records.',
+      '- Meet legal, tax, accounting, and regulatory requirements.',
+      '- Resolve disputes and enforce our agreements.',
+      'When information is no longer required, it may be deleted or securely disposed of, subject to applicable legal requirements.',
+
+      '9. Your Privacy Rights',
+      'Subject to applicable law, you may contact us to request:',
+      '- Access to personal information held by us.',
+      '- Correction of inaccurate information.',
+      '- Updating of your contact information.',
+      '- Deletion of information where legally permissible.',
+      '- Information regarding how your personal data is being used.',
+      'Requests can be made using the contact details provided below.',
+
+      '10. Children’s Privacy',
+      'Our Website is not intended to knowingly collect personal information directly from children without appropriate parental or legal guardian involvement.',
+      'If you believe that a child has provided personal information to us without appropriate consent, please contact us so that we can take appropriate action.',
+
+      '11. Third-Party Websites',
+      'Our Website may contain links to third-party websites or services. We are not responsible for the privacy practices, content, or security of third-party websites.',
+      'We recommend reviewing the privacy policies of third-party websites before providing them with personal information.',
+
+      '12. Changes to This Privacy Policy',
+      'We may update this Privacy Policy from time to time to reflect changes in our services, technology, legal requirements, or business practices.',
+      'Any updated version will be published on this page with the revised effective or update date.',
+
+      '13. Contact Us',
+      'If you have questions, concerns, or requests regarding this Privacy Policy or your personal information, please contact us:',
+      'Sasirekha Creations',
+      'Second Floor, BBMP 18/1/18, 12th Main Veerasagara Main Road, Back Side of Akkayamma Temple, Akshaya Sree Magnus Layout, Attur, Yelahanka, Bengaluru, Karnataka – 560064, India',
+      'Email: contact@artopusindia.com\nPhone: +91 8073424401\nWebsite: https://artopusindia.com/'
+    ]
+  },
+
+  {
+    id: 'shipping',
+    number: 3,
+    title: 'Shipping Policy',
+    content: [
+      'Last Updated: August 2026',
+
+      'At Sasirekha Creations, we aim to process and deliver your orders safely and within the estimated delivery timeframe. This Shipping Policy explains how orders placed through https://artopusindia.com/ are processed and delivered.',
+
+      '1. Order Processing',
+      'Orders are generally processed within 1–2 business days after successful payment confirmation.',
+      'Orders placed on Sundays or public holidays will be processed on the next business day.',
+
+      '2. Shipping Coverage',
+      'We deliver orders to serviceable locations across India, subject to the availability of courier services at the customer’s delivery address.',
+
+      '3. Delivery Timeframe',
+      'Orders are generally delivered within 5–7 business days from the date of dispatch.',
+      'Delivery timelines may vary depending on the destination, courier partner, weather conditions, public holidays, logistical conditions, or other circumstances beyond our reasonable control.',
+
+      '4. Shipping Charges',
+      'Applicable shipping charges, if any, will be displayed during checkout before the customer completes payment.',
+      'Shipping charges may vary depending on the delivery location, order size, weight, or applicable promotional offers.',
+
+      '5. Order Tracking',
+      'Once your order has been dispatched, tracking information may be provided through email, SMS, WhatsApp, or other available communication channels.',
+      'Customers can use the tracking information to monitor the status of their shipment.',
+
+      '6. Delivery Attempts',
+      'Our courier partners will make reasonable attempts to deliver the order to the address provided by the customer.',
+      'Delivery may be delayed or unsuccessful due to:',
+      '- Incorrect or incomplete address.',
+      '- Customer unavailability.',
+      '- Incorrect contact information.',
+      '- Refusal to accept the shipment.',
+      '- Restricted delivery locations.',
+      '- Courier service limitations.',
+      'Additional delivery or re-shipping charges may apply where the delivery failure is caused by incorrect information or customer-related reasons.',
+
+      '7. Delayed Deliveries',
+      'We make reasonable efforts to meet the estimated delivery timeframe. However, delays may occur due to courier operations, weather conditions, natural disasters, public holidays, strikes, technical issues, or other circumstances beyond our control.',
+      'Such delays do not automatically qualify for cancellation or refund.',
+
+      '8. Incorrect Shipping Information',
+      'Customers are responsible for providing accurate and complete delivery information at the time of placing an order.',
+      'Sasirekha Creations shall not be responsible for delivery failures resulting from incorrect or incomplete information provided by the customer.',
+
+      '9. Damaged Packages',
+      'Customers are advised to inspect the package at the time of delivery. If the package appears visibly damaged or tampered with, customers should document the issue with photographs or videos and contact us as soon as possible.',
+      'Any claim relating to damaged or incorrect products will be handled according to our applicable Return & Refund Policy.',
+
+      '10. Contact Us',
+      'For shipping-related questions or assistance, please contact:',
+      'Sasirekha Creations',
+      'Second Floor, BBMP 18/1/18, 12th Main Veerasagara Main Road, Back Side of Akkayamma Temple, Akshaya Sree Magnus Layout, Attur, Yelahanka, Bengaluru, Karnataka – 560064, India',
+      'Email: contact@artopusindia.com\nPhone: +91 8073424401\nWebsite: https://artopusindia.com/'
+    ]
+  },
+
+  {
+    id: 'refund',
+    number: 4,
+    title: 'Return & Refund Policy',
+    content: [
+      'At Sasirekha Creations, we aim to provide customers with quality products and a smooth ordering experience. Please read this policy carefully before placing an order through https://artopusindia.com/.',
+
+      '1. No Return Policy',
+      'We do not accept returns for products purchased through our Website.',
+      'Once an order has been delivered, the product cannot be returned for a refund, exchange, or replacement, except where specifically required under applicable law.',
+
+      '2. No Exchange',
+      'Sasirekha Creations does not offer product exchanges.',
+      'Customers cannot request a different product, size, colour, design, or variant after delivery.',
+
+      '3. No Replacement',
+      'We do not provide product replacements for delivered orders.',
+
+      '4. Duplicate Transaction Refund',
+      'A refund will be considered only in the event of a duplicate transaction, where the customer’s account has been charged more than once for the same order or transaction.',
+      'The duplicate transaction will be verified against our payment and order records before a refund is approved.',
+
+      '5. Refund Processing',
+      'Once a duplicate transaction is successfully verified, the eligible refund will be processed and credited within 5–7 business days.',
+      'The refund will generally be processed to the original payment method used for the transaction.',
+      'The time taken for the refunded amount to reflect in the customer’s account may vary depending on the bank, card issuer, UPI provider, or payment gateway.',
+
+      '6. Refund Request',
+      'To report a suspected duplicate transaction, customers should contact us with:',
+      '- Order ID',
+      '- Customer name',
+      '- Registered mobile number or email address',
+      '- Transaction details',
+      '- Proof of duplicate payment, if available',
+      'Requests can be submitted to:',
+      'Email: contact@artopusindia.com\nPhone: +91 8073424401',
+
+      '7. Non-Refundable Situations',
+      'Refunds will not be provided for:',
+      '- Change of mind.',
+      '- Products that the customer does not like.',
+      '- Incorrect product selection by the customer.',
+      '- Product dissatisfaction.',
+      '- Normal product variations.',
+      '- Requests for exchange or replacement.',
+      '- Orders delivered successfully.',
+      '- Any transaction that does not qualify as a verified duplicate transaction.',
+
+      '8. Order Cancellation',
+      'Order cancellation, if permitted, will be subject to the status of the order and our applicable Terms & Conditions. Once an order is placed, it cannot be cancelled.',
+
+      '9. Contact Us',
+      'Sasirekha Creations',
+      'Second Floor, BBMP 18/1/18, 12th Main Veerasagara Main Road, Back Side of Akkayamma Temple, Akshaya Sree Magnus Layout, Attur, Yelahanka, Bengaluru, Karnataka – 560064, India',
+      'Email: contact@artopusindia.com\nPhone: +91 8073424401\nWebsite: https://artopusindia.com/'
+    ]
+  }
+];
   // Sync scroll position when activeTab prop changes & update SEO title
   useEffect(() => {
     const metaTitles = {

@@ -221,78 +221,28 @@ const Shop: React.FC = () => {
         </button>
       </div>
 
-      {/* Quick Picks */}
-      <div className="filter-group">
-        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2.5">Quick Picks</span>
-        <div className="flex flex-col gap-1.5">
-          {['Painting', 'Print', 'Drawing', 'Merchandise'].map((category) => (
-            <button
-              key={category}
-              type="button"
-              className={`text-left px-3.5 py-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
-                categoryFilter === category ? 'border-logo-purple bg-logo-purple/5 text-logo-purple' : 'border-gray-250 dark:border-border-dark text-gray-700 dark:text-gray-350'
-              }`}
-              onClick={() => {
-                setCategoryFilter(categoryFilter === category ? '' : category);
-                setCurrentPage(1);
-              }}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-
-  return (
-    <div className="shop-page">
-      <div className="page-container px-4 md:px-12 lg:px-16 max-w-7xl mx-auto">
-        <div className="page-header py-8">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-center mb-2">Shop Artworks</h1>
-          <p className="text-sm text-gray-500 dark:text-text-dark-secondary text-center">Curated originals, prints, and custom options from independent artists</p>
-        </div>
-
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-4 mb-8">
-          <div className="md:col-span-2">
-            <input
-              type="text"
-              placeholder="Search artworks, artists, or styles..."
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-background-card-dark focus:ring-1 focus:ring-logo-purple outline-none transition-all text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <select className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-background-card-dark text-sm outline-none cursor-pointer" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-            <option value="">All Types</option>
-            <option value="original-artwork">Original Artwork</option>
-            <option value="merchandise">Merchandise</option>
-          </select>
-          <select className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-background-card-dark text-sm outline-none cursor-pointer" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="newest">Newest First</option>
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-            <option value="title_asc">Title: A-Z</option>
-          </select>
-        </div>
-
-        {/* Mobile Filter Toggle */}
-        <div className="lg:hidden mb-6">
-          <button
-            onClick={() => setIsFilterDrawerOpen(true)}
-            className="w-full py-3 px-4 bg-logo-purple text-white rounded-xl font-bold text-sm shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M4 6h16M4 12h10M4 18h7" strokeLinecap="round"/>
-            </svg>
-            Filter Options
-          </button>
-        </div>
-
-        <div className="shop-content flex flex-col lg:flex-row gap-8 mt-4">
-          {/* Desktop Sidebar */}
-          <aside className="hidden lg:flex filters-sidebar w-64 shrink-0 flex-col gap-6 border-r border-gray-150 dark:border-border-dark pr-6">
-            {renderFilters()}
+            {/* Quick Picks */}
+            {/*         <div className="filter-group">
+              <h4 className="font-semibold mb-3">Quick Picks</h4>
+              <div className="flex flex-col gap-2">
+                {['Painting', 'Print', 'Drawing', 'Merchandise'].map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    className={`text-left px-4 py-3 rounded-xl border transition-colors ${
+                      categoryFilter === category ? 'border-logo-purple bg-logo-purple/5 text-logo-purple' : 'border-gray-200 dark:border-gray-800'
+                    }`}
+                    onClick={() => {
+                      setCategoryFilter(categoryFilter === category ? '' : category);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
+            */}
           </aside>
 
           {/* Mobile Filter Drawer */}
