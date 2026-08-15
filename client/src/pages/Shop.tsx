@@ -221,132 +221,144 @@ const Shop: React.FC = () => {
         </button>
       </div>
 
-            {/* Quick Picks */}
-            {/*         <div className="filter-group">
-              <h4 className="font-semibold mb-3">Quick Picks</h4>
-              <div className="flex flex-col gap-2">
-                {['Painting', 'Print', 'Drawing', 'Merchandise'].map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    className={`text-left px-4 py-3 rounded-xl border transition-colors ${
-                      categoryFilter === category ? 'border-logo-purple bg-logo-purple/5 text-logo-purple' : 'border-gray-200 dark:border-gray-800'
-                    }`}
-                    onClick={() => {
-                      setCategoryFilter(categoryFilter === category ? '' : category);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-            </div>
-            */}
+      {/* Quick Picks */}
+      {/*
+        <div className="filter-group">
+          <h4 className="font-semibold mb-3">Quick Picks</h4>
+          <div className="flex flex-col gap-2">
+            {['Painting', 'Print', 'Drawing', 'Merchandise'].map((category) => (
+              <button
+                key={category}
+                type="button"
+                className={`text-left px-4 py-3 rounded-xl border transition-colors ${
+                  categoryFilter === category ? 'border-logo-purple bg-logo-purple/5 text-logo-purple' : 'border-gray-200 dark:border-gray-800'
+                }`}
+                onClick={() => {
+                  setCategoryFilter(categoryFilter === category ? '' : category);
+                  setCurrentPage(1);
+                }}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+      */}
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex gap-8">
+          <aside className="hidden lg:block w-72 shrink-0">
+            {renderFilters()}
           </aside>
 
-          {/* Mobile Filter Drawer */}
-          {isFilterDrawerOpen && (
-            <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 lg:hidden flex justify-end" onClick={() => setIsFilterDrawerOpen(false)}>
-              <div className="w-[280px] h-full bg-white dark:bg-[#111625] p-6 flex flex-col gap-6 overflow-y-auto border-l border-gray-250 dark:border-border-dark" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-between items-center pb-3 border-b border-gray-150 dark:border-border-dark">
-                  <span className="font-bold text-base text-gray-905 dark:text-text-dark-primary">Filters</span>
-                  <button onClick={() => setIsFilterDrawerOpen(false)} className="text-xl font-black text-gray-400 hover:text-logo-purple p-1 cursor-pointer">×</button>
-                </div>
-                {renderFilters()}
-              </div>
-            </div>
-          )}
-
-          <div className="products-section flex-1">
-            {!loading && !error && (
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-xs text-gray-500">
-                  {pagination.total} artwork{pagination.total === 1 ? '' : 's'} found
-                </p>
-                {(searchTerm || typeFilter || categoryFilter || minPrice || maxPrice || inStockOnly) && (
-                  <button
-                    type="button"
-                    className="text-xs font-bold text-logo-purple hover:underline cursor-pointer"
-                    onClick={() => {
-                      setSearchTerm('');
-                      setTypeFilter('');
-                      setCategoryFilter('');
-                      setMinPrice('');
-                      setMaxPrice('');
-                      setInStockOnly(false);
-                      setSortBy('newest');
-                      setCurrentPage(1);
-                    }}
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </div>
-            )}
-
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-10 h-10 border-4 border-logo-purple/30 border-t-logo-purple rounded-full animate-spin"></div>
-                <p className="mt-4 text-xs text-gray-500 font-medium tracking-tight">Discovering masterpieces...</p>
-              </div>
-            ) : error ? (
-              <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 p-6 rounded-2xl text-center">
-                <p className="text-red-650 dark:text-red-400 text-sm font-bold mb-2">{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : products.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((product) => (
-                    <ProductCard key={product._id} product={product} />
-                  ))}
-                </div>
-                {/* Pagination Controls */}
-                {pagination.pages > 1 && (
-                  <div className="flex justify-center items-center gap-1.5 mt-10">
-                    <button
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-border-dark rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                    >
-                      Previous
-                    </button>
-                    <div className="flex gap-1">
-                      {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`px-2.5 py-1.5 text-xs rounded-lg border cursor-pointer ${
-                            currentPage === page
-                              ? 'bg-logo-purple text-white border-logo-purple font-semibold'
-                              : 'border-gray-300 dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-850'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
-                      disabled={currentPage === pagination.pages}
-                      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-border-dark rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-805 cursor-pointer"
-                    >
-                      Next
-                    </button>
+          <div className="flex-1">
+            {/* Mobile Filter Drawer */}
+            {isFilterDrawerOpen && (
+              <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 lg:hidden flex justify-end" onClick={() => setIsFilterDrawerOpen(false)}>
+                <div className="w-[280px] h-full bg-white dark:bg-[#111625] p-6 flex flex-col gap-6 overflow-y-auto border-l border-gray-250 dark:border-border-dark" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-150 dark:border-border-dark">
+                    <span className="font-bold text-base text-gray-905 dark:text-text-dark-primary">Filters</span>
+                    <button onClick={() => setIsFilterDrawerOpen(false)} className="text-xl font-black text-gray-400 hover:text-logo-purple p-1 cursor-pointer">×</button>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="no-products text-center py-16 text-sm text-gray-500 font-medium">
-                No artworks match the selection criteria.
+                  {renderFilters()}
+                </div>
               </div>
             )}
+
+            <div className="products-section flex-1">
+              {!loading && !error && (
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-xs text-gray-500">
+                    {pagination.total} artwork{pagination.total === 1 ? '' : 's'} found
+                  </p>
+                  {(searchTerm || typeFilter || categoryFilter || minPrice || maxPrice || inStockOnly) && (
+                    <button
+                      type="button"
+                      className="text-xs font-bold text-logo-purple hover:underline cursor-pointer"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setTypeFilter('');
+                        setCategoryFilter('');
+                        setMinPrice('');
+                        setMaxPrice('');
+                        setInStockOnly(false);
+                        setSortBy('newest');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-10 h-10 border-4 border-logo-purple/30 border-t-logo-purple rounded-full animate-spin"></div>
+                  <p className="mt-4 text-xs text-gray-500 font-medium tracking-tight">Discovering masterpieces...</p>
+                </div>
+              ) : error ? (
+                <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 p-6 rounded-2xl text-center">
+                  <p className="text-red-650 dark:text-red-400 text-sm font-bold mb-2">{error}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : products.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map((product) => (
+                      <ProductCard key={product._id} product={product} />
+                    ))}
+                  </div>
+
+                  {pagination.pages > 1 && (
+                    <div className="flex justify-center items-center gap-1.5 mt-10">
+                      <button
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 text-xs border border-gray-300 dark:border-border-dark rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                      >
+                        Previous
+                      </button>
+                      <div className="flex gap-1">
+                        {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`px-2.5 py-1.5 text-xs rounded-lg border cursor-pointer ${
+                              currentPage === page
+                                ? 'bg-logo-purple text-white border-logo-purple font-semibold'
+                                : 'border-gray-300 dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-850'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
+                        disabled={currentPage === pagination.pages}
+                        className="px-3 py-1.5 text-xs border border-gray-300 dark:border-border-dark rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-805 cursor-pointer"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="no-products text-center py-16 text-sm text-gray-500 font-medium">
+                  No artworks match the selection criteria.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
