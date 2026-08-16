@@ -710,9 +710,13 @@ router.get('/phonepe/status/:orderId', authMiddleware, async (req, res, next) =>
       let updatedOrder = order;
       if (mappedStatus === 'succeeded') {
         updatedOrder = await fulfillOrder(order);
-      } else if (mappedStatus === 'failed' && order.status === 'created') {
-        order.status = 'failed';
-        updatedOrder = await order.save();
+      } else if (mappedStatus === 'failed') {
+        await Order.findByIdAndDelete(order._id);
+        return res.json({
+          order: null,
+          providerState,
+          providerStatus: 'failed',
+        });
       }
 
       return res.json({

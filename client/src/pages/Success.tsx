@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { CheckCircle, Package, Truck, ArrowRight, ShoppingBag } from 'lucide-react';
 import { CartContext } from '../contexts/CartContext';
 
@@ -27,6 +28,7 @@ interface Order {
 const Success: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { clearCart } = useContext(CartContext)!;
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,11 @@ const Success: React.FC = () => {
 
         if (gateway === 'phonepe') {
           const syncRes = await axios.get(`/api/payments/phonepe/status/${orderId}`);
+          if (syncRes.data.order === null || syncRes.data.order?.status === 'failed' || syncRes.data.providerStatus === 'failed') {
+            toast.error('Payment failed. You have been redirected to the checkout page.');
+            navigate('/checkout', { replace: true });
+            return;
+          }
           setOrder(syncRes.data.order);
           if (syncRes.data.order?.status === 'succeeded') {
             clearCart();
