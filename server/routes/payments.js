@@ -503,7 +503,12 @@ async function fulfillOrder(order) {
     return fulfillOrderWithoutTransaction(order);
   }
 
-  return fulfillOrderWithTransaction(order);
+  try {
+    return await fulfillOrderWithTransaction(order);
+  } catch (error) {
+    console.warn('Transaction failed, falling back to non-transactional order fulfillment:', error.message);
+    return await fulfillOrderWithoutTransaction(order);
+  }
 }
 
 async function buildCheckoutContext(items) {
@@ -598,7 +603,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
         status: 'created',
         expectedDeliveryDate,
       });
-      await sendOrderCreatedNotifications(order);
+      sendOrderCreatedNotifications(order).catch((error) => console.error('Background order creation notification failed:', error));
 
       try {
         const redirectBase = process.env.PHONEPE_REDIRECT_BASE_URL || process.env.CLIENT_URL || 'http://localhost:5173';
@@ -675,7 +680,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
       status: 'created',
       expectedDeliveryDate,
     });
-    await sendOrderCreatedNotifications(order);
+    sendOrderCreatedNotifications(order).catch((error) => console.error('Background order creation notification failed:', error));
 
     if (paymentProvider === 'mock') {
       await fulfillOrder(order);
