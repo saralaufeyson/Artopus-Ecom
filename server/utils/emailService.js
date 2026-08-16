@@ -33,6 +33,11 @@ class EmailService {
           user,
           pass,
         },
+        tls: {
+          rejectUnauthorized: false,
+        },
+        connectionTimeout: 15000, // 15 seconds
+        socketTimeout: 15000, // 15 seconds
       });
 
       this.fromAddress = from;
