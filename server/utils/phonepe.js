@@ -5,19 +5,27 @@ let clientInstance = null;
 function getClientInstance() {
   if (!clientInstance) {
     const clientId = process.env.PHONEPE_CLIENT_ID;
-    const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
-    
-    let version = process.env.PHONEPE_CLIENT_VERSION || '1';
-    if (version.startsWith('v')) {
-      version = version.slice(1);
+    let clientSecret = process.env.PHONEPE_CLIENT_SECRET || '';
+    let saltIndex = 1;
+
+    // Auto-extract salt key and salt index if concatenated as key###index
+    if (clientSecret.includes('###')) {
+      const parts = clientSecret.split('###');
+      clientSecret = parts[0];
+      saltIndex = parseInt(parts[1], 10) || 1;
+    } else {
+      let version = process.env.PHONEPE_CLIENT_VERSION || '1';
+      if (version.startsWith('v')) {
+        version = version.slice(1);
+      }
+      saltIndex = parseInt(version, 10) || 1;
     }
-    const clientVersion = parseInt(version, 10) || 1;
 
     // Use PHONEPE_ENV to determine environment (default to SANDBOX if not explicitly set to PRODUCTION)
     const isProduction = process.env.PHONEPE_ENV === 'PRODUCTION';
     const env = isProduction ? Env.PRODUCTION : Env.SANDBOX;
 
-    clientInstance = StandardCheckoutClient.getInstance(clientId, clientSecret, clientVersion, env);
+    clientInstance = StandardCheckoutClient.getInstance(clientId, clientSecret, saltIndex, env);
   }
   return clientInstance;
 }
@@ -95,8 +103,14 @@ export function validatePhonePeCallback(body, headers) {
   const xVerify = headers['x-verify'] || headers['x-verify-signature'];
   if (!response || !xVerify) return false;
 
-  const saltKey = process.env.PHONEPE_CLIENT_SECRET;
-  const saltIndex = process.env.PHONEPE_SALT_INDEX || '1';
+  let saltKey = process.env.PHONEPE_CLIENT_SECRET || '';
+  let saltIndex = process.env.PHONEPE_SALT_INDEX || '1';
+
+  if (saltKey.includes('###')) {
+    const parts = saltKey.split('###');
+    saltKey = parts[0];
+    saltIndex = parts[1];
+  }
 
   const hash = crypto.createHash('sha256')
     .update(response + saltKey)
