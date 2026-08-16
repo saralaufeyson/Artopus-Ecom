@@ -1,6 +1,5 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CartContext } from '../contexts/CartContext';
 import { AuthContext } from '../contexts/AuthContext';
 import { useCollections } from '../contexts/CollectionsContext';
 import { toast } from 'react-toastify';
@@ -32,7 +31,6 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { addToCart } = useContext(CartContext)!;
   const auth = useContext(AuthContext);
 
   const isOriginal = product.type === 'original-artwork';
@@ -41,27 +39,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
   const { wishlistIds, toggleWishlist } = useCollections();
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!auth?.user) {
-      // Store current location for redirect after login
-      localStorage.setItem('redirectAfterLogin', window.location.pathname);
-      toast.info('Please login to add items to cart');
-      navigate('/login');
-      return;
-    }
-
-    if ((product.stockQuantity ?? 0) <= 0) {
-      toast.error('Item is out of stock');
-      return;
-    }
-
-    // Convert _id to id if CartContext expects id
-    const success = addToCart({ ...product, id: product._id, image: getOptimizedImageUrl(product.imageUrl) });
-    if (success) {
-      toast.success('Added to cart!');
-    }
-  };
 
   const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -154,17 +131,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           >
             Details
           </Link>
-          <button
-            onClick={handleAddToCart}
-            disabled={(product.stockQuantity ?? 0) <= 0}
-            className={`flex-[1.5] py-2 rounded-xl font-bold text-xs transition-all shadow-sm ${
-              (product.stockQuantity ?? 0) > 0 
-                ? 'bg-logo-purple text-white hover:opacity-90 active:scale-95 shadow-logo-purple/10' 
-                : 'bg-gray-150 dark:bg-gray-800 text-gray-400 dark:text-gray-505 cursor-not-allowed shadow-none'
-            }`}
-          >
-            {(product.stockQuantity ?? 0) > 0 ? 'Add to Cart' : 'Out of Stock'}
-          </button>
+          {(product.stockQuantity ?? 0) > 0 ? (
+            <Link
+              to={`/product/${product._id}`}
+              className="flex-[1.5] text-center py-2 rounded-xl font-bold text-xs bg-logo-purple text-white hover:opacity-90 active:scale-95 shadow-sm shadow-logo-purple/10"
+            >
+              Add to Cart
+            </Link>
+          ) : (
+            <button
+              disabled
+              className="flex-[1.5] py-2 rounded-xl font-bold text-xs transition-all bg-gray-150 dark:bg-gray-800 text-gray-400 dark:text-gray-505 cursor-not-allowed shadow-none"
+            >
+              Out of Stock
+            </button>
+          )}
         </div>
       </div>
     </div>

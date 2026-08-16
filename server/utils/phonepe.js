@@ -13,8 +13,8 @@ function getClientInstance() {
     }
     const clientVersion = parseInt(version, 10) || 1;
 
-    // Use PHONEPE_ENV if set, otherwise check NODE_ENV or default to SANDBOX
-    const isProduction = process.env.PHONEPE_ENV === 'PRODUCTION' || process.env.NODE_ENV === 'production';
+    // Use PHONEPE_ENV to determine environment (default to SANDBOX if not explicitly set to PRODUCTION)
+    const isProduction = process.env.PHONEPE_ENV === 'PRODUCTION';
     const env = isProduction ? Env.PRODUCTION : Env.SANDBOX;
 
     clientInstance = StandardCheckoutClient.getInstance(clientId, clientSecret, clientVersion, env);

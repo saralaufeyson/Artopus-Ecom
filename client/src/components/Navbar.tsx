@@ -38,16 +38,33 @@ function Navbar() {
           </span>
         </Link>
 
-        {/* Mobile menu button */}
-        <button
-          className="lg:hidden flex flex-col gap-1.5 p-2 bg-transparent border-none cursor-pointer group"
-          onClick={toggleMenu}
-          aria-label="Toggle menu"
-        >
-          <span className="w-6 h-0.5 bg-gray-900 dark:bg-white group-hover:bg-logo-purple transition-all"></span>
-          <span className="w-6 h-0.5 bg-gray-900 dark:bg-white group-hover:bg-logo-purple transition-all"></span>
-          <span className="w-6 h-0.5 bg-gray-900 dark:bg-white group-hover:bg-logo-purple transition-all"></span>
-        </button>
+        {/* Mobile controls */}
+        <div className="flex lg:hidden items-center gap-4">
+          {user?.role !== 'admin' && user?.role !== 'artist' && (
+            <Link to="/cart" className="relative group p-2 text-gray-700 dark:text-gray-300 hover:text-logo-purple transition-colors" onClick={closeMenu}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform">
+                <path d="M9 2L7 4M15 2l2 2M7 4h10l1 9H6l1-9z" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="9" cy="19" r="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="17" cy="19" r="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {cart.length > 0 && (
+                <span className="absolute top-0 right-0 bg-logo-purple text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-lg shadow-logo-purple/30">
+                  {cart.reduce((total, item) => total + item.quantity, 0)}
+                </span>
+              )}
+            </Link>
+          )}
+
+          <button
+            className="flex flex-col gap-1.5 p-2 bg-transparent border-none cursor-pointer group"
+            onClick={toggleMenu}
+            aria-label="Toggle menu"
+          >
+            <span className="w-6 h-0.5 bg-gray-900 dark:bg-white group-hover:bg-logo-purple transition-all"></span>
+            <span className="w-6 h-0.5 bg-gray-900 dark:bg-white group-hover:bg-logo-purple transition-all"></span>
+            <span className="w-6 h-0.5 bg-gray-900 dark:bg-white group-hover:bg-logo-purple transition-all"></span>
+          </button>
+        </div>
 
         {/* Desktop menu */}
         <ul className="hidden lg:flex gap-8 list-none items-center">
