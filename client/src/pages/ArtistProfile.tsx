@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { AuthContext } from '../contexts/AuthContext';
@@ -14,12 +14,18 @@ interface Artist {
   penName?: string;
   email: string;
   bio?: string;
+  artistStatement?: string;
+  location?: string;
+  artCategories?: string[];
+  artStyles?: string[];
+  mediums?: string[];
   profileImage?: string;
   socialLinks?: {
     website?: string;
     instagram?: string;
     twitter?: string;
     facebook?: string;
+    youtube?: string;
   };
   paymentDetails?: {
     upiId?: string;
@@ -76,7 +82,7 @@ const ArtistProfile: React.FC = () => {
     },
   });
 
-  const isOwnProfile = auth?.user?.role === 'artist' && artist && (artist.userId === auth?.user?.id);
+  const isOwnProfile = auth?.user?.role === 'artist' && artist && String(artist.userId) === String(auth?.user?.id);
 
   useEffect(() => {
     const fetchArtistData = async () => {
@@ -477,13 +483,13 @@ const ArtistProfile: React.FC = () => {
                     {artist.artistName}
                   </h1>
                   {isOwnProfile && (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      title="Edit Profile"
+                    <Link
+                      to="/artist-profile/edit"
+                      className="flex items-center gap-2 rounded-xl bg-logo-purple px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-logo-purple/90"
                     >
-                      <Edit3 size={20} className="text-gray-600 dark:text-gray-300" />
-                    </button>
+                      <Edit3 size={17} />
+                      Edit Profile
+                    </Link>
                   )}
                 </div>
                 {artist.penName && (
@@ -516,7 +522,24 @@ const ArtistProfile: React.FC = () => {
                       Facebook
                     </a>
                   )}
+                  {artist.socialLinks?.youtube && (
+                    <a href={artist.socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="social-btn">
+                      YouTube
+                    </a>
+                  )}
                 </div>
+
+                {(artist.location || artist.artistStatement || artist.artCategories?.length || artist.artStyles?.length || artist.mediums?.length) && (
+                  <div className="mt-8 space-y-3 text-left">
+                    {artist.location && <p className="text-sm text-gray-500"><strong>Based in:</strong> {artist.location}</p>}
+                    {artist.artistStatement && <p className="text-sm italic text-gray-600 dark:text-gray-300">{artist.artistStatement}</p>}
+                    {(artist.artCategories?.length || artist.artStyles?.length || artist.mediums?.length) && (
+                      <div className="flex flex-wrap gap-2">
+                        {[...(artist.artCategories || []), ...(artist.artStyles || []), ...(artist.mediums || [])].map((item) => <span key={item} className="rounded-full bg-logo-purple/10 px-3 py-1 text-xs font-bold text-logo-purple">{item}</span>)}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {isOwnProfile && artist.paymentDetails && (artist.paymentDetails.upiId || artist.paymentDetails.accountNumber) && (
                   <div className="mt-8 p-6 rounded-3xl bg-logo-purple/5 border border-logo-purple/10 max-w-2xl text-left">

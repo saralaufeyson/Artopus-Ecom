@@ -1,5 +1,6 @@
 import express from 'express';
 import Artist from '../models/Artist.js';
+import User from '../models/User.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import Wallet from '../models/Wallet.js';
@@ -8,14 +9,24 @@ import { sendAdminPayoutRequestNotification } from '../utils/email.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { artistMiddleware } from '../middleware/artist.js';
 import { validate } from '../middleware/validate.js';
-import { artistProductSchema, walletWithdrawalSchema } from '../validation/schemas.js';
+import { artistProductSchema, artistProfileUpdateSchema, payoutAccountSchema, walletWithdrawalSchema } from '../validation/schemas.js';
 import { notifyRole, notifyUsers } from '../utils/notifications.js';
 import { getUploadedImageUrl, createUploadParser } from '../utils/upload.js';
+import { encryptPayoutValue, payoutAccountView } from '../utils/payoutAccount.js';
 
 const router = express.Router();
+const MIN_PAYOUT_AMOUNT = Number(process.env.MIN_PAYOUT_AMOUNT || 100);
 
 async function getArtistForUser(userId) {
   return Artist.findOne({ userId, isActive: true });
+}
+
+function artistWalletView(artist) {
+  const value = artist.toObject();
+  delete value.paymentDetails;
+  delete value.address;
+  value.payoutAccount = payoutAccountView(artist.payoutAccount);
+  return value;
 }
 
 router.get('/dashboard', authMiddleware, artistMiddleware, async (req, res, next) => {
@@ -36,7 +47,7 @@ router.get('/dashboard', authMiddleware, artistMiddleware, async (req, res, next
       .reduce((sum, item) => sum + item.amount + item.commissionAmount, 0);
 
     res.json({
-      artist,
+      artist: artistWalletView(artist),
       stats: {
         totalProducts: products.length,
         approvedProducts,
@@ -60,7 +71,10 @@ router.get('/profile', authMiddleware, artistMiddleware, async (req, res, next) 
   try {
     const artist = await getArtistForUser(req.user._id);
     if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
-    res.json(artist);
+    const profile = artist.toObject();
+    delete profile.paymentDetails;
+    profile.payoutAccount = payoutAccountView(artist.payoutAccount);
+    res.json(profile);
   } catch (err) {
     next(err);
   }
@@ -71,13 +85,16 @@ router.put('/profile', authMiddleware, artistMiddleware, async (req, res, next) 
     const artist = await getArtistForUser(req.user._id);
     if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
 
+    const { error } = artistProfileUpdateSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+    if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map((detail) => detail.message) });
+
     // Strictly remove protected fields to prevent tampering
     const protectedFields = ['email', 'walletBalance', 'lifetimeEarnings', 'totalWithdrawn', 'commissionRate', 'userId', 'isActive', '_id'];
     const updates = { ...req.body };
     protectedFields.forEach((field) => delete updates[field]);
 
     // Allow only specific fields to be updated
-    const allowedUpdates = ['artistName', 'penName', 'bio', 'profileImage', 'socialLinks', 'paymentDetails'];
+    const allowedUpdates = ['artistName', 'penName', 'bio', 'artistStatement', 'location', 'artCategories', 'artStyles', 'mediums', 'profileImage', 'socialLinks', 'address'];
     const filteredUpdates = {};
     allowedUpdates.forEach((field) => {
       if (updates[field] !== undefined) {
@@ -92,17 +109,7 @@ router.put('/profile', authMiddleware, artistMiddleware, async (req, res, next) 
         instagram: updates.socialLinks.instagram ?? artist.socialLinks?.instagram,
         twitter: updates.socialLinks.twitter ?? artist.socialLinks?.twitter,
         facebook: updates.socialLinks.facebook ?? artist.socialLinks?.facebook,
-      };
-    }
-
-    // Handle paymentDetails nested object
-    if (updates.paymentDetails) {
-      filteredUpdates.paymentDetails = {
-        upiId: updates.paymentDetails.upiId ?? artist.paymentDetails?.upiId,
-        bankName: updates.paymentDetails.bankName ?? artist.paymentDetails?.bankName,
-        accountNumber: updates.paymentDetails.accountNumber ?? artist.paymentDetails?.accountNumber,
-        ifscCode: updates.paymentDetails.ifscCode ?? artist.paymentDetails?.ifscCode,
-        accountHolderName: updates.paymentDetails.accountHolderName ?? artist.paymentDetails?.accountHolderName,
+        youtube: updates.socialLinks.youtube ?? artist.socialLinks?.youtube,
       };
     }
 
@@ -111,6 +118,10 @@ router.put('/profile', authMiddleware, artistMiddleware, async (req, res, next) 
       { $set: filteredUpdates },
       { new: true, runValidators: true }
     );
+
+    if (req.body.phone !== undefined) {
+      await User.findByIdAndUpdate(req.user._id, { phone: req.body.phone });
+    }
 
     res.json(updatedArtist);
   } catch (err) {
@@ -324,6 +335,62 @@ router.put('/products/:id', authMiddleware, artistMiddleware, (req, res, next) =
   }
 });
 
+router.get('/payout-account', authMiddleware, artistMiddleware, async (req, res, next) => {
+  try {
+    const artist = await getArtistForUser(req.user._id);
+    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+    res.json({ payoutAccount: payoutAccountView(artist.payoutAccount) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/payout-account', authMiddleware, artistMiddleware, async (req, res, next) => {
+  try {
+    const artist = await getArtistForUser(req.user._id);
+    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+    const { error, value } = payoutAccountSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
+    if (error) return res.status(400).json({ message: 'Invalid payout account details', details: error.details.map((detail) => detail.message) });
+
+    artist.payoutAccount = {
+      accountHolderName: value.accountHolderName,
+      accountNumberEncrypted: encryptPayoutValue(value.accountNumber),
+      accountNumberLast4: value.accountNumber.slice(-4),
+      ifscCode: value.ifscCode,
+      bankName: value.bankName,
+      accountType: value.accountType,
+      upiId: value.upiId || '',
+      verificationStatus: 'pending',
+      verificationReason: undefined,
+      updatedAt: new Date(),
+    };
+    await artist.save();
+    await notifyUsers([req.user._id], {
+      type: 'payout_account_added',
+      title: 'Payout account saved',
+      message: 'Your payout account is pending verification.',
+      link: '/artist-earnings',
+    });
+    res.json({ payoutAccount: payoutAccountView(artist.payoutAccount) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete('/payout-account', authMiddleware, artistMiddleware, async (req, res, next) => {
+  try {
+    const artist = await getArtistForUser(req.user._id);
+    if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+    const pendingPayout = await WalletTransaction.exists({ artist: artist._id, type: 'withdrawal_request', status: 'pending' });
+    if (pendingPayout) return res.status(409).json({ message: 'Cannot remove the payout account while a payout is pending' });
+    artist.payoutAccount = undefined;
+    await artist.save();
+    res.json({ message: 'Payout account removed' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/wallet', authMiddleware, artistMiddleware, async (req, res, next) => {
   try {
     const artist = await getArtistForUser(req.user._id);
@@ -335,9 +402,11 @@ router.get('/wallet', authMiddleware, artistMiddleware, async (req, res, next) =
     ]);
 
     res.json({
-      artist,
+      artist: artistWalletView(artist),
       wallet,
       transactions,
+      payoutAccount: payoutAccountView(artist.payoutAccount),
+      minimumPayoutAmount: MIN_PAYOUT_AMOUNT,
     });
   } catch (err) {
     next(err);
@@ -348,6 +417,11 @@ router.post('/wallet/withdrawals', authMiddleware, artistMiddleware, validate(wa
   try {
     const artist = await getArtistForUser(req.user._id);
     if (!artist) return res.status(404).json({ message: 'Artist profile not found' });
+    if (!artist.payoutAccount) return res.status(400).json({ message: 'Add a payout account before requesting a withdrawal.', code: 'PAYOUT_ACCOUNT_MISSING' });
+    if (artist.payoutAccount.verificationStatus !== 'verified') return res.status(400).json({ message: 'Your payout account must be verified before requesting a payout.', code: 'PAYOUT_ACCOUNT_UNVERIFIED' });
+    if (req.body.amount < MIN_PAYOUT_AMOUNT) return res.status(400).json({ message: `The minimum payout amount is ₹${MIN_PAYOUT_AMOUNT}.`, code: 'PAYOUT_BELOW_MINIMUM' });
+    const pendingPayout = await WalletTransaction.exists({ artist: artist._id, type: 'withdrawal_request', status: 'pending' });
+    if (pendingPayout) return res.status(409).json({ message: 'You already have a pending payout request.', code: 'PAYOUT_ALREADY_PENDING' });
     if (req.body.amount > artist.walletBalance) {
       return res.status(400).json({ message: 'Withdrawal amount exceeds wallet balance' });
     }
@@ -369,6 +443,9 @@ router.post('/wallet/withdrawals', authMiddleware, artistMiddleware, validate(wa
       note: req.body.note || 'Artist withdrawal request',
       metadata: {
         requestedBy: req.user._id,
+        payoutStatus: 'requested',
+        payoutAccountLast4: artist.payoutAccount.accountNumberLast4,
+        payoutAccountUpdatedAt: artist.payoutAccount.updatedAt,
       },
     });
 

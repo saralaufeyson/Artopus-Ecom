@@ -1,182 +1,48 @@
 import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AuthContext } from '../contexts/AuthContext';
 
-interface Artist {
-  _id: string;
-  artistName: string;
-  email: string;
-  walletBalance: number;
-  lifetimeEarnings: number;
-  totalWithdrawn: number;
-}
-
-interface Transaction {
-  _id: string;
-  amount: number;
-  type: string;
-  status: string;
-  note: string;
-  createdAt: string;
-}
+type PayoutAccount = { accountHolderName: string; bankName: string; accountType: string; ifscCode: string; maskedAccountNumber: string; upiId?: string; verificationStatus: string; verificationReason?: string };
+type Artist = { walletBalance: number; lifetimeEarnings: number; totalWithdrawn: number };
+type Transaction = { _id: string; amount: number; type: string; status: string; note?: string; payoutReference?: string; failureReason?: string; metadata?: { payoutStatus?: string }; createdAt: string };
+const statusLabel = (status: string) => ({ pending: 'Requested', completed: 'Paid', rejected: 'Rejected' }[status] || status);
+const emptyForm = { accountHolderName: '', accountNumber: '', confirmAccountNumber: '', ifscCode: '', bankName: '', accountType: 'savings', upiId: '' };
 
 const ArtistEarnings: React.FC = () => {
   const { user } = useContext(AuthContext)!;
   const [artist, setArtist] = useState<Artist | null>(null);
+  const [account, setAccount] = useState<PayoutAccount | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingAccount, setSavingAccount] = useState(false);
   const [requestingPayout, setRequestingPayout] = useState(false);
+  const [showAccountForm, setShowAccountForm] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [minimumPayoutAmount, setMinimumPayoutAmount] = useState(100);
 
-  useEffect(() => {
-    const fetchWalletData = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get('/api/artist-portal/wallet');
-        setArtist(res.data.artist);
-        setTransactions(res.data.transactions);
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Failed to load wallet data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      fetchWalletData();
-    }
-  }, [user]);
-
-  const handleRequestPayout = async () => {
-    if (!artist || artist.walletBalance <= 0) {
-      toast.error('No balance available for payout');
-      return;
-    }
-
-    setRequestingPayout(true);
-    try {
-      await axios.post('/api/artist-portal/wallet/withdrawals', {
-        amount: artist.walletBalance,
-        note: 'Full balance payout request',
-      });
-      toast.success('Payout request submitted successfully');
-      // Refresh data
-      const res = await axios.get('/api/artist-portal/wallet');
-      setArtist(res.data.artist);
-      setTransactions(res.data.transactions);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to request payout');
-    } finally {
-      setRequestingPayout(false);
-    }
-  };
-
-  const withdrawalHistory = transactions.filter(t => t.type === 'withdrawal_request');
-
-  if (loading) {
-    return <div className="container-custom py-20 text-center">Loading earnings data...</div>;
-  }
-
-  if (!artist) {
-    return <div className="container-custom py-20 text-center">Artist profile not found</div>;
-  }
-
-  return (
-    <div className="container-custom py-10">
-      <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-8">My Earnings</h1>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">Current Balance</h3>
-          <p className="text-3xl font-bold text-green-600">₹{artist.walletBalance.toFixed(2)}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">Total Lifetime Earnings</h3>
-          <p className="text-3xl font-bold text-blue-600">₹{artist.lifetimeEarnings.toFixed(2)}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 shadow-lg">
-          <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">Total Withdrawn</h3>
-          <p className="text-3xl font-bold text-purple-600">₹{artist.totalWithdrawn.toFixed(2)}</p>
-        </div>
-      </div>
-
-      {/* Request Payout Button */}
-      <div className="mb-10">
-        <button
-          onClick={handleRequestPayout}
-          disabled={requestingPayout || artist.walletBalance <= 0}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold rounded-xl transition-all duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-        >
-          {requestingPayout ? 'Requesting...' : 'Request Payout'}
-        </button>
-        {artist.walletBalance <= 0 && (
-          <p className="text-sm text-gray-500 mt-2">No balance available for payout</p>
-        )}
-      </div>
-
-      {/* Withdrawal History Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Withdrawal History</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Note
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
-              {withdrawalHistory.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                    No withdrawal history yet
-                  </td>
-                </tr>
-              ) : (
-                withdrawalHistory.map((transaction) => (
-                  <tr key={transaction._id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {new Date(transaction.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      ₹{transaction.amount.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        transaction.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : transaction.status === 'completed'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                      }`}>
-                        {transaction.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
-                      {transaction.note}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+  const load = async () => { const res = await axios.get('/api/artist-portal/wallet'); setArtist(res.data.artist); setAccount(res.data.payoutAccount || null); setTransactions(res.data.transactions || []); setMinimumPayoutAmount(Number(res.data.minimumPayoutAmount || 100)); };
+  useEffect(() => { if (user) load().catch(() => toast.error('Failed to load wallet data')).finally(() => setLoading(false)); }, [user]);
+  const update = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+  const openEdit = () => { if (account) setForm({ accountHolderName: account.accountHolderName, accountNumber: '', confirmAccountNumber: '', ifscCode: account.ifscCode, bankName: account.bankName, accountType: account.accountType || 'savings', upiId: account.upiId || '' }); setShowAccountForm(true); };
+  const saveAccount = async (event: React.FormEvent) => { event.preventDefault(); if (form.accountNumber !== form.confirmAccountNumber) return toast.error('Account numbers do not match'); setSavingAccount(true); try { const res = await axios.put('/api/artist-portal/payout-account', form); setAccount(res.data.payoutAccount); setShowAccountForm(false); setForm({ ...form, accountNumber: '', confirmAccountNumber: '' }); toast.success('Payout account saved and submitted for verification'); } catch (error: any) { toast.error(error.response?.data?.message || 'Unable to save payout account'); } finally { setSavingAccount(false); } };
+  const removeAccount = async () => { if (!window.confirm('Are you sure you want to remove this payout account?')) return; try { await axios.delete('/api/artist-portal/payout-account'); setAccount(null); toast.success('Payout account removed'); } catch (error: any) { toast.error(error.response?.data?.message || 'Unable to remove payout account'); } };
+  const requestPayout = async () => { if (!artist) return; setRequestingPayout(true); try { await axios.post('/api/artist-portal/wallet/withdrawals', { amount: artist.walletBalance, note: 'Full balance payout request' }); toast.success('Payout requested'); setShowConfirmation(false); await load(); } catch (error: any) { toast.error(error.response?.data?.message || 'Unable to request payout'); } finally { setRequestingPayout(false); } };
+  if (loading) return <div className="container-custom py-20 text-center">Loading earnings data...</div>;
+  if (!artist) return <div className="container-custom py-20 text-center">Artist profile not found</div>;
+  const payoutHistory = transactions.filter((item) => item.type === 'withdrawal_request' || item.type === 'withdrawal_paid');
+  const canRequest = Boolean(account?.verificationStatus === 'verified' && artist.walletBalance >= minimumPayoutAmount && !payoutHistory.some((item) => item.status === 'pending'));
+  const inputClass = 'auth-input w-full';
+  return <div className="container-custom space-y-8 py-10">
+    <div><h1 className="text-4xl font-black text-gray-900 dark:text-white">Earnings & Payouts</h1><p className="mt-1 text-sm text-gray-500">Manage your payout destination and track withdrawal requests.</p></div>
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{[['Current Balance', artist.walletBalance, 'text-green-500'], ['Available for Payout', artist.walletBalance, 'text-logo-purple'], ['Lifetime Earnings', artist.lifetimeEarnings, 'text-blue-500'], ['Total Withdrawn', artist.totalWithdrawn, 'text-purple-500']].map(([label, value, color]) => <div key={String(label)} className="rounded-3xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"><p className="text-xs font-bold uppercase text-gray-500">{label}</p><p className={`mt-2 text-3xl font-black ${color}`}>₹{Number(value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p></div>)}</div>
+    <section className="rounded-3xl border border-gray-100 bg-white p-6 dark:border-gray-800 dark:bg-gray-900"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-2xl font-black text-gray-900 dark:text-white">Payout Account</h2>{account ? <><p className="mt-2 font-bold text-gray-900 dark:text-white">Bank Account {account.maskedAccountNumber}</p><p className="text-sm text-gray-500">Account Holder: {account.accountHolderName} · IFSC: {account.ifscCode}</p><span className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold uppercase ${account.verificationStatus === 'verified' ? 'bg-green-100 text-green-700' : account.verificationStatus === 'failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{account.verificationStatus === 'pending' ? 'Pending Verification' : account.verificationStatus}</span>{account.verificationReason && <p className="mt-2 text-xs text-red-500">{account.verificationReason}</p>}</> : <p className="mt-2 text-sm text-gray-500">No payout account configured</p>}</div><div className="flex flex-wrap gap-2">{account ? <><button onClick={openEdit} className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold dark:border-gray-700">Edit Bank Account</button><button onClick={removeAccount} className="rounded-xl px-4 py-2 text-sm font-bold text-red-500">Remove Bank Account</button></> : <button onClick={openEdit} className="rounded-xl bg-logo-purple px-4 py-2 text-sm font-bold text-white">Add Bank Account</button>}</div></div>{account?.verificationStatus !== 'verified' && <p className="mt-5 rounded-2xl bg-yellow-500/10 p-4 text-sm text-yellow-700 dark:text-yellow-300">{account ? 'Your payout account must be verified before requesting a payout.' : 'Add a verified bank account to request a payout.'}</p>}</section>
+    <div className="flex flex-wrap items-center gap-4"><button onClick={() => { if (!account) return toast.error('Add a payout account before requesting a withdrawal.'); if (account.verificationStatus !== 'verified') return toast.error('Your payout account must be verified before requesting a payout.'); if (artist.walletBalance < minimumPayoutAmount) return toast.error(`Your available balance is below the minimum payout amount of ₹${minimumPayoutAmount}.`); setShowConfirmation(true); }} disabled={requestingPayout || !canRequest} className="rounded-xl bg-logo-purple px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">{requestingPayout ? 'Requesting...' : 'Request Payout'}</button><span className="text-sm text-gray-500">{artist.walletBalance < minimumPayoutAmount ? `Minimum payout: ₹${minimumPayoutAmount}` : !account ? 'Add a payout account to continue' : account.verificationStatus !== 'verified' ? 'Waiting for account verification' : ''}</span><Link to="/artist-dashboard" className="text-sm font-bold text-logo-purple">Back to Dashboard</Link></div>
+    <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900"><div className="border-b border-gray-100 p-6 dark:border-gray-800"><h2 className="text-2xl font-black text-gray-900 dark:text-white">Withdrawal History</h2></div><div className="overflow-x-auto"><table className="w-full text-left"><thead><tr className="text-xs uppercase text-gray-500"><th className="p-5">Date</th><th className="p-5">Amount</th><th className="p-5">Status</th><th className="p-5">Reference</th></tr></thead><tbody>{payoutHistory.map((item) => <tr key={item._id} className="border-t border-gray-100 text-sm dark:border-gray-800"><td className="p-5">{new Date(item.createdAt).toLocaleDateString('en-IN')}</td><td className="p-5 font-bold">₹{item.amount.toFixed(2)}</td><td className="p-5"><span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold dark:bg-gray-800">{statusLabel(item.status)}</span>{item.failureReason && <p className="mt-1 text-xs text-red-500">{item.failureReason}</p>}</td><td className="p-5 text-gray-500">{item.payoutReference || 'Pending assignment'}</td></tr>)}</tbody></table>{payoutHistory.length === 0 && <p className="p-8 text-center text-sm text-gray-500">No withdrawal history yet</p>}</div></section>
+    {showAccountForm && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><form onSubmit={saveAccount} className="max-h-[90vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-3xl bg-white p-6 dark:bg-gray-900"><h2 className="text-2xl font-black text-gray-900 dark:text-white">{account ? 'Edit Bank Account' : 'Add Bank Account'}</h2><p className="text-sm text-gray-500">Details are encrypted and only the last four account digits are displayed after saving.</p><div className="grid gap-4 sm:grid-cols-2">{(['accountHolderName', 'accountNumber', 'confirmAccountNumber', 'ifscCode', 'bankName', 'upiId'] as const).map((field) => <label key={field} className="space-y-2 text-sm font-bold text-gray-700 dark:text-gray-300"><span>{field === 'accountHolderName' ? 'Account Holder Name' : field === 'confirmAccountNumber' ? 'Confirm Account Number' : field === 'ifscCode' ? 'IFSC Code' : field === 'bankName' ? 'Bank Name' : field === 'upiId' ? 'UPI ID (optional)' : 'Account Number'}</span><input type={field.includes('accountNumber') ? 'password' : 'text'} required={field !== 'upiId'} className={inputClass} value={form[field]} onChange={(e) => update(field, e.target.value)} /></label>)}<label className="space-y-2 text-sm font-bold text-gray-700 dark:text-gray-300"><span>Account Type</span><select className={inputClass} value={form.accountType} onChange={(e) => update('accountType', e.target.value)}><option value="savings">Savings</option><option value="current">Current</option></select></label></div><div className="flex justify-end gap-3"><button type="button" onClick={() => setShowAccountForm(false)} className="rounded-xl bg-gray-100 px-5 py-3 font-bold dark:bg-gray-800">Cancel</button><button disabled={savingAccount} className="rounded-xl bg-logo-purple px-5 py-3 font-bold text-white">{savingAccount ? 'Saving...' : 'Save / Verify'}</button></div></form></div>}
+    {showConfirmation && account && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><div className="w-full max-w-md space-y-5 rounded-3xl bg-white p-6 dark:bg-gray-900"><h2 className="text-2xl font-black text-gray-900 dark:text-white">Request Payout</h2><div className="space-y-2 text-sm"><p className="flex justify-between"><span>Available Balance</span><strong>₹{artist.walletBalance.toFixed(2)}</strong></p><p className="flex justify-between"><span>Payout Amount</span><strong>₹{artist.walletBalance.toFixed(2)}</strong></p><p className="flex justify-between"><span>Payout Account</span><strong>{account.maskedAccountNumber}</strong></p><p className="flex justify-between"><span>Account Holder</span><strong>{account.accountHolderName}</strong></p></div><div className="flex justify-end gap-3"><button onClick={() => setShowConfirmation(false)} className="rounded-xl bg-gray-100 px-5 py-3 font-bold dark:bg-gray-800">Cancel</button><button onClick={requestPayout} disabled={requestingPayout} className="rounded-xl bg-logo-purple px-5 py-3 font-bold text-white">Confirm Payout</button></div></div></div>}
+  </div>;
 };
-
 export default ArtistEarnings;

@@ -3,6 +3,7 @@ import User from '../models/User.js';
 import Artist from '../models/Artist.js';
 import WalletTransaction from '../models/WalletTransaction.js';
 import Wallet from '../models/Wallet.js';
+import { payoutAccountView } from '../utils/payoutAccount.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { adminMiddleware } from '../middleware/admin.js';
 import bcrypt from 'bcryptjs';
@@ -11,6 +12,23 @@ import { validate } from '../middleware/validate.js';
 import { notifyUsers } from '../utils/notifications.js';
 
 const router = express.Router();
+
+router.get('/artists', authMiddleware, adminMiddleware, async (req, res, next) => {
+  try {
+    const artists = await Artist.find({ isActive: true });
+    res.json(artists.map((artist) => ({
+      _id: artist._id,
+      artistName: artist.artistName,
+      email: artist.email,
+      walletBalance: artist.walletBalance,
+      lifetimeEarnings: artist.lifetimeEarnings,
+      totalWithdrawn: artist.totalWithdrawn,
+      payoutAccount: payoutAccountView(artist.payoutAccount),
+    })));
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/admin/users - Get all users (admin only)
 router.get('/users', authMiddleware, adminMiddleware, async (req, res, next) => {
@@ -98,16 +116,54 @@ router.delete('/users/:id', authMiddleware, adminMiddleware, async (req, res, ne
 });
 
 // GET /api/admin/withdrawals - List artist withdrawal requests
+router.get('/payout-accounts', authMiddleware, adminMiddleware, async (req, res, next) => {
+  try {
+    const artists = await Artist.find({ isActive: true, payoutAccount: { $exists: true } }).select('artistName payoutAccount');
+    res.json(artists.map((artist) => ({ _id: artist._id, artistName: artist.artistName, payoutAccount: payoutAccountView(artist.payoutAccount) })));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/withdrawals', authMiddleware, adminMiddleware, async (req, res, next) => {
   try {
     const withdrawals = await WalletTransaction.find({
       type: { $in: ['withdrawal_request', 'withdrawal_paid'] },
     })
       .sort({ createdAt: -1 })
-      .populate('artist', 'artistName walletBalance totalWithdrawn paymentDetails')
+      .populate('artist', 'artistName walletBalance totalWithdrawn payoutAccount')
       .populate('order', '_id');
 
-    res.json(withdrawals);
+    res.json(withdrawals.map((withdrawal) => {
+      const item = withdrawal.toObject();
+      if (item.artist) item.artist.payoutAccount = payoutAccountView(item.artist.payoutAccount);
+      return item;
+    }));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/admin/artists/:id/payout-account/verification
+router.patch('/artists/:id/payout-account/verification', authMiddleware, adminMiddleware, async (req, res, next) => {
+  try {
+    const allowedStatuses = ['pending', 'verified', 'failed', 'disabled'];
+    const { status, reason } = req.body;
+    if (!allowedStatuses.includes(status)) return res.status(400).json({ message: 'Invalid payout verification status' });
+    const artist = await Artist.findOne({ _id: req.params.id, isActive: true });
+    if (!artist || !artist.payoutAccount) return res.status(404).json({ message: 'Payout account not found' });
+    artist.payoutAccount.verificationStatus = status;
+    artist.payoutAccount.verificationReason = reason || undefined;
+    await artist.save();
+    if (artist.userId) {
+      await notifyUsers([artist.userId], {
+        type: `payout_account_${status}`,
+        title: `Payout account ${status}`,
+        message: status === 'verified' ? 'Your payout account has been verified.' : `Your payout account verification is ${status}.`,
+        link: '/artist-earnings',
+      });
+    }
+    res.json({ payoutAccount: payoutAccountView(artist.payoutAccount) });
   } catch (err) {
     next(err);
   }
@@ -119,6 +175,9 @@ router.post('/artists/:id/payout', authMiddleware, adminMiddleware, async (req, 
     const artist = await Artist.findById(req.params.id);
     if (!artist || !artist.isActive) {
       return res.status(404).json({ message: 'Artist not found' });
+    }
+    if (!artist.payoutAccount || artist.payoutAccount.verificationStatus !== 'verified') {
+      return res.status(400).json({ message: 'Artist payout account is not verified' });
     }
 
     const payoutAmount = Number(artist.walletBalance || 0);
@@ -165,7 +224,13 @@ router.post('/artists/:id/payout', authMiddleware, adminMiddleware, async (req, 
     res.status(201).json({
       message: 'Artist payout completed successfully',
       transaction: populated,
-      artist,
+      artist: {
+        _id: artist._id,
+        artistName: artist.artistName,
+        walletBalance: artist.walletBalance,
+        totalWithdrawn: artist.totalWithdrawn,
+        payoutAccount: payoutAccountView(artist.payoutAccount),
+      },
     });
   } catch (err) {
     next(err);
@@ -185,6 +250,9 @@ router.post('/withdrawals/:id/approve', authMiddleware, adminMiddleware, validat
 
     const artist = await Artist.findById(transaction.artist);
     if (!artist) return res.status(404).json({ message: 'Artist not found' });
+    if (!artist.payoutAccount || artist.payoutAccount.verificationStatus !== 'verified') {
+      return res.status(400).json({ message: 'Artist payout account is not verified' });
+    }
 
     transaction.type = 'withdrawal_paid';
     transaction.status = 'completed';
@@ -209,7 +277,7 @@ router.post('/withdrawals/:id/approve', authMiddleware, adminMiddleware, validat
       });
     }
 
-    const populated = await WalletTransaction.findById(transaction._id).populate('artist', 'artistName walletBalance totalWithdrawn paymentDetails');
+    const populated = await WalletTransaction.findById(transaction._id).populate('artist', 'artistName walletBalance totalWithdrawn');
     res.json(populated);
   } catch (err) {
     next(err);

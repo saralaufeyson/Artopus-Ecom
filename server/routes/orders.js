@@ -48,8 +48,15 @@ router.get('/my-orders', authMiddleware, async (req, res, next) => {
 // GET /api/orders/:id
 router.get('/:id', authMiddleware, async (req, res, next) => {
   try {
-    const order = await Order.findOne({ _id: req.params.id, customer: req.user._id });
+    const order = await Order.findById(req.params.id).populate('customer', 'name');
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (String(order.customer?._id || order.customer) !== String(req.user._id)) {
+      const artist = await Artist.findOne({ userId: req.user._id, isActive: true });
+      const canView = artist && order.items.some((item) => String(item.artistId) === String(artist._id));
+      if (!canView) return res.status(404).json({ message: 'Order not found' });
+    }
+
     res.json(order);
   } catch (err) {
     next(err);

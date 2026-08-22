@@ -22,7 +22,7 @@ async function normalizeArtistProfileImage(profileImage) {
 // GET /api/artists - List all active artists
 router.get('/', async (req, res, next) => {
   try {
-    const artists = await Artist.find({ isActive: true });
+    const artists = await Artist.find({ isActive: true }).select('artistName penName bio artistStatement location artCategories artStyles mediums profileImage socialLinks dateOfJoining');
     res.json(artists);
   } catch (err) {
     next(err);
@@ -36,7 +36,20 @@ router.get('/:id', async (req, res, next) => {
     if (!artist || !artist.isActive) {
       return res.status(404).json({ message: 'Artist not found' });
     }
-    res.json(artist);
+    res.json({
+      _id: artist._id,
+      artistName: artist.artistName,
+      penName: artist.penName,
+      bio: artist.bio,
+      artistStatement: artist.artistStatement,
+      location: artist.location,
+      artCategories: artist.artCategories,
+      artStyles: artist.artStyles,
+      mediums: artist.mediums,
+      profileImage: artist.profileImage,
+      socialLinks: artist.socialLinks,
+      dateOfJoining: artist.dateOfJoining,
+    });
   } catch (err) {
     next(err);
   }

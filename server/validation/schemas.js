@@ -87,12 +87,54 @@ export const artistSchema = Joi.object({
   penName: Joi.string().allow('', null).optional(),
   email: Joi.string().email().required(),
   bio: Joi.string().allow('', null).optional(),
+  artistStatement: Joi.string().max(2000).allow('', null).optional(),
+  location: Joi.string().max(160).allow('', null).optional(),
+  artCategories: Joi.array().items(Joi.string().max(80)).max(20).optional(),
+  artStyles: Joi.array().items(Joi.string().max(80)).max(20).optional(),
+  mediums: Joi.array().items(Joi.string().max(80)).max(20).optional(),
   profileImage: Joi.string().uri().allow('', null).optional(),
   socialLinks: Joi.object({
     website: Joi.string().uri().allow('', null).optional(),
     instagram: Joi.string().uri().allow('', null).optional(),
     twitter: Joi.string().uri().allow('', null).optional(),
     facebook: Joi.string().uri().allow('', null).optional(),
+    youtube: Joi.string().uri().allow('', null).optional(),
+  }).optional(),
+  address: Joi.object({
+    street: Joi.string().max(160).allow('', null).optional(),
+    line2: Joi.string().max(160).allow('', null).optional(),
+    city: Joi.string().max(80).allow('', null).optional(),
+    state: Joi.string().max(80).allow('', null).optional(),
+    zip: Joi.string().pattern(/^[A-Za-z0-9 -]{3,12}$/).allow('', null).optional(),
+    country: Joi.string().max(80).allow('', null).optional(),
+  }).optional(),
+});
+
+export const artistProfileUpdateSchema = Joi.object({
+  artistName: Joi.string().min(1).max(120).required(),
+  phone: Joi.string().pattern(/^\+?[0-9 ()-]{7,20}$/).allow('', null).optional(),
+  penName: Joi.string().max(120).allow('', null).optional(),
+  bio: Joi.string().max(1000).allow('', null).optional(),
+  artistStatement: Joi.string().max(2000).allow('', null).optional(),
+  location: Joi.string().max(160).allow('', null).optional(),
+  profileImage: Joi.string().uri().allow('', null).optional(),
+  artCategories: Joi.array().items(Joi.string().max(80)).max(20).optional(),
+  artStyles: Joi.array().items(Joi.string().max(80)).max(20).optional(),
+  mediums: Joi.array().items(Joi.string().max(80)).max(20).optional(),
+  socialLinks: Joi.object({
+    website: Joi.string().uri().allow('', null).optional(),
+    instagram: Joi.string().uri().allow('', null).optional(),
+    twitter: Joi.string().uri().allow('', null).optional(),
+    facebook: Joi.string().uri().allow('', null).optional(),
+    youtube: Joi.string().uri().allow('', null).optional(),
+  }).optional(),
+  address: Joi.object({
+    street: Joi.string().max(160).allow('', null).optional(),
+    line2: Joi.string().max(160).allow('', null).optional(),
+    city: Joi.string().max(80).allow('', null).optional(),
+    state: Joi.string().max(80).allow('', null).optional(),
+    zip: Joi.string().pattern(/^[A-Za-z0-9 -]{3,12}$/).allow('', null).optional(),
+    country: Joi.string().max(80).allow('', null).optional(),
   }).optional(),
 });
 
@@ -152,6 +194,16 @@ export const artistProductSchema = Joi.object({
 export const walletWithdrawalSchema = Joi.object({
   amount: Joi.number().positive().required(),
   note: Joi.string().allow('', null).optional(),
+});
+
+export const payoutAccountSchema = Joi.object({
+  accountHolderName: Joi.string().trim().min(2).max(120).required(),
+  accountNumber: Joi.string().pattern(/^\d{9,18}$/).required(),
+  confirmAccountNumber: Joi.string().valid(Joi.ref('accountNumber')).required(),
+  ifscCode: Joi.string().trim().uppercase().pattern(/^[A-Z]{4}0[A-Z0-9]{6}$/).required(),
+  bankName: Joi.string().trim().min(2).max(120).required(),
+  accountType: Joi.string().valid('savings', 'current').required(),
+  upiId: Joi.string().trim().pattern(/^[\w.-]+@[\w.-]+$/).allow('', null).optional(),
 });
 
 export const collectionSchema = Joi.object({

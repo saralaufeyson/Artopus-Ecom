@@ -213,7 +213,7 @@ function Home() {
                   <li className="flex items-center gap-2">✓ Convenient weekly schedules & online formats</li>
                 </ul>
               </div>
-              <a href="mailto:academy@artopusindia.com?subject=Inquiry about Art Classes" className="w-full text-center py-4 bg-sky-550 hover:bg-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-500/10 transition-all">
+              <a href="mailto:academy@artopusindia.com?subject=Inquiry about Art Classes" className="w-full text-center py-4 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-500/20 transition-all block">
                 Request a Free Demo Class
               </a>
             </div>

@@ -18,6 +18,8 @@ const WalletTransactionSchema = new mongoose.Schema(
     },
     note: { type: String },
     metadata: { type: Object, default: {} },
+    payoutReference: { type: String },
+    failureReason: { type: String },
   },
   { timestamps: true }
 );

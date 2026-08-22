@@ -34,7 +34,7 @@ interface PaginationInfo {
 const Shop: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
-  const [pagination, setPagination] = useState<PaginationInfo>({ total: 0, page: 1, limit: 12, pages: 1 });
+  const [pagination, setPagination] = useState<PaginationInfo>({ total: 0, page: 1, limit: 25, pages: 1 });
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '');
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || '');
@@ -80,7 +80,7 @@ const Shop: React.FC = () => {
         params.limit = 12;
 
         const res = await axios.get('/api/products', { params });
-        
+
         // Handle both old format (array) and new format (with pagination)
         if (Array.isArray(res.data)) {
           setProducts(res.data);
@@ -134,11 +134,10 @@ const Shop: React.FC = () => {
               setCategoryFilter('');
               setCurrentPage(1);
             }}
-            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              categoryFilter === ''
+            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${categoryFilter === ''
                 ? 'bg-logo-purple/10 text-logo-purple'
                 : 'text-gray-600 dark:text-gray-405 hover:bg-gray-50 dark:hover:bg-gray-800/40'
-            }`}
+              }`}
           >
             <span>All Categories</span>
             {categoryFilter === '' && <span className="w-1.5 h-1.5 rounded-full bg-logo-purple"></span>}
@@ -152,11 +151,10 @@ const Shop: React.FC = () => {
                   setCategoryFilter(category);
                   setCurrentPage(1);
                 }}
-                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isActive
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${isActive
                     ? 'bg-logo-purple/10 text-logo-purple'
                     : 'text-gray-600 dark:text-gray-405 hover:bg-gray-50 dark:hover:bg-gray-800/40'
-                }`}
+                  }`}
               >
                 <span className="truncate">{category}</span>
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-logo-purple"></span>}
@@ -206,16 +204,14 @@ const Shop: React.FC = () => {
             setInStockOnly(!inStockOnly);
             setCurrentPage(1);
           }}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            inStockOnly
+          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${inStockOnly
               ? 'bg-logo-purple/10 text-logo-purple'
               : 'text-gray-600 dark:text-gray-450 hover:bg-gray-50 dark:hover:bg-gray-800/40'
-          }`}
+            }`}
         >
           <span>In Stock Only</span>
-          <span className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 shrink-0 ${
-            inStockOnly ? 'bg-logo-purple flex justify-end' : 'bg-gray-250 dark:bg-gray-700 flex justify-start'
-          }`}>
+          <span className={`w-8 h-4 rounded-full p-0.5 transition-colors duration-200 shrink-0 ${inStockOnly ? 'bg-logo-purple flex justify-end' : 'bg-gray-250 dark:bg-gray-700 flex justify-start'
+            }`}>
             <span className="w-3 h-3 rounded-full bg-white shadow-sm"></span>
           </span>
         </button>
@@ -333,11 +329,10 @@ const Shop: React.FC = () => {
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
-                            className={`px-2.5 py-1.5 text-xs rounded-lg border cursor-pointer ${
-                              currentPage === page
+                            className={`px-2.5 py-1.5 text-xs rounded-lg border cursor-pointer ${currentPage === page
                                 ? 'bg-logo-purple text-white border-logo-purple font-semibold'
                                 : 'border-gray-300 dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-850'
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>

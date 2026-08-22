@@ -203,6 +203,7 @@ const AdminDashboard = () => {
   const [artistRequests, setArtistRequests] = useState<ArtistRequest[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [payoutAccounts, setPayoutAccounts] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({ 
     title: '', price: '', printPrice: '', canvasSketchPrice: '', description: '', category: '', type: '', imageUrl: '', canvasSketchImageUrl: '',
     artistId: '', artistName: '', artistEmail: '',
@@ -274,6 +275,15 @@ const AdminDashboard = () => {
         }
       };
 
+      const fetchPayoutAccounts = async () => {
+        try {
+          const res = await axios.get('/api/admin/payout-accounts');
+          setPayoutAccounts(res.data);
+        } catch (err) {
+          console.error('Failed to fetch payout accounts:', err);
+        }
+      };
+
       const fetchUsers = async () => {
         try {
           const res = await axios.get('/api/admin/users');
@@ -286,7 +296,7 @@ const AdminDashboard = () => {
 
       const fetchArtists = async () => {
         try {
-          const res = await axios.get('/api/artists');
+          const res = await axios.get('/api/admin/artists');
           setArtists(res.data);
         } catch (err) {
           console.error('Failed to fetch artists:', err);
@@ -308,6 +318,7 @@ const AdminDashboard = () => {
         fetchOrders(),
         fetchMetrics(),
         fetchWithdrawals(),
+        fetchPayoutAccounts(),
         fetchUsers(),
         fetchArtists(),
         fetchArtistRequests()
@@ -437,11 +448,40 @@ const AdminDashboard = () => {
     }
   };
 
+  const [isFormDirty, setIsFormDirty] = useState(false);
+
+  const handleCloseEditModal = (force = false) => {
+    if (!force && isFormDirty) {
+      if (!window.confirm('You have unsaved changes. Discard them?')) {
+        return;
+      }
+    }
+    setEditingProduct(null);
+    setEditingProductImage(null);
+    setEditingCanvasSketchImage(null);
+    setEditingImagesList([]);
+    setIsFormDirty(false);
+  };
+
+  useEffect(() => {
+    if (!editingProduct) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseEditModal();
+      }
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [editingProduct, isFormDirty]);
+
   const handleEditProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
 
-    // Validate images count
     if (editingImagesList.length === 0) {
       return toast.error("Please add at least one product image");
     }
@@ -463,11 +503,32 @@ const AdminDashboard = () => {
     try {
       const formData = new FormData();
       Object.entries(editingProduct).forEach(([key, value]) => {
-        // Exclude images, imageUrl to prevent duplicate string appending
-        if (key !== 'images' && key !== 'imageUrl' && value !== undefined && value !== null && value !== '') {
+        if (key !== 'images' && key !== 'imageUrl' && key !== 'variants' && key !== '_id' && key !== '__v' && key !== 'createdAt' && key !== 'updatedAt' && value !== undefined && value !== null && value !== '') {
           formData.append(key, value.toString());
         }
       });
+
+      // Construct valid variants array
+      const variants: any[] = [
+        {
+          category: 'Original',
+          price: Number(editingProduct.price) || null,
+          dimensions: editingProduct.dimensions || '',
+          stockQuantity: editingProduct.type === 'original-artwork' ? 1 : (Number(editingProduct.stockQuantity) || 0)
+        }
+      ];
+      if (editingProduct.printPrice && Number(editingProduct.printPrice) > 0) {
+        variants.push(
+          { category: 'Print on Demand', size: 'A5', price: 1234.70, dimensions: '5.8 x 8.3 in', stockQuantity: 999 },
+          { category: 'Print on Demand', size: 'A4', price: Number(editingProduct.printPrice), dimensions: editingProduct.dimensions || '', stockQuantity: 999 },
+          { category: 'Print on Demand', size: 'A3', price: 3144.00, dimensions: '11.7 x 16.5 in', stockQuantity: 999 }
+        );
+      } else if (editingProduct.variants && Array.isArray(editingProduct.variants)) {
+        editingProduct.variants.forEach((v: any) => {
+          if (v.category !== 'Original') variants.push(v);
+        });
+      }
+      formData.append('variants', JSON.stringify(variants));
 
       if (editingCanvasSketchImage) {
         formData.append('canvasSketchImage', editingCanvasSketchImage);
@@ -490,15 +551,12 @@ const AdminDashboard = () => {
       });
       toast.success('Product updated successfully!');
       await fetchData();
-      setEditingProduct(null);
-      setEditingProductImage(null);
-      setEditingCanvasSketchImage(null);
-      setEditingImagesList([]);
+      handleCloseEditModal(true);
     } catch (err: any) {
       if (err.response?.data?.message?.includes('File too large')) {
         toast.error('Image file size must be less than 2MB');
       } else {
-        toast.error('Failed to update product');
+        toast.error(err.response?.data?.message || 'Failed to update product');
       }
     } finally {
       setIsEditingProduct(false);
@@ -603,6 +661,16 @@ const AdminDashboard = () => {
       await fetchData();
     } catch (err: any) {
       toast.error(err.response?.data?.message || `Failed to ${action} withdrawal`);
+    }
+  };
+
+  const handlePayoutAccountVerification = async (artistId: string, status: 'verified' | 'failed') => {
+    try {
+      await axios.patch(`/api/admin/artists/${artistId}/payout-account/verification`, { status });
+      toast.success(`Payout account marked ${status}`);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update payout account verification');
     }
   };
 
@@ -777,6 +845,7 @@ const AdminDashboard = () => {
                       <td>
                         <button 
                           onClick={() => {
+                            setIsFormDirty(false);
                             setEditingProduct(p);
                             const initialImages: ImageSlot[] = (p.images && p.images.length > 0 ? p.images : [p.imageUrl]).filter(Boolean).map((imgUrl: string, idx: number) => ({
                               id: `existing_${idx}_${Date.now()}`,
@@ -785,20 +854,20 @@ const AdminDashboard = () => {
                             }));
                             setEditingImagesList(initialImages);
                           }} 
-                          className="action-btn edit-btn mr-2"
+                          className="action-btn edit-btn mr-2 cursor-pointer"
                         >
                           Edit
                         </button>
                         <button 
                           onClick={() => handleDeleteProduct(p._id)} 
-                          className="action-btn delete-btn"
+                          className="action-btn delete-btn cursor-pointer"
                         >
                           Delete
                         </button>
                         {p.approvalStatus !== 'approved' && (
                           <button
                             onClick={() => updateProductApproval(p._id, 'approved')}
-                            className="action-btn edit-btn ml-2"
+                            className="action-btn edit-btn ml-2 cursor-pointer"
                           >
                             Approve
                           </button>
@@ -806,7 +875,7 @@ const AdminDashboard = () => {
                         {p.approvalStatus !== 'rejected' && (
                           <button
                             onClick={() => updateProductApproval(p._id, 'rejected')}
-                            className="action-btn delete-btn ml-2"
+                            className="action-btn delete-btn ml-2 cursor-pointer"
                           >
                             Reject
                           </button>
@@ -818,170 +887,289 @@ const AdminDashboard = () => {
               </table>
             </div>
 
+            {/* Edit Artwork Modal */}
             {editingProduct && (
-              <div className="mt-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                <h4 className="admin-sub-title">Edit Product: {editingProduct.title}</h4>
-                <form onSubmit={handleEditProduct} className="product-form">
-                  <div className="form-row">
-                    <select 
-                      className="form-select"
-                      value={editingProduct.artistId || ''} 
-                      onChange={(e) => {
-                        const selected = artists.find(a => a._id === e.target.value);
-                        setEditingProduct({ 
-                          ...editingProduct, 
-                          artistId: e.target.value,
-                          artistName: selected?.artistName || '',
-                          artistEmail: selected?.email || ''
-                        });
-                      }} 
-                      required
-                    >
-                      <option value="">Select Artist</option>
-                      {artists.map(a => (
-                        <option key={a._id} value={a._id}>{a.artistName}</option>
-                      ))}
-                    </select>
-                    <input 
-                      type="text" 
-                      className="admin-input"
-                      placeholder="Title" 
-                      value={editingProduct.title} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })} 
-                      required 
-                    />
-                  </div>
-                  <textarea 
-                    className="admin-input"
-                    placeholder="Description" 
-                    value={editingProduct.description} 
-                    onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })} 
-                    required 
-                    rows={4}
-                  />
-                  <div className="form-row">
-                    <input 
-                      type="number" 
-                      className="admin-input"
-                      placeholder="Price (Original)" 
-                      value={editingProduct.price} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })} 
-                      required 
-                    />
-                    <input 
-                      type="number" 
-                      className="admin-input"
-                      placeholder="Print Price" 
-                      value={editingProduct.printPrice || ''} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, printPrice: e.target.value })} 
-                    />
-                    <input 
-                      type="number" 
-                      className="admin-input"
-                      placeholder="Canvas Sketch Price" 
-                      value={editingProduct.canvasSketchPrice || ''} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, canvasSketchPrice: e.target.value })} 
-                    />
-                    <input 
-                      type="text" 
-                      className="admin-input"
-                      placeholder="Category" 
-                      value={editingProduct.category} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })} 
-                      required 
-                    />
-                  </div>
-                  <div className="form-row">
-                    <select 
-                      className="form-select"
-                      value={editingProduct.type} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, type: e.target.value })} 
-                      required
-                    >
-                      <option value="">Select Type</option>
-                      <option value="original-artwork">Original Artwork</option>
-                      <option value="merchandise">Merchandise</option>
-                    </select>
-                    <input 
-                      type="number" 
-                      className="admin-input"
-                      placeholder="Stock Quantity" 
-                      value={editingProduct.stockQuantity || 0} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, stockQuantity: parseInt(e.target.value) || 0 })} 
-                    />
-                  </div>
-                  <div className="form-row border-b pb-4 mb-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-bold text-gray-750 dark:text-gray-250 mb-2">Product Images (Original/Print) - Up to 5 Images</label>
-                      <ImageSlotsManager 
-                        slots={editingImagesList}
-                        onChange={(slots) => setEditingImagesList(slots)}
-                        onAddUrl={(url) => setEditingImagesList([...editingImagesList, { id: `editing_url_${Date.now()}`, type: 'url', url }])}
-                        onAddFile={(file) => setEditingImagesList([...editingImagesList, { id: `editing_file_${Date.now()}`, type: 'file', file }])}
-                      />
+              <div 
+                className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+                onClick={() => handleCloseEditModal()}
+              >
+                <div 
+                  className="relative bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10">
+                    <div>
+                      <h2 className="text-2xl font-black text-gray-900 dark:text-white">Edit Artwork</h2>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-md">{editingProduct.title}</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCloseEditModal()}
+                      className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center font-bold text-lg transition-colors cursor-pointer"
+                      aria-label="Close modal"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <div className="form-row border-b pb-4 mb-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Canvas Sketch Image</label>
-                      <input 
-                        type="file" 
-                        className="admin-input pt-2"
-                        accept="image/*"
-                        onChange={(e) => setEditingCanvasSketchImage(e.target.files?.[0] || null)} 
-                      />
-                      <input 
-                        type="url" 
-                        className="admin-input mt-2"
-                        placeholder="Or Canvas Sketch Image URL" 
-                        value={editingProduct.canvasSketchImageUrl || ''} 
-                        onChange={(e) => setEditingProduct({ ...editingProduct, canvasSketchImageUrl: e.target.value })} 
-                      />
-                      {getPreview(editingCanvasSketchImage, editingProduct.canvasSketchImageUrl) && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          <p className="mb-1">Preview:</p>
-                          <img src={getPreview(editingCanvasSketchImage, editingProduct.canvasSketchImageUrl)} className="h-24 w-auto rounded-xl object-cover border" alt="Canvas Sketch Preview" />
+
+                  {/* Modal Body */}
+                  <form onSubmit={handleEditProduct} className="flex flex-col flex-1 overflow-hidden">
+                    <div className="p-6 md:p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Select Artist</label>
+                          <select 
+                            className="form-select w-full"
+                            value={editingProduct.artistId || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              const selected = artists.find(a => a._id === e.target.value);
+                              setEditingProduct({ 
+                                ...editingProduct, 
+                                artistId: e.target.value,
+                                artistName: selected?.artistName || '',
+                                artistEmail: selected?.email || ''
+                              });
+                            }} 
+                            required
+                          >
+                            <option value="">Select Artist</option>
+                            {artists.map(a => (
+                              <option key={a._id} value={a._id}>{a.artistName}</option>
+                            ))}
+                          </select>
                         </div>
-                      )}
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Artwork Title</label>
+                          <input 
+                            type="text" 
+                            className="admin-input w-full"
+                            placeholder="Artwork Title" 
+                            value={editingProduct.title || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, title: e.target.value });
+                            }} 
+                            required 
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Description</label>
+                        <textarea 
+                          className="admin-input w-full min-h-[90px] pt-3"
+                          placeholder="Describe the artwork..." 
+                          value={editingProduct.description || ''} 
+                          onChange={(e) => {
+                            setIsFormDirty(true);
+                            setEditingProduct({ ...editingProduct, description: e.target.value });
+                          }} 
+                          required 
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="grid gap-6 md:grid-cols-3">
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Original Price (₹)</label>
+                          <input 
+                            type="number" 
+                            className="admin-input w-full"
+                            placeholder="Original Price" 
+                            value={editingProduct.price || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, price: e.target.value });
+                            }} 
+                            required 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Print Price (₹)</label>
+                          <input 
+                            type="number" 
+                            className="admin-input w-full"
+                            placeholder="Print Price" 
+                            value={editingProduct.printPrice || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, printPrice: e.target.value });
+                            }} 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Canvas Sketch Price (₹)</label>
+                          <input 
+                            type="number" 
+                            className="admin-input w-full"
+                            placeholder="Canvas Sketch Price" 
+                            value={editingProduct.canvasSketchPrice || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, canvasSketchPrice: e.target.value });
+                            }} 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-6 md:grid-cols-3">
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Category</label>
+                          <input 
+                            type="text" 
+                            className="admin-input w-full"
+                            placeholder="Category (e.g. Painting, Photo)" 
+                            value={editingProduct.category || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, category: e.target.value });
+                            }} 
+                            required 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Product Type</label>
+                          <select 
+                            className="form-select w-full"
+                            value={editingProduct.type || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, type: e.target.value });
+                            }} 
+                            required
+                          >
+                            <option value="">Select Type</option>
+                            <option value="original-artwork">Original Artwork</option>
+                            <option value="merchandise">Merchandise</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Stock Quantity</label>
+                          <input 
+                            type="number" 
+                            className="admin-input w-full"
+                            placeholder="Stock Quantity" 
+                            value={editingProduct.stockQuantity ?? 0} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, stockQuantity: parseInt(e.target.value) || 0 });
+                            }} 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="border-t dark:border-gray-800 pt-6">
+                        <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">Product Images (Original/Print) - Up to 5 Images</label>
+                        <ImageSlotsManager 
+                          slots={editingImagesList}
+                          onChange={(slots) => {
+                            setIsFormDirty(true);
+                            setEditingImagesList(slots);
+                          }}
+                          onAddUrl={(url) => {
+                            setIsFormDirty(true);
+                            setEditingImagesList([...editingImagesList, { id: `editing_url_${Date.now()}`, type: 'url', url }]);
+                          }}
+                          onAddFile={(file) => {
+                            setIsFormDirty(true);
+                            setEditingImagesList([...editingImagesList, { id: `editing_file_${Date.now()}`, type: 'file', file }]);
+                          }}
+                        />
+                      </div>
+
+                      <div className="border-t dark:border-gray-800 pt-6">
+                        <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">Canvas Sketch Image</label>
+                        <input 
+                          type="file" 
+                          className="admin-input w-full pt-2"
+                          accept="image/*"
+                          onChange={(e) => {
+                            setIsFormDirty(true);
+                            setEditingCanvasSketchImage(e.target.files?.[0] || null);
+                          }} 
+                        />
+                        <input 
+                          type="url" 
+                          className="admin-input w-full mt-2"
+                          placeholder="Or Canvas Sketch Image URL" 
+                          value={editingProduct.canvasSketchImageUrl || ''} 
+                          onChange={(e) => {
+                            setIsFormDirty(true);
+                            setEditingProduct({ ...editingProduct, canvasSketchImageUrl: e.target.value });
+                          }} 
+                        />
+                        {getPreview(editingCanvasSketchImage, editingProduct.canvasSketchImageUrl || '') && (
+                          <div className="mt-3">
+                            <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                            <img src={getPreview(editingCanvasSketchImage, editingProduct.canvasSketchImageUrl || '')} className="h-24 w-auto rounded-xl object-cover border" alt="Canvas Sketch Preview" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid gap-6 md:grid-cols-3 border-t dark:border-gray-800 pt-6">
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Medium</label>
+                          <input 
+                            type="text" 
+                            className="admin-input w-full"
+                            placeholder="Medium (e.g. Oil on Canvas)" 
+                            value={editingProduct.medium || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, medium: e.target.value });
+                            }} 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Dimensions</label>
+                          <input 
+                            type="text" 
+                            className="admin-input w-full"
+                            placeholder='Dimensions (e.g. 24" x 36")' 
+                            value={editingProduct.dimensions || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, dimensions: e.target.value });
+                            }} 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold mb-1 text-gray-700 dark:text-gray-300">Year</label>
+                          <input 
+                            type="text" 
+                            className="admin-input w-full"
+                            placeholder="Year (e.g. 2024)" 
+                            value={editingProduct.year || ''} 
+                            onChange={(e) => {
+                              setIsFormDirty(true);
+                              setEditingProduct({ ...editingProduct, year: e.target.value });
+                            }} 
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="form-row">
-                    <input 
-                      type="text" 
-                      className="admin-input"
-                      placeholder="Medium (e.g. Oil on Canvas)" 
-                      value={editingProduct.medium || ''} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, medium: e.target.value })} 
-                    />
-                    <input 
-                      type="text" 
-                      className="admin-input"
-                      placeholder='Dimensions (e.g. 24" x 36")' 
-                      value={editingProduct.dimensions || ''} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, dimensions: e.target.value })} 
-                    />
-                    <input 
-                      type="text" 
-                      className="admin-input"
-                      placeholder="Year" 
-                      value={editingProduct.year || ''} 
-                      onChange={(e) => setEditingProduct({ ...editingProduct, year: e.target.value })} 
-                    />
-                  </div>
-                  
-                  <div className="form-actions">
-                    <button type="submit" className="admin-button" disabled={isEditingProduct}>
-                      {isEditingProduct ? 'Updating...' : 'Update Product'}
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setEditingProduct(null)} 
-                      className="admin-button cancel-btn"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
+
+                    {/* Modal Footer */}
+                    <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 flex items-center justify-end gap-3 shrink-0">
+                      <button 
+                        type="button" 
+                        onClick={() => handleCloseEditModal()} 
+                        className="rounded-2xl bg-gray-200 dark:bg-gray-800 px-6 py-3 font-bold text-gray-700 dark:text-gray-300 transition hover:opacity-90 cursor-pointer text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="rounded-2xl bg-logo-purple px-6 py-3 font-bold text-white transition hover:opacity-90 disabled:opacity-50 cursor-pointer text-sm"
+                        disabled={isEditingProduct}
+                      >
+                        {isEditingProduct ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             )}
           </div>
@@ -1289,6 +1477,16 @@ const AdminDashboard = () => {
         {activeTab === 'withdrawals' && (
           <div className="admin-section">
             <h3 className="admin-section-title">Artist Payout Workflow</h3>
+            <div className="mb-8 space-y-3">
+              <h4 className="font-bold text-gray-900 dark:text-white">Payout Accounts</h4>
+              {payoutAccounts.map((entry) => (
+                <div key={entry._id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+                  <div><p className="font-bold">{entry.artistName}</p><p className="text-sm text-gray-500">{entry.payoutAccount.maskedAccountNumber} · {entry.payoutAccount.bankName} · {entry.payoutAccount.verificationStatus}</p></div>
+                  {entry.payoutAccount.verificationStatus === 'pending' && <div className="flex gap-2"><button className="admin-button" onClick={() => handlePayoutAccountVerification(entry._id, 'verified')}>Verify</button><button className="admin-button cancel-btn" onClick={() => handlePayoutAccountVerification(entry._id, 'failed')}>Fail</button></div>}
+                </div>
+              ))}
+              {payoutAccounts.length === 0 && <p className="text-sm text-gray-500">No payout accounts configured.</p>}
+            </div>
             <div className="space-y-4">
               {withdrawals.map((withdrawal) => (
                 <div key={withdrawal._id} className="p-6 rounded-3xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
@@ -1297,18 +1495,14 @@ const AdminDashboard = () => {
                     <p className="text-sm text-gray-500">₹{withdrawal.amount.toFixed(2)} · {withdrawal.status}</p>
                     <p className="text-sm text-gray-500">{withdrawal.note || 'No note provided'}</p>
                     <p className="text-sm text-gray-500">Wallet balance: ₹{withdrawal.artist?.walletBalance?.toFixed?.(2) || '0.00'}</p>
-                    {withdrawal.artist?.paymentDetails && (
+                    {withdrawal.artist?.payoutAccount && (
                       <div className="mt-2 p-3 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                        <p className="font-bold text-gray-700 dark:text-gray-300">Payout Credentials:</p>
-                        {withdrawal.artist.paymentDetails.upiId && <p><strong>UPI ID:</strong> {withdrawal.artist.paymentDetails.upiId}</p>}
-                        {withdrawal.artist.paymentDetails.accountNumber && (
-                          <>
-                            <p><strong>Holder:</strong> {withdrawal.artist.paymentDetails.accountHolderName}</p>
-                            <p><strong>Bank:</strong> {withdrawal.artist.paymentDetails.bankName}</p>
-                            <p><strong>Acc No:</strong> {withdrawal.artist.paymentDetails.accountNumber}</p>
-                            <p><strong>IFSC:</strong> {withdrawal.artist.paymentDetails.ifscCode}</p>
-                          </>
-                        )}
+                        <p className="font-bold text-gray-700 dark:text-gray-300">Payout Account: {withdrawal.artist.payoutAccount.maskedAccountNumber}</p>
+                        <p><strong>Holder:</strong> {withdrawal.artist.payoutAccount.accountHolderName}</p>
+                        <p><strong>Bank:</strong> {withdrawal.artist.payoutAccount.bankName}</p>
+                        <p><strong>IFSC:</strong> {withdrawal.artist.payoutAccount.ifscCode}</p>
+                        <p><strong>Verification:</strong> {withdrawal.artist.payoutAccount.verificationStatus}</p>
+                        {withdrawal.artist.payoutAccount.verificationStatus === 'pending' && <div className="flex gap-2 pt-2"><button className="admin-button" onClick={() => handlePayoutAccountVerification(withdrawal.artist._id, 'verified')}>Verify account</button><button className="admin-button cancel-btn" onClick={() => handlePayoutAccountVerification(withdrawal.artist._id, 'failed')}>Fail verification</button></div>}
                       </div>
                     )}
                   </div>

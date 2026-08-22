@@ -209,6 +209,15 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
           mergedBody.imageUrl = mergedBody.images[0];
         }
       }
+
+      if (mergedBody.variants && typeof mergedBody.variants === 'string') {
+        try {
+          mergedBody.variants = JSON.parse(mergedBody.variants);
+        } catch (e) {
+          delete mergedBody.variants;
+        }
+      }
+
       req.body = mergedBody;
       next();
     });
@@ -217,6 +226,13 @@ router.post('/', authMiddleware, adminMiddleware, (req, res, next) => {
     next();
   }
 }, (req, res, next) => {
+  if (req.body.variants && typeof req.body.variants === 'string') {
+    try {
+      req.body.variants = JSON.parse(req.body.variants);
+    } catch (e) {
+      delete req.body.variants;
+    }
+  }
   // Validate the merged body
   const { error } = productCreateSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (error) return res.status(400).json({ message: 'Validation error', details: error.details.map(d => d.message) });
@@ -327,8 +343,13 @@ router.put('/:id', authMiddleware, adminMiddleware, (req, res, next) => {
         return img;
       }).filter(Boolean);
       mergedBody.images = finalImages.length === 0 ? (uploadedUrls.length > 0 ? uploadedUrls : mergedBody.images) : finalImages;
-      if (mergedBody.images && mergedBody.images.length > 0) {
-        mergedBody.imageUrl = mergedBody.images[0];
+    }
+
+    if (mergedBody.variants && typeof mergedBody.variants === 'string') {
+      try {
+        mergedBody.variants = JSON.parse(mergedBody.variants);
+      } catch (e) {
+        delete mergedBody.variants;
       }
     }
 

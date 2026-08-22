@@ -17,6 +17,7 @@ import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import Profile from './pages/Profile';
 import ArtistProfile from './pages/ArtistProfile.tsx';
+import ArtistProfileEdit from './pages/ArtistProfileEdit.tsx';
 import JoinAsArtist from './pages/JoinAsArtist.tsx';
 import AdminDashboard from './pages/AdminDashboard.tsx';
 import ArtistDashboard from './pages/ArtistDashboard.tsx';
@@ -160,6 +161,11 @@ function App() {
                   <Route path="artist-dashboard" element={
                     <ArtistRoute>
                       <ArtistDashboard />
+                    </ArtistRoute>
+                  } />
+                  <Route path="artist-profile/edit" element={
+                    <ArtistRoute>
+                      <ArtistProfileEdit />
                     </ArtistRoute>
                   } />
                   <Route path="artist-earnings" element={
