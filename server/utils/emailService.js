@@ -49,6 +49,9 @@ class EmailService {
     if (process.env.NODE_ENV === 'test') return true;
 
     const transporter = this.getTransporter();
+    const port = parseInt(process.env.SMTP_PORT || '465', 10);
+    const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
+    console.log(`[Mail] Checking ${host}:${port} (secure=${port === 465})`);
     await transporter.verify();
     return true;
   }
