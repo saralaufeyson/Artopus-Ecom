@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import app from "./app.js";
 import { connectDB } from "./config/db.js";
 import { validateEnv } from "./config/validateEnv.js";
+import { emailService } from "./utils/emailService.js";
 import logger from "./utils/logger.js";
 
 dotenv.config();
@@ -15,6 +16,10 @@ try {
   logger.error(err.message);
   process.exit(1);
 }
+
+emailService.verifyConnection()
+  .then(() => logger.info('Mail server connected'))
+  .catch((err) => logger.error(`Mail server connection failed: ${err.code || 'UNKNOWN'}${err.responseCode ? ` (${err.responseCode})` : ''} - ${err.message}`));
 
 /**
  * Connect to MongoDB

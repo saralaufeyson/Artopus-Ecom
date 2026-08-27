@@ -45,6 +45,14 @@ class EmailService {
     return this.transporter;
   }
 
+  async verifyConnection() {
+    if (process.env.NODE_ENV === 'test') return true;
+
+    const transporter = this.getTransporter();
+    await transporter.verify();
+    return true;
+  }
+
   async sendVerificationEmail(toEmail, otp) {
     if (!toEmail) throw new Error('Recipient email is required');
 
