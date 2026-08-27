@@ -24,6 +24,7 @@ import returnsRoutes from './routes/returns.js';
 import couponRoutes from './routes/coupons.js';
 import notificationRoutes from './routes/notifications.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { connectDB } from './config/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,15 @@ app.use(cors(corsOptions));
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(morgan('dev'));
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB(process.env.MONGO_URI);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
