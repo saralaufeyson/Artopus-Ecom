@@ -52,6 +52,55 @@ export function setStripeForTests(obj) {
   stripe = obj;
 }
 
+function getReservationDurationMs() {
+  const seconds = Number(process.env.CHECKOUT_RESERVATION_DURATION_SECONDS || 1200);
+  return (Number.isFinite(seconds) && seconds > 0 ? seconds : 1200) * 1000;
+}
+
+function isOriginalPurchase(product, item) {
+  return product.type === 'original-artwork'
+    && (!item.buyerOption || ['original', 'painting'].includes(item.buyerOption));
+}
+
+async function releaseOriginalReservations(orderId, productIds = null) {
+  const filter = { inventoryStatus: 'reserved', reservedBy: orderId };
+  if (productIds) filter._id = { $in: productIds };
+  await Product.updateMany(filter, {
+    $set: { inventoryStatus: 'available' },
+    $unset: { reservedBy: 1, reservationExpiresAt: 1 },
+  });
+}
+
+async function reserveOriginals(order) {
+  const reservedProductIds = [];
+  const expiresAt = new Date(Date.now() + getReservationDurationMs());
+
+  for (const item of order.items) {
+    const product = await Product.findById(item.productId).select('type');
+    if (!product || !isOriginalPurchase(product, item)) continue;
+
+    const reserved = await Product.findOneAndUpdate(
+      {
+        _id: item.productId,
+        stockQuantity: { $gte: item.quantity },
+        $or: [
+          { inventoryStatus: { $in: ['available', null] } },
+          { inventoryStatus: 'reserved', reservationExpiresAt: { $lte: new Date() } },
+        ],
+      },
+      { $set: { inventoryStatus: 'reserved', reservedBy: order._id, reservationExpiresAt: expiresAt } },
+      { new: true }
+    );
+
+    if (!reserved) {
+      await releaseOriginalReservations(order._id, reservedProductIds);
+      return false;
+    }
+    reservedProductIds.push(item.productId);
+  }
+  return true;
+}
+
 function buildExpectedDeliveryDate() {
   const expectedDeliveryDate = new Date();
   expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
@@ -364,6 +413,7 @@ async function fulfillOrderWithoutTransaction(order) {
       for (const comp of completedItems) {
         await Product.findByIdAndUpdate(comp.productId, { $inc: { stockQuantity: comp.quantity } });
       }
+      await releaseOriginalReservations(order._id);
       order.status = 'failed';
       order.statusHistory.push({ status: 'failed', note: 'Product not found' });
       await order.save();
@@ -374,9 +424,14 @@ async function fulfillOrderWithoutTransaction(order) {
     const shouldDecrementStock = product.type !== 'original-artwork' || isOriginalVariant;
 
     if (shouldDecrementStock) {
+      const isReservedOriginal = product.type === 'original-artwork' && isOriginalVariant;
       const updatedProduct = await Product.findOneAndUpdate(
-        { _id: item.productId, stockQuantity: { $gte: item.quantity } },
-        { $inc: { stockQuantity: -item.quantity } },
+        isReservedOriginal
+          ? { _id: item.productId, inventoryStatus: 'reserved', reservedBy: order._id, reservationExpiresAt: { $gt: new Date() } }
+          : { _id: item.productId, stockQuantity: { $gte: item.quantity } },
+        isReservedOriginal
+          ? { $set: { stockQuantity: 0, inventoryStatus: 'sold', isActive: false }, $unset: { reservedBy: 1, reservationExpiresAt: 1 } }
+          : { $inc: { stockQuantity: -item.quantity } },
         { new: true }
       );
 
@@ -385,6 +440,7 @@ async function fulfillOrderWithoutTransaction(order) {
         for (const comp of completedItems) {
           await Product.findByIdAndUpdate(comp.productId, { $inc: { stockQuantity: comp.quantity } });
         }
+        await releaseOriginalReservations(order._id);
         order.status = 'failed';
         order.statusHistory.push({ status: 'failed', note: 'Insufficient stock' });
         await order.save();
@@ -437,6 +493,7 @@ async function fulfillOrderWithTransaction(order) {
       if (!product) {
         await session.abortTransaction();
         session.endSession();
+        await releaseOriginalReservations(order._id);
         const finalOrder = await Order.findById(order._id);
         if (finalOrder) {
           finalOrder.status = 'failed';
@@ -451,15 +508,21 @@ async function fulfillOrderWithTransaction(order) {
       const shouldDecrementStock = product.type !== 'original-artwork' || isOriginalVariant;
 
       if (shouldDecrementStock) {
+        const isReservedOriginal = product.type === 'original-artwork' && isOriginalVariant;
         const updatedProduct = await Product.findOneAndUpdate(
-          { _id: item.productId, stockQuantity: { $gte: item.quantity } },
-          { $inc: { stockQuantity: -item.quantity } },
+          isReservedOriginal
+            ? { _id: item.productId, inventoryStatus: 'reserved', reservedBy: orderInSession._id, reservationExpiresAt: { $gt: new Date() } }
+            : { _id: item.productId, stockQuantity: { $gte: item.quantity } },
+          isReservedOriginal
+            ? { $set: { stockQuantity: 0, inventoryStatus: 'sold', isActive: false }, $unset: { reservedBy: 1, reservationExpiresAt: 1 } }
+            : { $inc: { stockQuantity: -item.quantity } },
           { session, new: true }
         );
 
         if (!updatedProduct) {
           await session.abortTransaction();
           session.endSession();
+          await releaseOriginalReservations(order._id);
 
           const finalOrder = await Order.findById(order._id);
           if (finalOrder) {
@@ -603,6 +666,10 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
         status: 'created',
         expectedDeliveryDate,
       });
+      if (!(await reserveOriginals(order))) {
+        await Order.findByIdAndDelete(order._id);
+        return res.status(409).json({ message: 'The original artwork is currently reserved' });
+      }
       sendOrderCreatedNotifications(order).catch((error) => console.error('Background order creation notification failed:', error));
 
       try {
@@ -612,7 +679,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
           merchantOrderId,
           amount: Math.round(totalWithTaxAndDiscount * 100),
           redirectUrl,
-          expireAfter: 1200,
+          expireAfter: Math.round(getReservationDurationMs() / 1000),
           metaInfo: {
             udf1: req.user._id.toString(),
             udf2: order._id.toString(),
@@ -640,6 +707,7 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
           orderId: order._id,
         });
       } catch (error) {
+        await releaseOriginalReservations(order._id);
         await Order.findByIdAndDelete(order._id);
         throw error;
       }
@@ -680,6 +748,10 @@ router.post('/create-intent', authMiddleware, validate(createIntentSchema), asyn
       status: 'created',
       expectedDeliveryDate,
     });
+    if (!(await reserveOriginals(order))) {
+      await Order.findByIdAndDelete(order._id);
+      return res.status(409).json({ message: 'The original artwork is currently reserved' });
+    }
     sendOrderCreatedNotifications(order).catch((error) => console.error('Background order creation notification failed:', error));
 
     if (paymentProvider === 'mock') {
@@ -716,6 +788,7 @@ router.get('/phonepe/status/:orderId', authMiddleware, async (req, res, next) =>
       if (mappedStatus === 'succeeded') {
         updatedOrder = await fulfillOrder(order);
       } else if (mappedStatus === 'failed') {
+        await releaseOriginalReservations(order._id);
         await Order.findByIdAndDelete(order._id);
         return res.json({
           order: null,
@@ -775,6 +848,7 @@ router.post('/phonepe/webhook', express.json(), async (req, res) => {
     if (mappedStatus === 'succeeded') {
       await fulfillOrder(order);
     } else if (mappedStatus === 'failed' && order.status === 'created') {
+      await releaseOriginalReservations(order._id);
       order.status = 'failed';
       await order.save();
     }
@@ -815,6 +889,16 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     } catch (error) {
       console.error('Webhook processing error', error);
       return res.status(500).json({ received: false });
+    }
+  }
+
+  if (['payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {
+    const paymentIntent = event.data.object;
+    const order = await Order.findOne({ paymentIntentId: paymentIntent.id, status: 'created' });
+    if (order) {
+      await releaseOriginalReservations(order._id);
+      order.status = 'failed';
+      await order.save();
     }
   }
 

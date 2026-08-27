@@ -9,6 +9,9 @@ const ProductSchema = new mongoose.Schema(
     category: { type: String, required: true },
     imageUrl: { type: String, required: true },
     stockQuantity: { type: Number, default: 0 },
+    inventoryStatus: { type: String, enum: ['available', 'reserved', 'sold'], default: 'available' },
+    reservedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+    reservationExpiresAt: { type: Date },
     artistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Artist', required: false },
     artistUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     artistName: { type: String, required: false },
@@ -45,6 +48,7 @@ const ProductSchema = new mongoose.Schema(
 ProductSchema.pre('save', function () {
   if (this.type === 'original-artwork') {
     if (this.stockQuantity > 1) this.stockQuantity = 1;
+    if (this.stockQuantity === 0) this.inventoryStatus = 'sold';
   }
   if (this.images && this.images.length > 0) {
     this.imageUrl = this.images[0];
