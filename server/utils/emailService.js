@@ -48,6 +48,11 @@ class EmailService {
   async verifyConnection() {
     if (process.env.NODE_ENV === 'test') return true;
 
+    if (process.env.RESEND_API_KEY) {
+      console.log('[Mail] Resend API configured');
+      return true;
+    }
+
     const transporter = this.getTransporter();
     const port = parseInt(process.env.SMTP_PORT || '465', 10);
     const host = process.env.SMTP_HOST || 'smtp.hostinger.com';
@@ -59,6 +64,30 @@ class EmailService {
   async sendVerificationEmail(toEmail, otp) {
     if (!toEmail) throw new Error('Recipient email is required');
 
+    if (process.env.RESEND_API_KEY) {
+      const from = process.env.RESEND_FROM || process.env.SMTP_FROM || 'onboarding@resend.dev';
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: `Artopus Support <${from}>`,
+          to: [toEmail],
+          subject: 'Verify Your Artopus Account',
+          html: this.buildVerificationEmailHtml(otp),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Resend API ${response.status}: ${errorBody}`);
+      }
+
+      return response.json();
+    }
+
     const transporter = this.getTransporter();
     const from = this.fromAddress || process.env.SMTP_FROM || process.env.SMTP_USERNAME || 'contact@artopusindia.com';
 
@@ -66,7 +95,14 @@ class EmailService {
       from: `"Artopus Support" <${from}>`,
       to: toEmail,
       subject: 'Verify Your Artopus Account',
-      html: `
+      html: this.buildVerificationEmailHtml(otp),
+    });
+
+    return info;
+  }
+
+  buildVerificationEmailHtml(otp) {
+    return `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
           <h2 style="color: #6366f1; text-align: center;">Verify Your Account</h2>
           <p>Thank you for registering with Artopus. Please use the following One-Time Password (OTP) to complete your email verification. This OTP is valid for 10 minutes:</p>
@@ -75,10 +111,7 @@ class EmailService {
           </div>
           <p style="color: #64748b; font-size: 14px;">If you did not request this verification, please ignore this email.</p>
         </div>
-      `,
-    });
-
-    return info;
+      `;
   }
 
   async sendOrderCreatedEmail(toEmail, details) {
