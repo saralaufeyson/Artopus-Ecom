@@ -20,7 +20,7 @@ class EmailService {
       const port = parseInt(process.env.SMTP_PORT || '465', 10);
       const user = process.env.SMTP_USERNAME || 'contact@artopusindia.com';
       const pass = process.env.SMTP_PASSWORD;
-      const from = process.env.SMTP_FROM || 'contact@artopusindia.com';
+      const from = process.env.SMTP_FROM || user;
 
       // Always secure for port 465, else false
       const secure = port === 465;
@@ -49,7 +49,7 @@ class EmailService {
     if (!toEmail) throw new Error('Recipient email is required');
 
     const transporter = this.getTransporter();
-    const from = this.fromAddress || process.env.SMTP_FROM || 'contact@artopusindia.com';
+    const from = this.fromAddress || process.env.SMTP_FROM || process.env.SMTP_USERNAME || 'contact@artopusindia.com';
 
     const info = await transporter.sendMail({
       from: `"Artopus Support" <${from}>`,

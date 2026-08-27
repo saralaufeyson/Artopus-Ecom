@@ -36,7 +36,13 @@ async function generateAndSendOTP(user) {
   try {
     await emailService.sendVerificationEmail(user.email, otp);
   } catch (error) {
-    console.error('Error sending verification email:', error.message);
+    console.error('Error sending verification email:', {
+      code: error.code,
+      responseCode: error.responseCode,
+      command: error.command,
+      message: error.message,
+    });
+    throw new Error('Unable to send verification email');
   }
 }
 
