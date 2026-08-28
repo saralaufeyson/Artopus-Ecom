@@ -304,7 +304,7 @@ const sections: PolicySection[] = [
       'The duplicate transaction will be verified against our payment and order records before a refund is approved.',
 
       '5. Refund Processing',
-      'Once a duplicate transaction is successfully verified, the eligible refund will be processed and credited within 5–7 business days.',
+      'Once a duplicate transaction is successfully verified, the eligible refund will be processed and credited within 4-5 business days.',
       'The refund will generally be processed to the original payment method used for the transaction.',
       'The time taken for the refunded amount to reflect in the customer’s account may vary depending on the bank, card issuer, UPI provider, or payment gateway.',
 
