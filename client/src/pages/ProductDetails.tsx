@@ -490,7 +490,7 @@ const ProductDetails: React.FC = () => {
               <div className="flex gap-3 p-4 rounded-xl border border-gray-150 dark:border-border-dark bg-gray-50/50 dark:bg-background-card-dark/40">
                 <RotateCcw className="text-logo-purple shrink-0" size={20} />
                 <div>
-                  <h4 className="text-xs font-bold text-gray-900 dark:text-text-dark-primary mb-0.5">14-Day Easy Returns</h4>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-text-dark-primary mb-0.5">7-Day Easy Returns</h4>
                   <p className="text-[10px] text-gray-550 dark:text-text-dark-secondary leading-snug">Not completely in love? We offer hassle-free return shipping and processing.</p>
                 </div>
               </div>
