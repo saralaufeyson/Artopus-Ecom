@@ -17,6 +17,7 @@ const ProductSchema = new mongoose.Schema(
     artistName: { type: String, required: false },
     artistEmail: { type: String },
     medium: { type: String },
+    tags: { type: [String], default: [] },
     dimensions: { type: String },
     year: { type: String },
     videoUrl: { type: String },

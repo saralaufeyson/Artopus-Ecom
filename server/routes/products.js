@@ -37,24 +37,94 @@ async function normalizeProductImage(rawImageUrl) {
   return uploadResult ? getOptimizedCloudinaryUrl(uploadResult.secure_url) : rawImageUrl;
 }
 
-// GET /api/products?type=&category=&artistId=&q=&minPrice=&maxPrice=&inStock=&page=&limit=
+const publicProductConditions = [
+  { isActive: true },
+  {
+    $or: [
+      { approvalStatus: 'approved' },
+      { approvalStatus: { $exists: false } },
+      { approvalStatus: null },
+    ],
+  },
+];
+
+function getListParam(value) {
+  if (!value) return [];
+  return (Array.isArray(value) ? value : String(value).split(',')).map((item) => item.trim()).filter(Boolean);
+}
+
+// GET /api/products/facets - public filter values from the catalogue
+router.get('/facets', async (req, res, next) => {
+  try {
+    const facets = await Product.aggregate([
+      { $match: { $and: publicProductConditions } },
+      {
+        $project: {
+          category: 1,
+          artistId: 1,
+          artistName: 1,
+          medium: 1,
+          tags: 1,
+          availability: { $cond: [{ $gt: ['$stockQuantity', 0] }, 'available', 'sold-out'] },
+          sizes: { $ifNull: ['$variants.size', []] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          categories: { $addToSet: '$category' },
+          artists: { $addToSet: { id: '$artistId', name: '$artistName' } },
+          mediums: { $addToSet: '$medium' },
+          tags: { $addToSet: '$tags' },
+          sizes: { $addToSet: '$sizes' },
+          availability: { $addToSet: '$availability' },
+        },
+      },
+    ]);
+
+    const result = facets[0] || {};
+    const uniqueValues = (values) => [...new Set(values.flat(Infinity).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
+    const artists = (result.artists || [])
+      .filter((artist) => artist.name)
+      .reduce((items, artist) => {
+        const value = String(artist.id || artist.name);
+        if (!items.some((item) => item.value === value)) items.push({ value, label: artist.name });
+        return items;
+      }, [])
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    res.json({
+      categories: uniqueValues(result.categories || []),
+      artists,
+      mediums: uniqueValues(result.mediums || []),
+      sizes: uniqueValues(result.sizes || []),
+      tags: uniqueValues(result.tags || []),
+      availability: uniqueValues(result.availability || []),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/products?type=&category=&artist=&medium=&size=&q=&minPrice=&maxPrice=&inStock=&availability=&page=&limit=
 router.get('/', async (req, res, next) => {
   try {
-    const { type, category, artistId, q, sort, featured, minPrice, maxPrice, inStock, page = 1, limit = 12 } = req.query;
-    const conditions = [
-      { isActive: true },
-      {
-        $or: [
-          { approvalStatus: 'approved' },
-          { approvalStatus: { $exists: false } },
-          { approvalStatus: null },
-        ],
-      },
-    ];
+    const { type, q, sort, featured, minPrice, maxPrice, inStock, page = 1, limit = 12 } = req.query;
+    const category = getListParam(req.query.category);
+    const artist = getListParam(req.query.artist || req.query.artistId);
+    const medium = getListParam(req.query.medium);
+    const size = getListParam(req.query.size);
+    const availability = getListParam(req.query.availability);
+    const conditions = [...publicProductConditions];
 
     if (type) conditions.push({ type });
-    if (category) conditions.push({ category });
-    if (artistId) conditions.push({ artistId });
+    if (category.length) conditions.push({ category: { $in: category } });
+    if (artist.length) conditions.push({ $or: [{ artistId: { $in: artist } }, { artistName: { $in: artist } }] });
+    if (medium.length) conditions.push({ medium: { $in: medium } });
+    if (size.length) conditions.push({ 'variants.size': { $in: size } });
+    if (availability.length && !(availability.includes('available') && availability.includes('sold-out'))) {
+      conditions.push(availability.includes('available') ? { stockQuantity: { $gt: 0 } } : { stockQuantity: { $lte: 0 } });
+    }
     
     // Advanced price range filtering
     if (minPrice || maxPrice) {
@@ -78,7 +148,8 @@ router.get('/', async (req, res, next) => {
           { description: new RegExp(escapedQ, 'i') }, 
           { artistName: new RegExp(escapedQ, 'i') },
           { category: new RegExp(escapedQ, 'i') },
-          { medium: new RegExp(escapedQ, 'i') }
+          { medium: new RegExp(escapedQ, 'i') },
+          { tags: new RegExp(escapedQ, 'i') }
         ],
       });
     }
